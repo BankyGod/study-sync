@@ -1,40 +1,14 @@
 import { format } from 'date-fns'
-import { STORAGE_KEYS } from '@/utils/constants'
+import { DEV_BYPASS_AUTH, STORAGE_KEYS } from '@/utils/constants'
+import { getStoredToken } from '@/services/authService'
+import {
+  buildFileDownloadUrl,
+  deleteWorkspaceFile,
+  fetchWorkspaceFiles,
+  uploadWorkspaceFile,
+} from '@/services/workspaceService'
 
-export const CURRENT_FILE_USER_ID = 'alex'
 export const MAX_SHARED_FILE_SIZE = 10 * 1024 * 1024
-
-const DEFAULT_GROUP_FILES = {
-  demo: [
-    {
-      id: 'f1',
-      fileName: 'DP_Chapter3_Notes.pdf',
-      fileSize: 248000,
-      fileType: 'application/pdf',
-      uploadedBy: 'Sarah',
-      uploadedById: 'sarah',
-      uploadedAt: '2024-10-10T14:20:00.000Z',
-    },
-    {
-      id: 'f2',
-      fileName: 'Practice_Set_4_Solutions.docx',
-      fileSize: 156000,
-      fileType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      uploadedBy: 'Alex',
-      uploadedById: 'alex',
-      uploadedAt: '2024-10-11T09:15:00.000Z',
-    },
-    {
-      id: 'f3',
-      fileName: 'Algorithm_Cheatsheet.png',
-      fileSize: 890000,
-      fileType: 'image/png',
-      uploadedBy: 'Mike P.',
-      uploadedById: 'mike',
-      uploadedAt: '2024-10-11T16:40:00.000Z',
-    },
-  ],
-}
 
 export function formatFileSize(bytes) {
   if (bytes < 1024) return `${bytes} B`
@@ -57,68 +31,110 @@ export function getFileIconType(fileType = '', fileName = '') {
   return 'file'
 }
 
-function readAllFiles() {
-  const raw = localStorage.getItem(STORAGE_KEYS.GROUP_FILES)
-  if (!raw) return { ...DEFAULT_GROUP_FILES }
-
-  try {
-    const stored = JSON.parse(raw)
-    return { ...DEFAULT_GROUP_FILES, ...stored }
-  } catch {
-    return { ...DEFAULT_GROUP_FILES }
+function normalizeFile(groupId, file) {
+  return {
+    ...file,
+    downloadUrl: buildFileDownloadUrl(groupId, file),
   }
 }
 
-function writeAllFiles(filesByGroup) {
-  localStorage.setItem(STORAGE_KEYS.GROUP_FILES, JSON.stringify(filesByGroup))
+function readLocalFiles(groupId) {
+  const raw = localStorage.getItem(STORAGE_KEYS.GROUP_FILES)
+  if (!raw) return []
+
+  try {
+    const stored = JSON.parse(raw)
+    return stored[groupId] ?? []
+  } catch {
+    return []
+  }
 }
 
-export function loadGroupFiles(groupId) {
-  const all = readAllFiles()
-  return all[groupId] ?? []
+function writeLocalFiles(groupId, files) {
+  const raw = localStorage.getItem(STORAGE_KEYS.GROUP_FILES)
+  const all = raw ? JSON.parse(raw) : {}
+  all[groupId] = files
+  localStorage.setItem(STORAGE_KEYS.GROUP_FILES, JSON.stringify(all))
 }
 
-export function uploadGroupFile(groupId, { file, uploadedBy, uploadedById }) {
+export async function loadGroupFiles(groupId) {
+  if (DEV_BYPASS_AUTH) {
+    return readLocalFiles(groupId)
+  }
+
+  const data = await fetchWorkspaceFiles(groupId)
+  return (data.files ?? []).map((file) => normalizeFile(groupId, file))
+}
+
+export async function uploadGroupFile(groupId, { file }) {
   if (!file) return loadGroupFiles(groupId)
 
   if (file.size > MAX_SHARED_FILE_SIZE) {
     throw new Error(`Files must be smaller than ${formatFileSize(MAX_SHARED_FILE_SIZE)}.`)
   }
 
-  const all = readAllFiles()
-  const files = all[groupId] ?? []
-
-  const entry = {
-    id: crypto.randomUUID(),
-    fileName: file.name,
-    fileSize: file.size,
-    fileType: file.type || 'application/octet-stream',
-    uploadedBy,
-    uploadedById,
-    uploadedAt: new Date().toISOString(),
+  if (DEV_BYPASS_AUTH) {
+    const files = readLocalFiles(groupId)
+    const entry = {
+      id: crypto.randomUUID(),
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type || 'application/octet-stream',
+      uploadedBy: 'You',
+      uploadedById: 'local-user',
+      uploadedAt: new Date().toISOString(),
+    }
+    const next = [entry, ...files]
+    writeLocalFiles(groupId, next)
+    return next
   }
 
-  all[groupId] = [entry, ...files]
-  writeAllFiles(all)
-  return all[groupId]
+  await uploadWorkspaceFile(groupId, file)
+
+  return loadGroupFiles(groupId)
 }
 
-export function deleteGroupFile(groupId, fileId, requesterId = CURRENT_FILE_USER_ID) {
-  const all = readAllFiles()
-  const files = all[groupId] ?? DEFAULT_GROUP_FILES[groupId] ?? []
-  const target = files.find((file) => file.id === fileId)
-
-  if (!target) return loadGroupFiles(groupId)
-
-  if (target.uploadedById !== requesterId) {
-    throw new Error('You can only delete files you uploaded.')
+export async function deleteGroupFile(groupId, fileId) {
+  if (DEV_BYPASS_AUTH) {
+    const files = readLocalFiles(groupId).filter((file) => file.id !== fileId)
+    writeLocalFiles(groupId, files)
+    return files
   }
 
-  all[groupId] = files.filter((file) => file.id !== fileId)
-  writeAllFiles(all)
-  return all[groupId]
+  await deleteWorkspaceFile(groupId, fileId)
+  return loadGroupFiles(groupId)
 }
 
 export function getTotalFileSize(files = []) {
   return files.reduce((total, file) => total + file.fileSize, 0)
+}
+
+export function downloadGroupFile(file) {
+  if (!file?.downloadUrl) return
+
+  const token = getStoredToken()
+  const link = document.createElement('a')
+  link.href = file.downloadUrl
+  link.target = '_blank'
+  link.rel = 'noopener'
+
+  if (token && file.downloadUrl.startsWith('http')) {
+    fetch(file.downloadUrl, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((response) => response.blob())
+      .then((blob) => {
+        const url = URL.createObjectURL(blob)
+        link.href = url
+        link.download = file.fileName
+        link.click()
+        URL.revokeObjectURL(url)
+      })
+      .catch(() => {
+        link.click()
+      })
+    return
+  }
+
+  link.click()
 }

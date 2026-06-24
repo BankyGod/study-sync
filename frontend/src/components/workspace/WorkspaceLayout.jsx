@@ -1,5 +1,6 @@
 import { Outlet, useParams } from 'react-router-dom'
 import { SessionTimerProvider } from '@/context/SessionTimerContext'
+import { WorkspaceProvider, useWorkspace } from '@/context/WorkspaceContext'
 import {
   WorkspaceScheduleProvider,
   useWorkspaceSchedule,
@@ -13,35 +14,7 @@ import { WorkspaceRightPanel } from '@/components/workspace/WorkspaceRightPanel'
 import { WorkspaceHeader } from '@/components/workspace/WorkspaceHeader'
 import { ScheduleSessionModal } from '@/components/workspace/ScheduleSessionModal'
 import { AddTaskModal } from '@/components/kanban/AddTaskModal'
-import { getActiveMatchingCourse } from '@/services/onboardingProfileService'
-import { buildStudyGroupTitle, courseToGroupId } from '@/utils/onboarding'
-
-const groupTitles = {
-  demo: 'CS401 - Algorithms Study Group',
-  'linear-algebra': 'Linear Algebra Study Group',
-  'quantum-physics': 'Quantum Physics Study Group',
-}
-
-function resolveGroupTitle(groupId) {
-  if (groupTitles[groupId]) return groupTitles[groupId]
-
-  const activeCourse = getActiveMatchingCourse()
-  if (activeCourse && courseToGroupId(activeCourse) === groupId) {
-    return buildStudyGroupTitle(activeCourse)
-  }
-
-  const parts = groupId.split('-')
-  if (parts.length >= 2) {
-    const courseNumber = parts[parts.length - 1]
-    const subject = parts
-      .slice(0, -1)
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
-    return `${subject} ${courseNumber.toUpperCase()} Study Group`
-  }
-
-  return `Study Group · ${groupId}`
-}
+import { Spinner } from '@/components/common/Spinner'
 
 function WorkspaceScheduleModal() {
   const { isScheduleModalOpen, closeScheduleModal, scheduleSession } = useWorkspaceSchedule()
@@ -56,6 +29,7 @@ function WorkspaceScheduleModal() {
 }
 
 function WorkspaceAddTaskModal() {
+  const { members } = useWorkspace()
   const { isAddTaskModalOpen, closeAddTaskModal, createTask } = useWorkspaceTasks()
 
   return (
@@ -63,37 +37,56 @@ function WorkspaceAddTaskModal() {
       open={isAddTaskModalOpen}
       onClose={closeAddTaskModal}
       onSave={createTask}
+      members={members}
     />
+  )
+}
+
+function WorkspaceShell() {
+  const { groupId } = useParams()
+  const { title, isLoading } = useWorkspace()
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    )
+  }
+
+  return (
+    <WorkspaceScheduleProvider groupId={groupId}>
+      <WorkspaceTasksProvider groupId={groupId}>
+        <div className="flex h-[calc(100vh-4rem)] min-h-0 overflow-hidden">
+          <WorkspaceSidebar groupId={groupId} />
+
+          <div className="flex min-h-0 flex-1 gap-6 overflow-hidden p-5 lg:p-6">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+              <WorkspaceHeader title={title} />
+              <div className="flex min-h-0 flex-1 flex-col">
+                <Outlet />
+              </div>
+            </div>
+
+            <WorkspaceRightPanel />
+          </div>
+        </div>
+
+        <WorkspaceScheduleModal />
+        <WorkspaceAddTaskModal />
+      </WorkspaceTasksProvider>
+    </WorkspaceScheduleProvider>
   )
 }
 
 export function WorkspaceLayout() {
   const { groupId } = useParams()
-  const title = resolveGroupTitle(groupId)
 
   return (
     <SessionTimerProvider>
-      <WorkspaceScheduleProvider groupId={groupId}>
-        <WorkspaceTasksProvider groupId={groupId}>
-          <div className="flex h-[calc(100vh-4rem)] min-h-0 overflow-hidden">
-            <WorkspaceSidebar groupId={groupId} />
-
-            <div className="flex min-h-0 flex-1 gap-6 overflow-hidden p-5 lg:p-6">
-              <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                <WorkspaceHeader title={title} />
-                <div className="flex min-h-0 flex-1 flex-col">
-                  <Outlet />
-                </div>
-              </div>
-
-              <WorkspaceRightPanel />
-            </div>
-          </div>
-
-          <WorkspaceScheduleModal />
-          <WorkspaceAddTaskModal />
-        </WorkspaceTasksProvider>
-      </WorkspaceScheduleProvider>
+      <WorkspaceProvider groupId={groupId}>
+        <WorkspaceShell />
+      </WorkspaceProvider>
     </SessionTimerProvider>
   )
 }

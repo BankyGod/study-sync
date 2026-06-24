@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import {
   fetchCurrentUser,
   getStoredToken,
@@ -23,7 +23,41 @@ function getInitialToken() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(getInitialUser)
   const [token, setToken] = useState(getInitialToken)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(!DEV_BYPASS_AUTH && Boolean(getStoredToken()))
+
+  useEffect(() => {
+    if (DEV_BYPASS_AUTH || !getStoredToken()) {
+      setIsLoading(false)
+      return
+    }
+
+    let cancelled = false
+
+    async function hydrate() {
+      try {
+        const currentUser = await fetchCurrentUser()
+        if (!cancelled) {
+          setUser(currentUser)
+        }
+      } catch {
+        if (!cancelled) {
+          logoutRequest()
+          setUser(null)
+          setToken(null)
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    hydrate()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const login = useCallback(async (credentials) => {
     setIsLoading(true)

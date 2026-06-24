@@ -1,12 +1,59 @@
 import { useEffect, useRef, useState } from 'react'
 import { Pause, Play } from 'lucide-react'
 import { formatVoiceDuration } from '@/hooks/useVoiceRecorder'
+import { getStoredToken } from '@/services/authService'
 import { cn } from '@/utils/cn'
 
 export function VoiceMessagePlayer({ src, durationSec, isOwnMessage }) {
   const audioRef = useRef(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [playbackSrc, setPlaybackSrc] = useState(src)
+
+  useEffect(() => {
+    let objectUrl
+
+    async function prepareSrc() {
+      if (!src) {
+        setPlaybackSrc('')
+        return
+      }
+
+      if (!src.startsWith('http')) {
+        setPlaybackSrc(src)
+        return
+      }
+
+      const token = getStoredToken()
+      if (!token) {
+        setPlaybackSrc(src)
+        return
+      }
+
+      try {
+        const response = await fetch(src, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!response.ok) {
+          setPlaybackSrc(src)
+          return
+        }
+        const blob = await response.blob()
+        objectUrl = URL.createObjectURL(blob)
+        setPlaybackSrc(objectUrl)
+      } catch {
+        setPlaybackSrc(src)
+      }
+    }
+
+    prepareSrc()
+
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl)
+      }
+    }
+  }, [src])
 
   const togglePlayback = async () => {
     const audio = audioRef.current
@@ -48,7 +95,7 @@ export function VoiceMessagePlayer({ src, durationSec, isOwnMessage }) {
       audio.removeEventListener('timeupdate', handleTimeUpdate)
       audio.removeEventListener('ended', handleEnded)
     }
-  }, [src])
+  }, [playbackSrc])
 
   return (
     <div
@@ -62,6 +109,7 @@ export function VoiceMessagePlayer({ src, durationSec, isOwnMessage }) {
       <button
         type="button"
         onClick={togglePlayback}
+        disabled={!playbackSrc}
         className={cn(
           'flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition',
           isOwnMessage
@@ -93,7 +141,7 @@ export function VoiceMessagePlayer({ src, durationSec, isOwnMessage }) {
         </p>
       </div>
 
-      <audio ref={audioRef} src={src} preload="metadata" className="hidden" />
+      <audio ref={audioRef} src={playbackSrc} preload="metadata" className="hidden" />
     </div>
   )
 }

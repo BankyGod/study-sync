@@ -30,7 +30,7 @@ export function useWebSocket(groupId, handlers = {}) {
       disconnectSocket()
       setIsConnected(false)
     }
-  }, [token, groupId])
+  }, [token, groupId, handlers])
 
   return { isConnected }
 }

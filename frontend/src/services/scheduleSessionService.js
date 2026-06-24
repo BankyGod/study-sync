@@ -1,43 +1,15 @@
 import { format, parse } from 'date-fns'
-import { STORAGE_KEYS } from '@/utils/constants'
+import { DEV_BYPASS_AUTH, STORAGE_KEYS } from '@/utils/constants'
+import {
+  createWorkspaceSession,
+  fetchWorkspaceSessions,
+} from '@/services/workspaceService'
 
 export const MEETING_TYPES = [
   'Online Meeting',
   'In Person',
   'Hybrid',
 ]
-
-const DEFAULT_GROUP_SESSIONS = {
-  demo: [
-    {
-      id: '1',
-      title: 'Study Session - Dynamic Programming',
-      date: '2024-01-12',
-      startTime: '12:00',
-      endTime: '14:00',
-      meetingType: 'Online Meeting',
-      memberCount: 12,
-    },
-    {
-      id: '2',
-      title: 'Quiz preparation',
-      date: '2024-02-20',
-      startTime: '10:00',
-      endTime: '13:00',
-      meetingType: 'Online Meeting',
-      memberCount: 10,
-    },
-    {
-      id: '3',
-      title: 'Group Presentation Rehearsal',
-      date: '2024-03-15',
-      startTime: '15:00',
-      endTime: '17:00',
-      meetingType: 'In Person',
-      memberCount: 15,
-    },
-  ],
-}
 
 function formatTime12h(timeValue) {
   const parsed = parse(timeValue, 'HH:mm', new Date())
@@ -59,49 +31,52 @@ export function toScheduleListItem(session) {
   }
 }
 
-function readAllSchedules() {
+function readLocalSessions(groupId) {
   const raw = localStorage.getItem(STORAGE_KEYS.GROUP_SCHEDULES)
-  if (!raw) return { ...DEFAULT_GROUP_SESSIONS }
+  if (!raw) return []
 
   try {
     const stored = JSON.parse(raw)
-    return { ...DEFAULT_GROUP_SESSIONS, ...stored }
+    return stored[groupId] ?? []
   } catch {
-    return { ...DEFAULT_GROUP_SESSIONS }
+    return []
   }
 }
 
-function writeAllSchedules(schedules) {
-  localStorage.setItem(STORAGE_KEYS.GROUP_SCHEDULES, JSON.stringify(schedules))
+function writeLocalSessions(groupId, sessions) {
+  const raw = localStorage.getItem(STORAGE_KEYS.GROUP_SCHEDULES)
+  const all = raw ? JSON.parse(raw) : {}
+  all[groupId] = sessions
+  localStorage.setItem(STORAGE_KEYS.GROUP_SCHEDULES, JSON.stringify(all))
 }
 
-export function loadGroupSessions(groupId) {
-  const schedules = readAllSchedules()
-  return schedules[groupId] ?? []
-}
-
-export function saveGroupSessions(groupId, sessions) {
-  const schedules = readAllSchedules()
-  schedules[groupId] = sessions
-  writeAllSchedules(schedules)
-  return sessions
-}
-
-export function addGroupSession(groupId, sessionInput) {
-  const sessions = loadGroupSessions(groupId)
-  const session = {
-    id: crypto.randomUUID(),
-    memberCount: 12,
-    ...sessionInput,
-    createdAt: new Date().toISOString(),
+export async function loadGroupSessions(groupId) {
+  if (DEV_BYPASS_AUTH) {
+    return readLocalSessions(groupId)
   }
 
-  const nextSessions = [...sessions, session].sort(
-    (a, b) =>
-      new Date(`${a.date}T${a.startTime}`).getTime() -
-      new Date(`${b.date}T${b.startTime}`).getTime(),
-  )
+  const data = await fetchWorkspaceSessions(groupId)
+  return data.sessions ?? []
+}
 
-  saveGroupSessions(groupId, nextSessions)
-  return session
+export async function addGroupSession(groupId, sessionInput) {
+  if (DEV_BYPASS_AUTH) {
+    const sessions = readLocalSessions(groupId)
+    const session = {
+      id: crypto.randomUUID(),
+      memberCount: 1,
+      ...sessionInput,
+      createdAt: new Date().toISOString(),
+    }
+    const nextSessions = [...sessions, session].sort(
+      (a, b) =>
+        new Date(`${a.date}T${a.startTime}`).getTime() -
+        new Date(`${b.date}T${b.startTime}`).getTime(),
+    )
+    writeLocalSessions(groupId, nextSessions)
+    return session
+  }
+
+  const data = await createWorkspaceSession(groupId, sessionInput)
+  return data
 }

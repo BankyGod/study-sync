@@ -1,7 +1,7 @@
 import { GraduationCap, MapPin } from 'lucide-react'
-import { getProfileInitials } from '@/services/userProfileService'
+import { getProfileInitials } from '@/services/usersService'
 
-export function ProfileSummaryCard({ profile, onEdit }) {
+export function ProfileSummaryCard({ profile, groupCount = 0, onEdit }) {
   const initials = getProfileInitials(profile.fullName)
   const universities = [profile.primaryUniversity, profile.secondaryUniversity]
     .filter(Boolean)
@@ -27,7 +27,8 @@ export function ProfileSummaryCard({ profile, onEdit }) {
             )}
             <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
               <MapPin className="h-4 w-4 shrink-0" />
-              {profile.location} · {profile.email}
+              {profile.location || 'No location set'}
+              {profile.email ? ` · ${profile.email}` : ''}
             </p>
           </div>
         </div>
@@ -42,15 +43,15 @@ export function ProfileSummaryCard({ profile, onEdit }) {
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl bg-violet-50 px-4 py-3">
-          <p className="text-2xl font-bold text-slate-900">3</p>
+          <p className="text-2xl font-bold text-slate-900">{groupCount}</p>
           <p className="text-sm text-slate-600">Study groups</p>
         </div>
         <div className="rounded-xl bg-cyan-50 px-4 py-3">
-          <p className="text-2xl font-bold text-slate-900">24</p>
+          <p className="text-2xl font-bold text-slate-900">—</p>
           <p className="text-sm text-slate-600">Total sessions</p>
         </div>
         <div className="rounded-xl bg-amber-50 px-4 py-3">
-          <p className="text-2xl font-bold text-slate-900">156h</p>
+          <p className="text-2xl font-bold text-slate-900">—</p>
           <p className="text-sm text-slate-600">Total study time</p>
         </div>
       </div>

@@ -1,37 +1,15 @@
-import { useState } from 'react'
 import { Check, Monitor, Headphones, BookOpen, Hand } from 'lucide-react'
+import { LEARNING_STYLE_OPTIONS } from '@/utils/onboarding'
 import { cn } from '@/utils/cn'
 
-const learningStyles = [
-  {
-    id: 'visual',
-    label: 'Visual',
-    description: 'Learn best through images, diagrams, and videos.',
-    icon: Monitor,
-  },
-  {
-    id: 'auditory',
-    label: 'Auditory',
-    description: 'Learn best through listening and speaking.',
-    icon: Headphones,
-  },
-  {
-    id: 'reading',
-    label: 'Reading/Writing',
-    description: 'Learn best through reading and writing notes.',
-    icon: BookOpen,
-  },
-  {
-    id: 'kinesthetic',
-    label: 'Kinesthetic',
-    description: 'Learn best through hands-on activities.',
-    icon: Hand,
-  },
-]
+const styleIcons = {
+  visual: Monitor,
+  auditory: Headphones,
+  reading: BookOpen,
+  kinesthetic: Hand,
+}
 
-export function LearningStyleSelector() {
-  const [selected, setSelected] = useState('visual')
-
+export function LearningStyleSelector({ value, onChange, readOnly = false }) {
   return (
     <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
       <header className="mb-5">
@@ -42,20 +20,22 @@ export function LearningStyleSelector() {
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {learningStyles.map((style) => {
-          const Icon = style.icon
-          const isSelected = selected === style.id
+        {LEARNING_STYLE_OPTIONS.map((style) => {
+          const Icon = styleIcons[style.id] ?? Monitor
+          const isSelected = value === style.id
 
           return (
             <button
               key={style.id}
               type="button"
-              onClick={() => setSelected(style.id)}
+              disabled={readOnly}
+              onClick={() => onChange?.(style.id)}
               className={cn(
                 'relative rounded-xl border p-4 text-left transition',
                 isSelected
                   ? 'border-violet-500 bg-violet-50/50 ring-1 ring-violet-500'
                   : 'border-slate-200 bg-white hover:border-slate-300',
+                readOnly && 'cursor-default',
               )}
             >
               {isSelected && (

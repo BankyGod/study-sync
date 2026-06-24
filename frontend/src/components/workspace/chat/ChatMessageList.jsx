@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { ChatMessage } from '@/components/workspace/chat/ChatMessage'
-import { CURRENT_CHAT_USER_ID, groupMessagesByDate } from '@/services/workspaceChatService'
+import { groupMessagesByDate } from '@/services/workspaceChatService'
 
-export function ChatMessageList({ messages, onDeleteMessage }) {
+export function ChatMessageList({ messages, currentUserId, onDeleteMessage }) {
   const listRef = useRef(null)
   const isNearBottomRef = useRef(true)
   const groupedMessages = groupMessagesByDate(messages)
@@ -56,12 +56,12 @@ export function ChatMessageList({ messages, onDeleteMessage }) {
               <div className="space-y-4">
                 {group.messages.map((message, index) => {
                   const previous = group.messages[index - 1]
-                  const isOwnMessage = message.senderId === CURRENT_CHAT_USER_ID
+                  const isOwnMessage = message.senderId === currentUserId
                   const showSender =
                     !isOwnMessage &&
                     (!previous ||
                       previous.senderId !== message.senderId ||
-                      previous.senderId === CURRENT_CHAT_USER_ID)
+                      previous.senderId === currentUserId)
 
                   return (
                     <ChatMessage

@@ -31,9 +31,13 @@ export function EditProfileModal({ open, profile, onClose, onSave }) {
   }, [open, profile, reset])
 
   const onSubmit = async (values) => {
-    onSave({
-      ...values,
+    await onSave({
+      ...profile,
+      fullName: values.fullName,
+      studentRole: values.studentRole,
+      primaryUniversity: values.primaryUniversity,
       secondaryUniversity: values.secondaryUniversity?.trim() ?? '',
+      location: values.location,
     })
     onClose()
   }
@@ -73,7 +77,9 @@ export function EditProfileModal({ open, profile, onClose, onSave }) {
         <Input
           label="Email"
           type="email"
-          placeholder="alexjohnson@email.com"
+          readOnly
+          disabled
+          className="bg-slate-50"
           error={errors.email?.message}
           {...register('email')}
         />

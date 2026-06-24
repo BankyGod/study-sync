@@ -1,17 +1,15 @@
 import { Paperclip, Trash2 } from 'lucide-react'
 import { VoiceMessagePlayer } from '@/components/workspace/chat/VoiceMessagePlayer'
-import {
-  formatFileSize,
-  formatMessageTime,
-  getChatMember,
-} from '@/services/workspaceChatService'
+import { useWorkspaceMember } from '@/context/WorkspaceContext'
+import { formatFileSize, formatMessageTime } from '@/services/workspaceChatService'
 import { cn } from '@/utils/cn'
 
 export function ChatMessage({ message, isOwnMessage, showSender, onDelete }) {
-  const member = getChatMember(message.senderId)
+  const member = useWorkspaceMember(message.senderId)
   const isAttachment = message.type === 'attachment'
   const isVoice = message.type === 'voice'
   const canDelete = isOwnMessage && onDelete
+  const voiceSrc = message.voice?.streamUrl ?? message.voice?.audioDataUrl
 
   return (
     <div className={cn('flex gap-3', isOwnMessage ? 'flex-row-reverse' : 'flex-row')}>
@@ -50,7 +48,7 @@ export function ChatMessage({ message, isOwnMessage, showSender, onDelete }) {
 
           {isVoice ? (
             <VoiceMessagePlayer
-              src={message.voice?.audioDataUrl}
+              src={voiceSrc}
               durationSec={message.voice?.durationSec ?? 0}
               isOwnMessage={isOwnMessage}
             />

@@ -10,6 +10,7 @@ import {
 import { arrayMove } from '@dnd-kit/sortable'
 import { KanbanColumn } from '@/components/kanban/KanbanColumn'
 import { TaskCard } from '@/components/kanban/TaskCard'
+import { Spinner } from '@/components/common/Spinner'
 import { useWorkspaceTasks } from '@/context/WorkspaceTasksContext'
 import {
   COLUMN_IDS,
@@ -19,7 +20,8 @@ import {
 } from '@/services/workspaceTaskService'
 
 export function WorkspaceKanban() {
-  const { columns, setColumns, commitColumns, reloadColumns, openAddTaskModal } = useWorkspaceTasks()
+  const { columns, setColumns, commitColumns, reloadColumns, openAddTaskModal, isLoading } =
+    useWorkspaceTasks()
   const [activeTask, setActiveTask] = useState(null)
 
   const sensors = useSensors(
@@ -120,7 +122,12 @@ export function WorkspaceKanban() {
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="grid gap-5 lg:grid-cols-3">
+      {isLoading ? (
+        <div className="flex min-h-[320px] items-center justify-center">
+          <Spinner size="lg" />
+        </div>
+      ) : (
+        <div className="grid gap-5 lg:grid-cols-3">
         <KanbanColumn
           columnId="todo"
           tasks={columns.todo}
@@ -129,7 +136,8 @@ export function WorkspaceKanban() {
         />
         <KanbanColumn columnId="in_progress" tasks={columns.in_progress} />
         <KanbanColumn columnId="completed" tasks={columns.completed} />
-      </div>
+        </div>
+      )}
 
       <DragOverlay dropAnimation={null}>
         {activeTask ? (

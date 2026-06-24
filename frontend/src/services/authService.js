@@ -6,11 +6,11 @@ export async function register(payload) {
   if (DEV_BYPASS_AUTH) {
     const data = buildDevAuthResponse(payload)
     persistSession(data)
-    localStorage.setItem(STORAGE_KEYS.PENDING_REGISTRATION, JSON.stringify(payload))
     return data
   }
 
-  const { data } = await apiClient.post(endpoints.auth.register, payload)
+  const { confirmPassword, agreeToTerms, ...body } = payload
+  const { data } = await apiClient.post(endpoints.auth.register, body)
   persistSession(data)
   return data
 }

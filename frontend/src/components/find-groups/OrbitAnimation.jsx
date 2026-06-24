@@ -1,3 +1,5 @@
+import { cn } from '@/utils/cn'
+
 const ORBIT_NODES = [
   { id: 'a', label: 'A', delay: '0s' },
   { id: 's', label: 'S', delay: '-3.6s' },
@@ -9,9 +11,14 @@ const ORBIT_NODES = [
 const RING_COUNT = 4
 const ORBIT_RADIUS = 118
 
-export function OrbitAnimation() {
+export function OrbitAnimation({ paused = false }) {
   return (
-    <div className="orbit-scene relative mx-auto flex h-[320px] w-[320px] items-center justify-center sm:h-[360px] sm:w-[360px]">
+    <div
+      className={cn(
+        'orbit-scene relative mx-auto flex h-[320px] w-[320px] items-center justify-center sm:h-[360px] sm:w-[360px]',
+        paused && 'opacity-70',
+      )}
+    >
       {Array.from({ length: RING_COUNT }).map((_, index) => (
         <div
           key={index}

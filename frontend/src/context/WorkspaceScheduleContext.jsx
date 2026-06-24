@@ -8,24 +8,50 @@ import {
 const WorkspaceScheduleContext = createContext(null)
 
 export function WorkspaceScheduleProvider({ groupId, children }) {
-  const [sessions, setSessions] = useState(() => loadGroupSessions(groupId))
+  const [sessions, setSessions] = useState([])
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  const reloadSessions = useCallback(async () => {
+    const nextSessions = await loadGroupSessions(groupId)
+    setSessions(nextSessions)
+    return nextSessions
+  }, [groupId])
 
   useEffect(() => {
-    setSessions(loadGroupSessions(groupId))
-    setIsScheduleModalOpen(false)
+    let cancelled = false
+
+    async function load() {
+      setIsLoading(true)
+      setIsScheduleModalOpen(false)
+      try {
+        const nextSessions = await loadGroupSessions(groupId)
+        if (!cancelled) {
+          setSessions(nextSessions)
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    load()
+
+    return () => {
+      cancelled = true
+    }
   }, [groupId])
 
   const openScheduleModal = useCallback(() => setIsScheduleModalOpen(true), [])
   const closeScheduleModal = useCallback(() => setIsScheduleModalOpen(false), [])
 
   const scheduleSession = useCallback(
-    (sessionInput) => {
-      const saved = addGroupSession(groupId, sessionInput)
-      setSessions(loadGroupSessions(groupId))
-      return saved
+    async (sessionInput) => {
+      await addGroupSession(groupId, sessionInput)
+      await reloadSessions()
     },
-    [groupId],
+    [groupId, reloadSessions],
   )
 
   const listItems = useMemo(() => sessions.map(toScheduleListItem), [sessions])
@@ -33,10 +59,12 @@ export function WorkspaceScheduleProvider({ groupId, children }) {
   const value = {
     sessions,
     listItems,
+    isLoading,
     isScheduleModalOpen,
     openScheduleModal,
     closeScheduleModal,
     scheduleSession,
+    reloadSessions,
   }
 
   return (

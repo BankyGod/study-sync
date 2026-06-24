@@ -1,65 +1,10 @@
 import { format } from 'date-fns'
-import { STORAGE_KEYS } from '@/utils/constants'
-
-export const WORKSPACE_MEMBERS = [
-  { id: 'alex', initials: 'AO', name: 'Alex', color: 'bg-sky-500' },
-  { id: 'sarah', initials: 'SJ', name: 'Sarah', color: 'bg-violet-500' },
-  { id: 'mike', initials: 'MP', name: 'Mike P.', color: 'bg-emerald-500' },
-  { id: 'emma', initials: 'EJ', name: 'Emma J.', color: 'bg-amber-500' },
-]
-
-const DEFAULT_GROUP_TASKS = {
-  demo: {
-    todo: [
-      {
-        id: 't1',
-        title: 'Review Chapter 3: Dynamic Programming',
-        dueDate: '2024-10-20',
-        variant: 'highlight',
-        assignee: WORKSPACE_MEMBERS[0],
-      },
-      {
-        id: 't2',
-        title: 'Solve practice problems set 4',
-        dueDate: '2024-10-22',
-        variant: 'default',
-        assignee: WORKSPACE_MEMBERS[1],
-      },
-    ],
-    in_progress: [
-      {
-        id: 't3',
-        title: "Implement Dijkstra's algorithm",
-        dueDate: '2024-10-18',
-        variant: 'default',
-        assignee: WORKSPACE_MEMBERS[2],
-      },
-      {
-        id: 't4',
-        title: 'Discuss Bellman-Ford algorithm',
-        dueDate: '2024-10-19',
-        variant: 'default',
-        assignee: WORKSPACE_MEMBERS[3],
-      },
-    ],
-    completed: [
-      {
-        id: 't5',
-        title: 'Study Big O notation complexity',
-        completedAt: '2024-10-15',
-        variant: 'completed',
-        assignee: WORKSPACE_MEMBERS[0],
-      },
-      {
-        id: 't6',
-        title: 'Read chapter 2: Sorting algorithms',
-        completedAt: '2024-10-16',
-        variant: 'completed',
-        assignee: WORKSPACE_MEMBERS[1],
-      },
-    ],
-  },
-}
+import { DEV_BYPASS_AUTH, STORAGE_KEYS } from '@/utils/constants'
+import {
+  createWorkspaceTask,
+  fetchWorkspaceTasks,
+  reorderWorkspaceTasks,
+} from '@/services/workspaceService'
 
 export const COLUMN_IDS = ['todo', 'in_progress', 'completed']
 
@@ -124,61 +69,77 @@ export function findTaskContainer(columns, id) {
   return COLUMN_IDS.find((columnId) => columns[columnId].some((task) => task.id === id)) ?? null
 }
 
-function readAllTasks() {
+function mapBoardResponse(data) {
+  return {
+    todo: (data.todo ?? []).map(toKanbanTask),
+    in_progress: (data.in_progress ?? []).map(toKanbanTask),
+    completed: (data.completed ?? []).map(toKanbanTask),
+  }
+}
+
+function readLocalTasks(groupId) {
   const raw = localStorage.getItem(STORAGE_KEYS.GROUP_TASKS)
-  if (!raw) return { ...DEFAULT_GROUP_TASKS }
+  if (!raw) return { ...EMPTY_COLUMNS }
 
   try {
     const stored = JSON.parse(raw)
-    return { ...DEFAULT_GROUP_TASKS, ...stored }
+    const columns = stored[groupId] ?? EMPTY_COLUMNS
+    return mapBoardResponse(columns)
   } catch {
-    return { ...DEFAULT_GROUP_TASKS }
+    return { ...EMPTY_COLUMNS }
   }
 }
 
-function writeAllTasks(tasksByGroup) {
-  localStorage.setItem(STORAGE_KEYS.GROUP_TASKS, JSON.stringify(tasksByGroup))
-}
-
-export function loadGroupTasks(groupId) {
-  const all = readAllTasks()
-  const columns = all[groupId] ?? EMPTY_COLUMNS
-  return {
-    todo: columns.todo.map(toKanbanTask),
-    in_progress: columns.in_progress.map(toKanbanTask),
-    completed: columns.completed.map(toKanbanTask),
-  }
-}
-
-export function saveGroupTasks(groupId, columns) {
-  const all = readAllTasks()
+function writeLocalTasks(groupId, columns) {
+  const raw = localStorage.getItem(STORAGE_KEYS.GROUP_TASKS)
+  const all = raw ? JSON.parse(raw) : {}
   all[groupId] = denormalizeColumnsForSave(columns)
-  writeAllTasks(all)
-  return loadGroupTasks(groupId)
+  localStorage.setItem(STORAGE_KEYS.GROUP_TASKS, JSON.stringify(all))
 }
 
-export function addGroupTask(groupId, { title, dueDate, assigneeId }) {
-  const all = readAllTasks()
-  const columns = all[groupId] ?? { ...EMPTY_COLUMNS }
-  const assignee =
-    WORKSPACE_MEMBERS.find((member) => member.id === assigneeId) ?? WORKSPACE_MEMBERS[0]
-
-  const task = {
-    id: crypto.randomUUID(),
-    title: title.trim(),
-    dueDate: dueDate || null,
-    variant: 'default',
-    assignee,
-    createdAt: new Date().toISOString(),
+export async function loadGroupTasks(groupId) {
+  if (DEV_BYPASS_AUTH) {
+    return readLocalTasks(groupId)
   }
 
-  columns.todo = [...columns.todo, task]
-  all[groupId] = columns
-  writeAllTasks(all)
-
-  return loadGroupTasks(groupId)
+  const data = await fetchWorkspaceTasks(groupId)
+  return mapBoardResponse(data)
 }
 
-export function getWorkspaceMember(memberId) {
-  return WORKSPACE_MEMBERS.find((member) => member.id === memberId) ?? WORKSPACE_MEMBERS[0]
+export async function saveGroupTasks(groupId, columns) {
+  if (DEV_BYPASS_AUTH) {
+    writeLocalTasks(groupId, columns)
+    return readLocalTasks(groupId)
+  }
+
+  const tasks = []
+  COLUMN_IDS.forEach((status) => {
+    columns[status].forEach((task, position) => {
+      tasks.push({ id: task.id, status, position })
+    })
+  })
+
+  const data = await reorderWorkspaceTasks(groupId, tasks)
+  return mapBoardResponse(data)
+}
+
+export async function addGroupTask(groupId, { title, dueDate, assigneeId }) {
+  if (DEV_BYPASS_AUTH) {
+    const columns = readLocalTasks(groupId)
+    const task = {
+      id: crypto.randomUUID(),
+      title: title.trim(),
+      dueDate: dueDate || null,
+      variant: 'default',
+      assignee: null,
+      createdAt: new Date().toISOString(),
+    }
+    columns.todo = [...columns.todo, toKanbanTask(task)]
+    writeLocalTasks(groupId, columns)
+    return readLocalTasks(groupId)
+  }
+
+  await createWorkspaceTask(groupId, { title, dueDate, assigneeId })
+
+  return loadGroupTasks(groupId)
 }

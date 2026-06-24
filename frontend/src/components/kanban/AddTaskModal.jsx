@@ -5,20 +5,13 @@ import { z } from 'zod'
 import { Modal } from '@/components/common/Modal'
 import { Input } from '@/components/common/Input'
 import { Button } from '@/components/common/Button'
-import { WORKSPACE_MEMBERS } from '@/services/workspaceTaskService'
 import { cn } from '@/utils/cn'
 
 const addTaskSchema = z.object({
   title: z.string().min(3, 'Task title is required'),
   dueDate: z.string().optional(),
-  assigneeId: z.string().min(1, 'Assign a team member'),
+  assigneeId: z.string().optional(),
 })
-
-const defaultValues = {
-  title: '',
-  dueDate: '',
-  assigneeId: WORKSPACE_MEMBERS[0].id,
-}
 
 function Select({ label, error, className, id, children, ...props }) {
   const selectId = id || props.name
@@ -46,7 +39,9 @@ function Select({ label, error, className, id, children, ...props }) {
   )
 }
 
-export function AddTaskModal({ open, onClose, onSave }) {
+export function AddTaskModal({ open, onClose, onSave, members = [] }) {
+  const defaultAssigneeId = members[0]?.id ?? ''
+
   const {
     register,
     handleSubmit,
@@ -54,18 +49,28 @@ export function AddTaskModal({ open, onClose, onSave }) {
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(addTaskSchema),
-    defaultValues,
+    defaultValues: {
+      title: '',
+      dueDate: '',
+      assigneeId: defaultAssigneeId,
+    },
   })
 
   useEffect(() => {
-    if (open) reset(defaultValues)
-  }, [open, reset])
+    if (open) {
+      reset({
+        title: '',
+        dueDate: '',
+        assigneeId: members[0]?.id ?? '',
+      })
+    }
+  }, [open, reset, members])
 
   const onSubmit = async (values) => {
-    onSave({
+    await onSave({
       title: values.title,
       dueDate: values.dueDate || null,
-      assigneeId: values.assigneeId,
+      assigneeId: values.assigneeId || null,
     })
     onClose()
   }
@@ -87,13 +92,15 @@ export function AddTaskModal({ open, onClose, onSave }) {
           {...register('dueDate')}
         />
 
-        <Select label="Assign to" error={errors.assigneeId?.message} {...register('assigneeId')}>
-          {WORKSPACE_MEMBERS.map((member) => (
-            <option key={member.id} value={member.id}>
-              {member.name}
-            </option>
-          ))}
-        </Select>
+        {members.length > 0 && (
+          <Select label="Assign to" error={errors.assigneeId?.message} {...register('assigneeId')}>
+            {members.map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.name}
+              </option>
+            ))}
+          </Select>
+        )}
 
         <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
           <Button type="button" variant="secondary" onClick={onClose}>

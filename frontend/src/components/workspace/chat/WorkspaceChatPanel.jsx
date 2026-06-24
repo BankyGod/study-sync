@@ -1,57 +1,123 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { MessageSquare, Users } from 'lucide-react'
 import { ChatComposer } from '@/components/workspace/chat/ChatComposer'
 import { ChatMessageList } from '@/components/workspace/chat/ChatMessageList'
+import { useAuth } from '@/hooks/useAuth'
+import { useWebSocket } from '@/hooks/useWebSocket'
+import { useWorkspace } from '@/context/WorkspaceContext'
 import {
-  CURRENT_CHAT_USER_ID,
   deleteGroupMessage,
   loadGroupMessages,
   sendGroupAttachment,
   sendGroupMessage,
   sendGroupVoiceMessage,
 } from '@/services/workspaceChatService'
-import { WORKSPACE_MEMBERS } from '@/services/workspaceTaskService'
+import { getWorkspaceErrorMessage } from '@/utils/workspaceErrors'
+import { DEV_BYPASS_AUTH } from '@/utils/constants'
+import { Spinner } from '@/components/common/Spinner'
 
 export function WorkspaceChatPanel() {
   const { groupId } = useParams()
-  const [messages, setMessages] = useState(() => loadGroupMessages(groupId))
+  const { user } = useAuth()
+  const { members } = useWorkspace()
+  const [messages, setMessages] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  useEffect(() => {
-    setMessages(loadGroupMessages(groupId))
+  const reloadMessages = useCallback(async () => {
+    const nextMessages = await loadGroupMessages(groupId)
+    setMessages(nextMessages)
+    return nextMessages
   }, [groupId])
 
-  const handleSend = (content) => {
-    const nextMessages = sendGroupMessage(groupId, {
-      senderId: CURRENT_CHAT_USER_ID,
-      content,
-    })
-    setMessages(nextMessages)
+  const socketHandlers = useMemo(
+    () => ({
+      onMessageNew: () => {
+        reloadMessages().catch(() => {})
+      },
+    }),
+    [reloadMessages],
+  )
+
+  useWebSocket(DEV_BYPASS_AUTH ? null : groupId, socketHandlers)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      setIsLoading(true)
+      setError('')
+      try {
+        const nextMessages = await loadGroupMessages(groupId)
+        if (!cancelled) {
+          setMessages(nextMessages)
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(getWorkspaceErrorMessage(err, 'Unable to load messages.'))
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    load()
+
+    return () => {
+      cancelled = true
+    }
+  }, [groupId])
+
+  const handleSend = async (content) => {
+    try {
+      setError('')
+      const nextMessages = await sendGroupMessage(groupId, { content })
+      setMessages(nextMessages)
+    } catch (err) {
+      setError(getWorkspaceErrorMessage(err, 'Unable to send message.'))
+    }
   }
 
   const handleSendAttachment = async (file) => {
-    const nextMessages = sendGroupAttachment(groupId, {
-      senderId: CURRENT_CHAT_USER_ID,
-      file,
-    })
-    setMessages(nextMessages)
+    try {
+      setError('')
+      const nextMessages = await sendGroupAttachment(groupId, { file })
+      setMessages(nextMessages)
+    } catch (err) {
+      setError(getWorkspaceErrorMessage(err, 'Unable to upload attachment.'))
+    }
   }
 
   const handleSendVoice = async (file, durationSec) => {
-    const nextMessages = await sendGroupVoiceMessage(groupId, {
-      senderId: CURRENT_CHAT_USER_ID,
-      file,
-      durationSec,
-    })
-    setMessages(nextMessages)
+    try {
+      setError('')
+      const nextMessages = await sendGroupVoiceMessage(groupId, { file, durationSec })
+      setMessages(nextMessages)
+    } catch (err) {
+      setError(getWorkspaceErrorMessage(err, 'Unable to send voice message.'))
+    }
   }
 
-  const handleDeleteMessage = (messageId) => {
-    const nextMessages = deleteGroupMessage(groupId, messageId)
-    setMessages(nextMessages)
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      setError('')
+      const nextMessages = await deleteGroupMessage(groupId, messageId)
+      setMessages(nextMessages)
+    } catch (err) {
+      setError(getWorkspaceErrorMessage(err, 'Unable to delete message.'))
+    }
   }
 
-  const onlineCount = WORKSPACE_MEMBERS.length
+  if (isLoading) {
+    return (
+      <div className="flex h-full min-h-[calc(100vh-8.5rem)] items-center justify-center rounded-2xl border border-slate-200/80 bg-white">
+        <Spinner size="lg" />
+      </div>
+    )
+  }
 
   return (
     <section className="grid h-full min-h-[calc(100vh-8.5rem)] flex-1 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
@@ -68,11 +134,19 @@ export function WorkspaceChatPanel() {
 
         <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
           <Users className="h-3.5 w-3.5" />
-          {onlineCount} members
+          {members.length} member{members.length === 1 ? '' : 's'}
         </div>
       </header>
 
-      <ChatMessageList messages={messages} onDeleteMessage={handleDeleteMessage} />
+      {error && (
+        <p className="border-b border-red-100 bg-red-50 px-5 py-2 text-sm text-red-600">{error}</p>
+      )}
+
+      <ChatMessageList
+        messages={messages}
+        currentUserId={user?.id}
+        onDeleteMessage={handleDeleteMessage}
+      />
       <ChatComposer
         onSend={handleSend}
         onSendAttachment={handleSendAttachment}

@@ -10,10 +10,11 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
 import {
-  CURRENT_FILE_USER_ID,
   MAX_SHARED_FILE_SIZE,
   deleteGroupFile,
+  downloadGroupFile,
   formatFileSize,
   formatUploadedAt,
   getFileIconType,
@@ -21,6 +22,8 @@ import {
   loadGroupFiles,
   uploadGroupFile,
 } from '@/services/workspaceFileService'
+import { getWorkspaceErrorMessage } from '@/utils/workspaceErrors'
+import { Spinner } from '@/components/common/Spinner'
 import { cn } from '@/utils/cn'
 
 const FILE_ICONS = {
@@ -43,41 +46,71 @@ const FILE_ICON_STYLES = {
 
 export function SharedFilesPanel() {
   const { groupId } = useParams()
-  const [files, setFiles] = useState(() => loadGroupFiles(groupId))
+  const { user } = useAuth()
+  const [files, setFiles] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const fileInputRef = useRef(null)
 
   useEffect(() => {
-    setFiles(loadGroupFiles(groupId))
-    setError('')
+    let cancelled = false
+
+    async function load() {
+      setIsLoading(true)
+      setError('')
+      try {
+        const nextFiles = await loadGroupFiles(groupId)
+        if (!cancelled) {
+          setFiles(nextFiles)
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(getWorkspaceErrorMessage(err, 'Unable to load files.'))
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    load()
+
+    return () => {
+      cancelled = true
+    }
   }, [groupId])
 
-  const handleUpload = (event) => {
+  const handleUpload = async (event) => {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
 
     try {
       setError('')
-      const nextFiles = uploadGroupFile(groupId, {
-        file,
-        uploadedBy: 'Alex',
-        uploadedById: CURRENT_FILE_USER_ID,
-      })
+      const nextFiles = await uploadGroupFile(groupId, { file })
       setFiles(nextFiles)
     } catch (uploadError) {
-      setError(uploadError.message || 'Unable to upload file.')
+      setError(getWorkspaceErrorMessage(uploadError, 'Unable to upload file.'))
     }
   }
 
-  const handleDelete = (fileId) => {
+  const handleDelete = async (fileId) => {
     try {
       setError('')
-      const nextFiles = deleteGroupFile(groupId, fileId)
+      const nextFiles = await deleteGroupFile(groupId, fileId)
       setFiles(nextFiles)
     } catch (deleteError) {
-      setError(deleteError.message || 'Unable to delete file.')
+      setError(getWorkspaceErrorMessage(deleteError, 'Unable to delete file.'))
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-slate-200/80 bg-white">
+        <Spinner size="lg" />
+      </div>
+    )
   }
 
   return (
@@ -128,7 +161,7 @@ export function SharedFilesPanel() {
           {files.map((file) => {
             const iconType = getFileIconType(file.fileType, file.fileName)
             const Icon = FILE_ICONS[iconType]
-            const canDelete = file.uploadedById === CURRENT_FILE_USER_ID
+            const canDelete = file.uploadedById === user?.id
 
             return (
               <li
@@ -156,6 +189,7 @@ export function SharedFilesPanel() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
+                    onClick={() => downloadGroupFile(file)}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                   >
                     <Download className="h-4 w-4" />

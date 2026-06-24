@@ -3,8 +3,8 @@ export const ROLES = {
   INSTRUCTOR: 'instructor',
 }
 
-/** Skip login until the backend auth API is connected (dev only). */
-export const DEV_BYPASS_AUTH = import.meta.env.DEV
+/** Set VITE_DEV_BYPASS_AUTH=true in .env to skip login during local UI work. */
+export const DEV_BYPASS_AUTH = import.meta.env.VITE_DEV_BYPASS_AUTH === 'true'
 
 export const DEV_MOCK_USER = {
   id: 'dev-user-1',

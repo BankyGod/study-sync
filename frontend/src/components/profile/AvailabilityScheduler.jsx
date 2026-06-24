@@ -1,35 +1,31 @@
-import { useState } from 'react'
 import { Check } from 'lucide-react'
+import {
+  AVAILABILITY_DAYS,
+  AVAILABILITY_TIMES,
+  MAX_AVAILABILITY_SLOTS,
+} from '@/utils/onboarding'
 import { cn } from '@/utils/cn'
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
-const SLOTS = ['Morning', 'Afternoon', 'Evening', 'Night']
-
-const initialSelected = new Set([
-  'Monday-Morning',
-  'Monday-Evening',
-  'Tuesday-Evening',
-  'Wednesday-Morning',
-  'Wednesday-Evening',
-  'Thursday-Morning',
-  'Friday-Evening',
-])
-
-function slotKey(day, slot) {
-  return `${day}-${slot}`
+function slotKey(day, time) {
+  return `${day}-${time}`
 }
 
-export function AvailabilityScheduler() {
-  const [selected, setSelected] = useState(initialSelected)
+export function AvailabilityScheduler({ value = [], onChange, readOnly = false }) {
+  const selected = new Set(value)
 
-  const toggleSlot = (day, slot) => {
-    const key = slotKey(day, slot)
-    setSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
+  const toggleSlot = (day, time) => {
+    if (readOnly || !onChange) return
+
+    const key = slotKey(day, time)
+    const next = new Set(selected)
+
+    if (next.has(key)) {
+      next.delete(key)
+    } else if (next.size < MAX_AVAILABILITY_SLOTS) {
+      next.add(key)
+    }
+
+    onChange([...next])
   }
 
   return (
@@ -37,7 +33,10 @@ export function AvailabilityScheduler() {
       <header className="mb-5">
         <h2 className="text-base font-bold text-slate-900">Availability Scheduler</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Click on the slots to select when you are available for study sessions.
+          Choose up to {MAX_AVAILABILITY_SLOTS} slots when you are available for study sessions.
+        </p>
+        <p className="mt-2 text-xs font-medium text-slate-400">
+          {selected.size} / {MAX_AVAILABILITY_SLOTS} slots selected
         </p>
       </header>
 
@@ -46,7 +45,7 @@ export function AvailabilityScheduler() {
           <thead>
             <tr>
               <th className="pb-3 pr-3 text-left text-xs font-medium text-slate-400" />
-              {DAYS.map((day) => (
+              {AVAILABILITY_DAYS.map((day) => (
                 <th key={day} className="pb-3 text-center text-xs font-semibold text-slate-700">
                   {day}
                 </th>
@@ -54,24 +53,28 @@ export function AvailabilityScheduler() {
             </tr>
           </thead>
           <tbody>
-            {SLOTS.map((slot) => (
-              <tr key={slot}>
-                <td className="py-2 pr-3 text-xs font-medium text-slate-500">{slot}</td>
-                {DAYS.map((day) => {
-                  const key = slotKey(day, slot)
+            {AVAILABILITY_TIMES.map((time) => (
+              <tr key={time}>
+                <td className="py-2 pr-3 text-xs font-medium text-slate-500">{time}</td>
+                {AVAILABILITY_DAYS.map((day) => {
+                  const key = slotKey(day, time)
                   const isAvailable = selected.has(key)
+                  const isDisabled =
+                    readOnly || (!isAvailable && selected.size >= MAX_AVAILABILITY_SLOTS)
 
                   return (
                     <td key={key} className="p-1">
                       <button
                         type="button"
-                        onClick={() => toggleSlot(day, slot)}
-                        aria-label={`${day} ${slot} ${isAvailable ? 'available' : 'unavailable'}`}
+                        onClick={() => toggleSlot(day, time)}
+                        disabled={isDisabled}
+                        aria-label={`${day} ${time} ${isAvailable ? 'available' : 'unavailable'}`}
                         className={cn(
                           'flex h-11 w-full items-center justify-center rounded-lg border transition',
                           isAvailable
                             ? 'border-teal-500 bg-teal-500 text-white'
                             : 'border-slate-200 bg-white hover:border-slate-300',
+                          isDisabled && !isAvailable && 'cursor-not-allowed opacity-60',
                         )}
                       >
                         {isAvailable && <Check className="h-4 w-4" strokeWidth={3} />}

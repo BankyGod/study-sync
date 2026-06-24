@@ -1,59 +1,17 @@
 import { format, isToday, isYesterday, parseISO } from 'date-fns'
-import { STORAGE_KEYS } from '@/utils/constants'
-import { WORKSPACE_MEMBERS } from '@/services/workspaceTaskService'
+import { DEV_BYPASS_AUTH, STORAGE_KEYS } from '@/utils/constants'
+import { resolveApiUrl } from '@/utils/apiUrl'
+import {
+  deleteWorkspaceMessage,
+  fetchWorkspaceMessages,
+  sendWorkspaceAttachmentMessage,
+  sendWorkspaceTextMessage,
+  sendWorkspaceVoiceMessage,
+} from '@/services/workspaceService'
 
-export const CURRENT_CHAT_USER_ID = 'alex'
 export const MAX_CHAT_FILE_SIZE = 10 * 1024 * 1024
 export const MAX_VOICE_FILE_SIZE = 2 * 1024 * 1024
 export const MAX_VOICE_DURATION_SEC = 120
-
-const DEFAULT_GROUP_MESSAGES = {
-  demo: [
-    {
-      id: 'm1',
-      senderId: 'sarah',
-      type: 'text',
-      content: 'Hey team! Did everyone finish the Dynamic Programming readings?',
-      sentAt: '2024-10-12T09:15:00.000Z',
-    },
-    {
-      id: 'm2',
-      senderId: 'mike',
-      type: 'text',
-      content: "I'm still working through the memoization examples.",
-      sentAt: '2024-10-12T09:22:00.000Z',
-    },
-    {
-      id: 'm3',
-      senderId: 'alex',
-      type: 'text',
-      content:
-        'I finished them last night. Happy to walk through the knapsack problem in our session.',
-      sentAt: '2024-10-12T09:28:00.000Z',
-    },
-    {
-      id: 'm4',
-      senderId: 'emma',
-      type: 'text',
-      content: 'That would be great! Can we also cover the practice set 4 problems?',
-      sentAt: '2024-10-12T09:35:00.000Z',
-    },
-    {
-      id: 'm5',
-      senderId: 'sarah',
-      type: 'text',
-      content: "Works for me. I'll share my notes in the Files tab later today.",
-      sentAt: '2024-10-12T09:41:00.000Z',
-    },
-  ],
-}
-
-export function getChatMember(senderId) {
-  if (senderId === CURRENT_CHAT_USER_ID) {
-    return WORKSPACE_MEMBERS.find((member) => member.id === CURRENT_CHAT_USER_ID) ?? WORKSPACE_MEMBERS[0]
-  }
-  return WORKSPACE_MEMBERS.find((member) => member.id === senderId) ?? null
-}
 
 export function formatMessageTime(sentAt) {
   const date = parseISO(sentAt)
@@ -88,82 +46,106 @@ export function groupMessagesByDate(messages) {
   }, [])
 }
 
-function readAllChats() {
+function normalizeMessage(message) {
+  const normalized = { ...message }
+
+  if (normalized.attachment?.downloadUrl) {
+    normalized.attachment = {
+      ...normalized.attachment,
+      downloadUrl: resolveApiUrl(normalized.attachment.downloadUrl),
+    }
+  }
+
+  if (normalized.voice?.streamUrl) {
+    normalized.voice = {
+      ...normalized.voice,
+      streamUrl: resolveApiUrl(normalized.voice.streamUrl),
+    }
+  }
+
+  return normalized
+}
+
+function readLocalMessages(groupId) {
   const raw = localStorage.getItem(STORAGE_KEYS.GROUP_CHAT)
-  if (!raw) return { ...DEFAULT_GROUP_MESSAGES }
+  if (!raw) return []
 
   try {
     const stored = JSON.parse(raw)
-    return { ...DEFAULT_GROUP_MESSAGES, ...stored }
+    return (stored[groupId] ?? []).map((message) => ({ type: 'text', ...message }))
   } catch {
-    return { ...DEFAULT_GROUP_MESSAGES }
+    return []
   }
 }
 
-function writeAllChats(chatsByGroup) {
-  localStorage.setItem(STORAGE_KEYS.GROUP_CHAT, JSON.stringify(chatsByGroup))
+function writeLocalMessages(groupId, messages) {
+  const raw = localStorage.getItem(STORAGE_KEYS.GROUP_CHAT)
+  const all = raw ? JSON.parse(raw) : {}
+  all[groupId] = messages
+  localStorage.setItem(STORAGE_KEYS.GROUP_CHAT, JSON.stringify(all))
 }
 
-function appendMessage(groupId, message) {
-  const chats = readAllChats()
-  const messages = chats[groupId] ?? []
-  chats[groupId] = [...messages, message]
-  writeAllChats(chats)
-  return chats[groupId]
+export async function loadGroupMessages(groupId) {
+  if (DEV_BYPASS_AUTH) {
+    return readLocalMessages(groupId)
+  }
+
+  const data = await fetchWorkspaceMessages(groupId)
+  return (data.messages ?? []).map(normalizeMessage)
 }
 
-export function loadGroupMessages(groupId) {
-  const chats = readAllChats()
-  return (chats[groupId] ?? []).map((message) => ({
-    type: 'text',
-    ...message,
-  }))
-}
-
-export function sendGroupMessage(groupId, { senderId, content }) {
+export async function sendGroupMessage(groupId, { content }) {
   const trimmed = content.trim()
   if (!trimmed) return loadGroupMessages(groupId)
 
-  return appendMessage(groupId, {
-    id: crypto.randomUUID(),
-    senderId,
-    type: 'text',
-    content: trimmed,
-    sentAt: new Date().toISOString(),
-  })
+  if (DEV_BYPASS_AUTH) {
+    const messages = readLocalMessages(groupId)
+    const message = {
+      id: crypto.randomUUID(),
+      senderId: 'local-user',
+      type: 'text',
+      content: trimmed,
+      sentAt: new Date().toISOString(),
+    }
+    const next = [...messages, message]
+    writeLocalMessages(groupId, next)
+    return next
+  }
+
+  const created = await sendWorkspaceTextMessage(groupId, trimmed)
+
+  const messages = await loadGroupMessages(groupId)
+  return messages.length ? messages : [normalizeMessage(created)]
 }
 
-export function sendGroupAttachment(groupId, { senderId, file }) {
+export async function sendGroupAttachment(groupId, { file }) {
   if (!file) return loadGroupMessages(groupId)
 
   if (file.size > MAX_CHAT_FILE_SIZE) {
     throw new Error(`File must be smaller than ${formatFileSize(MAX_CHAT_FILE_SIZE)}.`)
   }
 
-  return appendMessage(groupId, {
-    id: crypto.randomUUID(),
-    senderId,
-    type: 'attachment',
-    content: `Shared a file: ${file.name}`,
-    attachment: {
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type || 'application/octet-stream',
-    },
-    sentAt: new Date().toISOString(),
-  })
+  if (DEV_BYPASS_AUTH) {
+    const messages = readLocalMessages(groupId)
+    const message = {
+      id: crypto.randomUUID(),
+      senderId: 'local-user',
+      type: 'attachment',
+      content: `Shared a file: ${file.name}`,
+      attachment: { fileName: file.name, fileSize: file.size, fileType: file.type },
+      sentAt: new Date().toISOString(),
+    }
+    const next = [...messages, message]
+    writeLocalMessages(groupId, next)
+    return next
+  }
+
+  await sendWorkspaceAttachmentMessage(groupId, file)
+
+  return loadGroupMessages(groupId)
 }
 
-function readFileAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = () => reject(new Error('Unable to process voice recording.'))
-    reader.readAsDataURL(file)
-  })
-}
-
-export async function sendGroupVoiceMessage(groupId, { senderId, file, durationSec }) {
+export async function sendGroupVoiceMessage(groupId, { file, durationSec }) {
   if (!file) return loadGroupMessages(groupId)
 
   if (file.size > MAX_VOICE_FILE_SIZE) {
@@ -174,36 +156,33 @@ export async function sendGroupVoiceMessage(groupId, { senderId, file, durationS
     throw new Error(`Voice notes can be up to ${MAX_VOICE_DURATION_SEC} seconds.`)
   }
 
-  const audioDataUrl = await readFileAsDataUrl(file)
-
-  return appendMessage(groupId, {
-    id: crypto.randomUUID(),
-    senderId,
-    type: 'voice',
-    content: 'Sent a voice message',
-    voice: {
-      audioDataUrl,
-      durationSec,
-      mimeType: file.type || 'audio/webm',
-      fileName: file.name,
-      fileSize: file.size,
-    },
-    sentAt: new Date().toISOString(),
-  })
-}
-
-export function deleteGroupMessage(groupId, messageId, requesterId = CURRENT_CHAT_USER_ID) {
-  const chats = readAllChats()
-  const messages = chats[groupId] ?? DEFAULT_GROUP_MESSAGES[groupId] ?? []
-  const target = messages.find((message) => message.id === messageId)
-
-  if (!target) return loadGroupMessages(groupId)
-
-  if (target.senderId !== requesterId) {
-    throw new Error('You can only delete your own messages.')
+  if (DEV_BYPASS_AUTH) {
+    const messages = readLocalMessages(groupId)
+    const message = {
+      id: crypto.randomUUID(),
+      senderId: 'local-user',
+      type: 'voice',
+      content: 'Sent a voice message',
+      voice: { durationSec, mimeType: file.type, fileName: file.name, fileSize: file.size },
+      sentAt: new Date().toISOString(),
+    }
+    const next = [...messages, message]
+    writeLocalMessages(groupId, next)
+    return next
   }
 
-  chats[groupId] = messages.filter((message) => message.id !== messageId)
-  writeAllChats(chats)
+  await sendWorkspaceVoiceMessage(groupId, { file, durationSec })
+
+  return loadGroupMessages(groupId)
+}
+
+export async function deleteGroupMessage(groupId, messageId) {
+  if (DEV_BYPASS_AUTH) {
+    const messages = readLocalMessages(groupId).filter((message) => message.id !== messageId)
+    writeLocalMessages(groupId, messages)
+    return messages
+  }
+
+  await deleteWorkspaceMessage(groupId, messageId)
   return loadGroupMessages(groupId)
 }

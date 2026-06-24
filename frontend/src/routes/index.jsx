@@ -46,7 +46,7 @@ export function AppRoutes() {
         <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
         <Route path={ROUTES.STUDENT_DASHBOARD} element={<StudentDashboardPage />} />
         <Route path={ROUTES.FIND_GROUPS} element={<FindGroupsPage />} />
-        <Route path={ROUTES.MY_GROUPS} element={<Navigate to="/workspace/demo" replace />} />
+        <Route path={ROUTES.MY_GROUPS} element={<Navigate to={ROUTES.STUDENT_DASHBOARD} replace />} />
         <Route path={ROUTES.WORKSPACE} element={<WorkspaceLayout />}>
           <Route index element={<WorkspaceBoardPage />} />
           <Route path="board" element={<WorkspaceBoardPage />} />
