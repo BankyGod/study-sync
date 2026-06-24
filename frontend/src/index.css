@@ -1,0 +1,50 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-brand-50: #faf5ff;
+  --color-brand-100: #f3e8ff;
+  --color-brand-500: #a92fe2;
+  --color-brand-600: #7f03b9;
+  --color-brand-700: #6b0299;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply min-h-screen bg-slate-50 text-slate-900 antialiased;
+  }
+
+  body:has(.dev-nav-active) {
+    @apply pb-14;
+  }
+}
+
+@keyframes orbit-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes orbit-node {
+  from {
+    transform: rotate(0deg) translateX(var(--orbit-radius)) rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg) translateX(var(--orbit-radius)) rotate(-360deg);
+  }
+}
+
+.orbit-node {
+  animation: orbit-node 18s linear infinite;
+}
+
+.matching-progress-bar {
+  background: linear-gradient(90deg, #7c3aed 0%, #14b8a6 100%);
+}
+
+.session-start-btn {
+  background: linear-gradient(90deg, #7c3aed 0%, #0ea5e9 50%, #14b8a6 100%);
+}
