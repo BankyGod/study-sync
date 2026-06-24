@@ -1,4 +1,5 @@
 import { useLocation } from 'react-router-dom'
+import { cn } from '@/utils/cn'
 
 const subtitles = {
   board: 'Collaborate and progress with your study team.',
@@ -19,7 +20,7 @@ export function WorkspaceHeader({ title }) {
         : 'board'
 
   return (
-    <header className="mb-6">
+    <header className={cn('shrink-0', view === 'chat' ? 'mb-2' : 'mb-6')}>
       <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
       <p className="mt-1 text-sm text-slate-500">{subtitles[view]}</p>
     </header>

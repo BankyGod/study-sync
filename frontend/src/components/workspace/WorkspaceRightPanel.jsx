@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { SessionTimerCard } from '@/components/workspace/SessionTimerCard'
+import { useWorkspaceSchedule } from '@/context/WorkspaceScheduleContext'
 import { cn } from '@/utils/cn'
 
 const boardMembers = [
@@ -34,6 +35,7 @@ function getWorkspaceView(pathname) {
 export function WorkspaceRightPanel() {
   const location = useLocation()
   const view = getWorkspaceView(location.pathname)
+  const { openScheduleModal } = useWorkspaceSchedule()
 
   const panelConfig = {
     board: {
@@ -109,6 +111,7 @@ export function WorkspaceRightPanel() {
       {(config.action.type === 'invite' || config.action.type === 'schedule') && (
         <button
           type="button"
+          onClick={config.action.type === 'schedule' ? openScheduleModal : undefined}
           className="session-start-btn inline-flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
         >
           <Plus className="h-4 w-4" />

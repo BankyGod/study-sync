@@ -4,7 +4,8 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { StudentLayout } from '@/components/layout/StudentLayout'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { RegisterPage } from '@/pages/auth/RegisterPage'
-import { OnboardingPage } from '@/pages/student/OnboardingPage'
+import { ProfilePage } from '@/pages/student/ProfilePage'
+import { OnboardingPage } from '@/pages/onboarding/OnboardingPage'
 import { StudentDashboardPage } from '@/pages/student/StudentDashboardPage'
 import { FindGroupsPage } from '@/pages/student/FindGroupsPage'
 import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout'
@@ -27,13 +28,22 @@ export function AppRoutes() {
       <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
 
       <Route
+        path={ROUTES.ONBOARDING}
+        element={
+          <ProtectedRoute allowedRoles={[ROLES.STUDENT]}>
+            <OnboardingPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         element={
           <ProtectedRoute allowedRoles={[ROLES.STUDENT]}>
             <StudentLayout />
           </ProtectedRoute>
         }
       >
-        <Route path={ROUTES.ONBOARDING} element={<OnboardingPage />} />
+        <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
         <Route path={ROUTES.STUDENT_DASHBOARD} element={<StudentDashboardPage />} />
         <Route path={ROUTES.FIND_GROUPS} element={<FindGroupsPage />} />
         <Route path={ROUTES.MY_GROUPS} element={<Navigate to="/workspace/demo" replace />} />

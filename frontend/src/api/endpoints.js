@@ -7,6 +7,10 @@ export const endpoints = {
   onboarding: {
     profile: '/onboarding/profile',
   },
+  matching: {
+    findGroup: '/matching/find-group',
+    byCourse: (courseCode) => `/matching/course/${courseCode}`,
+  },
   admin: {
     cohorts: '/admin/cohorts',
     seedData: '/admin/seed',
@@ -19,6 +23,7 @@ export const endpoints = {
     tasks: (groupId) => `/workspaces/${groupId}/tasks`,
     files: (groupId) => `/workspaces/${groupId}/files`,
     messages: (groupId) => `/workspaces/${groupId}/messages`,
+    sessions: (groupId) => `/workspaces/${groupId}/sessions`,
   },
   reliability: {
     score: (userId) => `/reliability/${userId}`,

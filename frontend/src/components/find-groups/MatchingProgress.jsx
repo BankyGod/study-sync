@@ -2,11 +2,11 @@ import { Check, Loader2 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 
 export const MATCHING_STEPS = [
+  { id: 'course', label: 'Finding students in your course' },
   { id: 'preferences', label: 'Analyzing your preferences' },
   { id: 'compatibility', label: 'Checking group compatibility' },
-  { id: 'searching', label: 'Searching for active teams' },
-  { id: 'schedules', label: 'Matching with study schedules' },
-  { id: 'finalizing', label: 'Finalizing your best matches' },
+  { id: 'searching', label: 'Building your course pod' },
+  { id: 'finalizing', label: 'Finalizing your best match' },
 ]
 
 function StepIcon({ status }) {

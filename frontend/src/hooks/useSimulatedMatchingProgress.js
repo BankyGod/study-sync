@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MATCHING_STEPS } from '@/components/find-groups/MatchingProgress'
 
 /** Progress % at which each step is marked completed. */
@@ -40,5 +40,7 @@ export function useSimulatedMatchingProgress({ targetProgress = 64, active = tru
     })
   }, [progress])
 
-  return { progress, steps, isComplete: progress >= targetProgress }
+  const reset = useCallback(() => setProgress(0), [])
+
+  return { progress, steps, isComplete: progress >= targetProgress, reset }
 }

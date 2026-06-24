@@ -24,6 +24,7 @@ export const ROUTES = {
   LOGIN: '/login',
   REGISTER: '/register',
   ONBOARDING: '/onboarding',
+  PROFILE: '/profile',
   STUDENT_DASHBOARD: '/dashboard',
   FIND_GROUPS: '/find-groups',
   WORKSPACE: '/workspace/:groupId',
@@ -36,6 +37,14 @@ export const ROUTES = {
 export const STORAGE_KEYS = {
   AUTH_TOKEN: 'studysync_token',
   USER: 'studysync_user',
+  ONBOARDING_PROFILE: 'studysync_onboarding_profile',
+  ACTIVE_MATCHING_COURSE: 'studysync_active_matching_course',
+  USER_PROFILE: 'studysync_user_profile',
+  GROUP_SCHEDULES: 'studysync_group_schedules',
+  GROUP_TASKS: 'studysync_group_tasks',
+  GROUP_CHAT: 'studysync_group_chat',
+  GROUP_FILES: 'studysync_group_files',
+  PENDING_REGISTRATION: 'studysync_pending_registration',
 }
 
 export const DAYS_OF_WEEK = [

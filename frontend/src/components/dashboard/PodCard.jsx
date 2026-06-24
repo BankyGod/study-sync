@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { BookOpen } from 'lucide-react'
 import { cn } from '@/utils/cn'
 
@@ -16,11 +17,11 @@ const accentStyles = {
   },
 }
 
-export function PodCard({ title, members, progress, accent = 'blue' }) {
+export function PodCard({ title, members, progress, accent = 'blue', to }) {
   const styles = accentStyles[accent]
 
-  return (
-    <article className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:shadow-md">
+  const content = (
+    <>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl', styles.icon)}>
@@ -63,6 +64,21 @@ export function PodCard({ title, members, progress, accent = 'blue' }) {
           />
         </div>
       </div>
-    </article>
+    </>
   )
+
+  const cardClassName = cn(
+    'rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:shadow-md',
+    to && 'hover:border-violet-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500',
+  )
+
+  if (to) {
+    return (
+      <Link to={to} className={cn('block', cardClassName)}>
+        {content}
+      </Link>
+    )
+  }
+
+  return <article className={cardClassName}>{content}</article>
 }

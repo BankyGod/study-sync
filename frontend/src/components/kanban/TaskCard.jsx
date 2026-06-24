@@ -1,6 +1,6 @@
 import { cn } from '@/utils/cn'
 
-export function TaskCard({ title, footer, assignee, variant = 'default' }) {
+export function TaskCard({ title, footer, assignee, variant = 'default', isDragging = false }) {
   return (
     <article
       className={cn(
@@ -8,6 +8,8 @@ export function TaskCard({ title, footer, assignee, variant = 'default' }) {
         variant === 'highlight' && 'border-amber-200 bg-amber-50/80',
         variant === 'completed' && 'border-emerald-200 bg-emerald-50/70',
         variant === 'default' && 'border-slate-200/80 bg-white',
+        isDragging && 'cursor-grabbing shadow-md ring-2 ring-violet-200',
+        !isDragging && 'cursor-grab active:cursor-grabbing',
       )}
     >
       <p className="text-sm font-medium leading-snug text-slate-900">{title}</p>

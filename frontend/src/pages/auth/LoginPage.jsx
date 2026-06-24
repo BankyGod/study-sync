@@ -1,10 +1,12 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { AuthFooterLink, AuthLayout } from '@/components/auth/AuthLayout'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
-import { Card } from '@/components/common/Card'
+import { useAuthContext } from '@/context/AuthContext'
 import { ROUTES } from '@/utils/constants'
 
 const loginSchema = z.object({
@@ -13,6 +15,10 @@ const loginSchema = z.object({
 })
 
 export function LoginPage() {
+  const navigate = useNavigate()
+  const { login } = useAuthContext()
+  const [authError, setAuthError] = useState('')
+
   const {
     register,
     handleSubmit,
@@ -23,39 +29,50 @@ export function LoginPage() {
   })
 
   const onSubmit = async (values) => {
-    console.info('Login payload ready for API:', values)
+    try {
+      setAuthError('')
+      await login(values)
+      navigate(ROUTES.STUDENT_DASHBOARD)
+    } catch {
+      setAuthError('Unable to sign in. Check your email and password.')
+    }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 via-white to-slate-100 p-4">
-      <Card className="w-full max-w-md" title="Welcome back" description="Sign in to StudySync">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Input
-            label="Email"
-            type="email"
-            autoComplete="email"
-            error={errors.email?.message}
-            {...register('email')}
-          />
-          <Input
-            label="Password"
-            type="password"
-            autoComplete="current-password"
-            error={errors.password?.message}
-            {...register('password')}
-          />
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? 'Signing in...' : 'Sign in'}
-          </Button>
-        </form>
+    <AuthLayout
+      title="Welcome back"
+      subtitle="Sign in to continue to your study pods and workspaces."
+      footer={
+        <AuthFooterLink
+          prompt="New to StudySync?"
+          linkText="Create an account"
+          to={ROUTES.REGISTER}
+        />
+      }
+    >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <Input
+          label="University email"
+          type="email"
+          autoComplete="email"
+          placeholder="you@gctu.edu.gh"
+          error={errors.email?.message}
+          {...register('email')}
+        />
+        <Input
+          label="Password"
+          type="password"
+          autoComplete="current-password"
+          error={errors.password?.message}
+          {...register('password')}
+        />
 
-        <p className="mt-4 text-center text-sm text-slate-500">
-          New here?{' '}
-          <Link to={ROUTES.REGISTER} className="font-medium text-brand-600 hover:underline">
-            Create an account
-          </Link>
-        </p>
-      </Card>
-    </div>
+        {authError && <p className="text-sm text-red-600">{authError}</p>}
+
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? 'Signing in...' : 'Sign in'}
+        </Button>
+      </form>
+    </AuthLayout>
   )
 }

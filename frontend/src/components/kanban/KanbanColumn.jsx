@@ -1,5 +1,7 @@
+import { useDroppable } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Plus } from 'lucide-react'
-import { TaskCard } from '@/components/kanban/TaskCard'
+import { SortableTaskCard } from '@/components/kanban/SortableTaskCard'
 import { cn } from '@/utils/cn'
 
 const columnStyles = {
@@ -8,8 +10,9 @@ const columnStyles = {
   completed: { dot: 'bg-emerald-500', label: 'Completed' },
 }
 
-export function KanbanColumn({ columnId, tasks, showAddTask = false }) {
+export function KanbanColumn({ columnId, tasks, showAddTask = false, onAddTask }) {
   const style = columnStyles[columnId]
+  const { setNodeRef, isOver } = useDroppable({ id: columnId })
 
   return (
     <section className="flex min-w-0 flex-1 flex-col">
@@ -19,20 +22,23 @@ export function KanbanColumn({ columnId, tasks, showAddTask = false }) {
         <span className="ml-auto text-xs text-slate-400">{tasks.length}</span>
       </header>
 
-      <div className="flex flex-1 flex-col gap-3">
-        {tasks.map((task) => (
-          <TaskCard
-            key={task.id}
-            title={task.title}
-            footer={task.footer}
-            assignee={task.assignee}
-            variant={task.variant}
-          />
-        ))}
+      <div
+        ref={setNodeRef}
+        className={cn(
+          'flex min-h-[120px] flex-1 flex-col gap-3 rounded-xl p-1 transition-colors',
+          isOver && 'bg-violet-50/60 ring-1 ring-violet-200',
+        )}
+      >
+        <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
+          {tasks.map((task) => (
+            <SortableTaskCard key={task.id} task={task} />
+          ))}
+        </SortableContext>
 
         {showAddTask && (
           <button
             type="button"
+            onClick={onAddTask}
             className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 py-3 text-sm font-medium text-slate-500 transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-700"
           >
             <Plus className="h-4 w-4" />

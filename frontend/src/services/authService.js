@@ -1,15 +1,57 @@
 import apiClient from '@/api/client'
 import { endpoints } from '@/api/endpoints'
-import { STORAGE_KEYS } from '@/utils/constants'
+import { DEV_BYPASS_AUTH, STORAGE_KEYS } from '@/utils/constants'
 
-export async function login(credentials) {
-  const { data } = await apiClient.post(endpoints.auth.login, credentials)
+export async function register(payload) {
+  if (DEV_BYPASS_AUTH) {
+    const data = buildDevAuthResponse(payload)
+    persistSession(data)
+    localStorage.setItem(STORAGE_KEYS.PENDING_REGISTRATION, JSON.stringify(payload))
+    return data
+  }
+
+  const { data } = await apiClient.post(endpoints.auth.register, payload)
   persistSession(data)
   return data
 }
 
-export async function register(payload) {
-  const { data } = await apiClient.post(endpoints.auth.register, payload)
+function buildDevAuthResponse(payload) {
+  const fullName = `${payload.firstName} ${payload.lastName}`.trim()
+
+  return {
+    token: `dev-token-${Date.now()}`,
+    user: {
+      id: crypto.randomUUID(),
+      name: fullName,
+      email: payload.email,
+      role: payload.role,
+      studentId: payload.studentId,
+      university: payload.university,
+      program: payload.program,
+      level: payload.level,
+      phone: payload.phone ?? '',
+    },
+  }
+}
+
+export async function login(credentials) {
+  if (DEV_BYPASS_AUTH) {
+    const stored = getStoredUser()
+    const data = {
+      token: 'dev-token',
+      user:
+        stored ?? {
+          id: 'dev-user-1',
+          name: 'Alex Opoku',
+          email: credentials.email,
+          role: 'student',
+        },
+    }
+    persistSession(data)
+    return data
+  }
+
+  const { data } = await apiClient.post(endpoints.auth.login, credentials)
   persistSession(data)
   return data
 }

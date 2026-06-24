@@ -8,7 +8,7 @@ const navLinks = [
   { to: ROUTES.STUDENT_DASHBOARD, label: 'Dashboard' },
   { to: ROUTES.FIND_GROUPS, label: 'Find Groups' },
   { to: '/workspace/demo', label: 'Workspace', prefix: '/workspace' },
-  { to: ROUTES.ONBOARDING, label: 'Profile' },
+  { to: ROUTES.PROFILE, label: 'Profile' },
 ]
 
 export function StudentNavbar() {
