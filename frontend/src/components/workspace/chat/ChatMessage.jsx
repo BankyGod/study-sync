@@ -1,11 +1,14 @@
 import { Paperclip, Trash2 } from 'lucide-react'
 import { VoiceMessagePlayer } from '@/components/workspace/chat/VoiceMessagePlayer'
+import { MemberAvatarButton } from '@/components/workspace/MemberAvatarButton'
+import { useMemberProfile } from '@/context/MemberProfileContext'
 import { useWorkspaceMember } from '@/context/WorkspaceContext'
 import { formatFileSize, formatMessageTime } from '@/services/workspaceChatService'
 import { cn } from '@/utils/cn'
 
 export function ChatMessage({ message, isOwnMessage, showSender, onDelete }) {
   const member = useWorkspaceMember(message.senderId)
+  const { openMemberProfile } = useMemberProfile()
   const isAttachment = message.type === 'attachment'
   const isVoice = message.type === 'voice'
   const canDelete = isOwnMessage && onDelete
@@ -14,21 +17,25 @@ export function ChatMessage({ message, isOwnMessage, showSender, onDelete }) {
   return (
     <div className={cn('flex gap-3', isOwnMessage ? 'flex-row-reverse' : 'flex-row')}>
       {!isOwnMessage && showSender ? (
-        <div
-          className={cn(
-            'mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white',
-            member?.color ?? 'bg-slate-400',
-          )}
-        >
-          {member?.initials ?? '?'}
-        </div>
+        <MemberAvatarButton
+          member={member}
+          size="sm"
+          onClick={() => openMemberProfile(message.senderId)}
+          className="mt-1"
+        />
       ) : (
         !isOwnMessage && <div className="w-8 shrink-0" />
       )}
 
       <div className={cn('group relative max-w-[75%]', isOwnMessage && 'items-end text-right')}>
         {!isOwnMessage && showSender && member && (
-          <p className="mb-1 text-xs font-semibold text-slate-600">{member.name}</p>
+          <button
+            type="button"
+            onClick={() => openMemberProfile(message.senderId)}
+            className="mb-1 text-xs font-semibold text-slate-600 transition hover:text-violet-700"
+          >
+            {member.name}
+          </button>
         )}
 
         <div className={cn('relative inline-flex max-w-full', isOwnMessage && 'flex-row-reverse')}>

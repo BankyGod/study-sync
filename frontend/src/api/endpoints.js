@@ -6,6 +6,9 @@ export const endpoints = {
   },
   users: {
     profile: '/users/me/profile',
+    profileById: (userId) => `/users/${userId}/profile`,
+    avatar: '/users/me/avatar',
+    avatarByUser: (userId) => `/users/${userId}/avatar`,
     groups: '/users/me/groups',
   },
   onboarding: {

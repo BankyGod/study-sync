@@ -29,7 +29,7 @@ export function getCourseCode(course) {
 export function validateMatchingRequest(request = {}) {
   const course = request.course
   if (!course?.subject?.trim() || !course?.courseNumber?.trim()) {
-    return 'Select a course in onboarding before finding a study group.'
+    return 'Select a course before searching for a study group.'
   }
   return null
 }

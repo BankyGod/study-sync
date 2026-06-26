@@ -1,8 +1,16 @@
 import { GraduationCap, MapPin } from 'lucide-react'
-import { getProfileInitials } from '@/services/usersService'
+import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
 
-export function ProfileSummaryCard({ profile, groupCount = 0, onEdit }) {
-  const initials = getProfileInitials(profile.fullName)
+export function ProfileSummaryCard({
+  profile,
+  userId,
+  groupCount = 0,
+  avatarRefreshKey = 0,
+  isAvatarUploading = false,
+  onEdit,
+  onAvatarUpload,
+  onAvatarRemove,
+}) {
   const universities = [profile.primaryUniversity, profile.secondaryUniversity]
     .filter(Boolean)
     .join(' · ')
@@ -11,9 +19,16 @@ export function ProfileSummaryCard({ profile, groupCount = 0, onEdit }) {
     <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-wrap items-start gap-4">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-sky-500 text-2xl font-bold text-white">
-            {initials || 'A'}
-          </div>
+          <ProfileAvatar
+            userId={userId}
+            fullName={profile.fullName}
+            size="lg"
+            editable
+            refreshKey={avatarRefreshKey}
+            isUploading={isAvatarUploading}
+            onUpload={onAvatarUpload}
+            onRemove={onAvatarRemove}
+          />
           <div>
             <h2 className="text-lg font-bold tracking-wide text-slate-900 uppercase">
               {profile.fullName}

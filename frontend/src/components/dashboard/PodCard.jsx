@@ -40,7 +40,7 @@ export function PodCard({ title, members, progress, accent = 'blue', to }) {
       <div className="mt-4 flex -space-x-2">
         {members.map((member) => (
           <div
-            key={member.initials}
+            key={member.id ?? member.initials}
             title={member.name}
             className={cn(
               'flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-xs font-semibold text-white',

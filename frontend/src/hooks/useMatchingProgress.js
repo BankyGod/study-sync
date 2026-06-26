@@ -55,7 +55,12 @@ function applyJobResult(job, { setProgress, setMatch, setError, setIsWaitingForP
   return 'running'
 }
 
-export function useMatchingProgress({ active = true, profileReady = true, runKey = 0 } = {}) {
+export function useMatchingProgress({
+  active = true,
+  profileReady = true,
+  runKey = 0,
+  selectedCourse = null,
+} = {}) {
   const [progress, setProgress] = useState(0)
   const [currentStep, setCurrentStep] = useState(null)
   const [match, setMatch] = useState(null)
@@ -73,14 +78,14 @@ export function useMatchingProgress({ active = true, profileReady = true, runKey
   }, [])
 
   useEffect(() => {
-    if (!active || !profileReady) return undefined
+    if (!active || !profileReady || !selectedCourse) return undefined
 
     let cancelled = false
     let pollTimer
 
     async function run() {
       try {
-        const request = buildMatchingRequest()
+        const request = buildMatchingRequest({ course: selectedCourse })
         const validationError = validateMatchingRequest(request)
 
         if (validationError) {
@@ -88,7 +93,7 @@ export function useMatchingProgress({ active = true, profileReady = true, runKey
           return
         }
 
-        const started = await startMatching()
+        const started = await startMatching({ course: selectedCourse })
         if (cancelled) return
 
         if (started.currentStep) {
@@ -147,7 +152,7 @@ export function useMatchingProgress({ active = true, profileReady = true, runKey
       cancelled = true
       if (pollTimer) window.clearTimeout(pollTimer)
     }
-  }, [active, profileReady, runKey])
+  }, [active, profileReady, runKey, selectedCourse])
 
   const steps = useMemo(() => {
     const activeStepIndex = currentStep ? STEP_ORDER.indexOf(currentStep) : -1

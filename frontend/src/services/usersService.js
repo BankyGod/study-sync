@@ -100,13 +100,126 @@ export async function saveUserProfile(profile) {
   return normalizeUserProfile(data)
 }
 
+export async function fetchMemberProfile(userId) {
+  if (!userId || DEV_BYPASS_AUTH) {
+    return null
+  }
+
+  try {
+    const { data } = await apiClient.get(endpoints.users.profileById(userId))
+    return normalizeUserProfile(data)
+  } catch (error) {
+    if (error.response?.status === 404 || error.response?.status === 403) {
+      return null
+    }
+    throw error
+  }
+}
+
+const DEV_MOCK_GROUPS = [
+  {
+    id: 'demo',
+    groupId: 'demo',
+    title: 'Demo Study Group',
+    progress: 64,
+    accent: 'purple',
+    members: [
+      { id: 'dev-user-1', name: 'Alex Opoku', initials: 'AO', color: 'bg-sky-500' },
+      { id: 'dev-user-2', name: 'Sarah Mensah', initials: 'SM', color: 'bg-violet-500' },
+      { id: 'dev-user-3', name: 'Mike Park', initials: 'MP', color: 'bg-emerald-500' },
+    ],
+  },
+]
+
 export async function fetchUserGroups() {
   if (DEV_BYPASS_AUTH) {
-    return []
+    return DEV_MOCK_GROUPS
   }
 
   const { data } = await apiClient.get(endpoints.users.groups)
   return data.groups ?? []
+}
+
+export const MAX_AVATAR_FILE_SIZE = 5 * 1024 * 1024
+
+const ACCEPTED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+
+export function validateAvatarFile(file) {
+  if (!file) return 'Choose a photo to upload.'
+  if (!ACCEPTED_AVATAR_TYPES.includes(file.type)) {
+    return 'Use a JPEG, PNG, WebP, or GIF image.'
+  }
+  if (file.size > MAX_AVATAR_FILE_SIZE) {
+    return 'Profile photo must be smaller than 5 MB.'
+  }
+  return null
+}
+
+export function revokeUserAvatarObjectUrl(url) {
+  if (url?.startsWith('blob:')) {
+    URL.revokeObjectURL(url)
+  }
+}
+
+export async function loadUserAvatarObjectUrl(userId) {
+  if (!userId) return null
+
+  if (DEV_BYPASS_AUTH) {
+    return localStorage.getItem(STORAGE_KEYS.USER_AVATAR) || null
+  }
+
+  try {
+    const { data } = await apiClient.get(endpoints.users.avatarByUser(userId), {
+      responseType: 'blob',
+    })
+    return URL.createObjectURL(data)
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return null
+    }
+    return null
+  }
+}
+
+export async function uploadUserAvatar(file) {
+  const validationError = validateAvatarFile(file)
+  if (validationError) {
+    throw new Error(validationError)
+  }
+
+  if (DEV_BYPASS_AUTH) {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.onerror = () => reject(new Error('Unable to read image.'))
+      reader.readAsDataURL(file)
+    })
+    localStorage.setItem(STORAGE_KEYS.USER_AVATAR, dataUrl)
+    return { avatarUrl: dataUrl }
+  }
+
+  const formData = new FormData()
+  formData.append('photo', file)
+
+  const { data } = await apiClient.post(endpoints.users.avatar, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+
+  return data
+}
+
+export async function deleteUserAvatar() {
+  if (DEV_BYPASS_AUTH) {
+    localStorage.removeItem(STORAGE_KEYS.USER_AVATAR)
+    return
+  }
+
+  await apiClient.delete(endpoints.users.avatar)
+}
+
+export function getAvatarUploadErrorMessage(error) {
+  const apiError = error?.response?.data?.error
+  return apiError?.message || error?.message || 'Unable to update profile photo.'
 }
 
 export function getUserGroupsErrorMessage(error) {

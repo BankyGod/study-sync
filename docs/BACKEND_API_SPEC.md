@@ -1,7 +1,8 @@
 # StudySync — Backend API Specification
 
 **Audience:** Backend developers implementing the StudySync API  
-**Frontend status:** UI complete; all data currently mocked in `localStorage`  
+**Frontend status:** UI wired to live API (`frontend/` services call Render backend when `VITE_DEV_BYPASS_AUTH` is not set)  
+**Start here for current requirements:** [`BACKEND_HANDOFF.md`](./BACKEND_HANDOFF.md) — flows, endpoint checklist, request/response JSON, priorities  
 **Out of scope:** Reliability score system (`/reliability/*`, `reliability:updated` WebSocket events)
 
 ---
@@ -20,9 +21,11 @@ StudySync is a context-aware collaborative learning platform for GCTU. Students 
 ### High-level flow
 
 ```
-Register → Onboarding (4 steps) → Find Groups (matching) → Match Found → Workspace
-Login → Dashboard (active pods) → /workspace/:groupId
+Register → Onboarding (optional skip) → Find Groups (select course → search pod) → Match Found → Workspace
+Login → Dashboard or /workspace (pod list) → /workspace/:groupId
 ```
+
+See `BACKEND_HANDOFF.md` for the detailed course-selection flow.
 
 ### Frontend integration contract
 

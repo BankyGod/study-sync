@@ -26,11 +26,11 @@ export function getMatchingErrorMessage(error, { profileReady = true } = {}) {
   const message = error?.response?.data?.error?.message
 
   if (code === 'VALIDATION_ERROR' || message?.toLowerCase().includes('onboarding')) {
-    return 'Complete onboarding and select a course before matching.'
+    return 'Complete your study preferences before matching.'
   }
 
-  if (message?.toLowerCase().includes('no course')) {
-    return 'Select a course in onboarding before finding a study group.'
+  if (message?.toLowerCase().includes('no course') || message?.toLowerCase().includes('select a course')) {
+    return 'Select a course before searching for a study group.'
   }
 
   if (typeof error === 'string' && isNoEnrolledStudentsError({ message: error })) {

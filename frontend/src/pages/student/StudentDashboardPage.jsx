@@ -110,7 +110,7 @@ export function StudentDashboardPage() {
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {groups.map((pod) => (
                   <PodCard
-                    key={pod.id}
+                    key={pod.id ?? pod.groupId}
                     to={buildWorkspacePath(pod.groupId)}
                     title={pod.title}
                     members={pod.members}

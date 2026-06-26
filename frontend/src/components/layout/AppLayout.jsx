@@ -7,7 +7,7 @@ import { cn } from '@/utils/cn'
 
 const studentLinks = [
   { to: ROUTES.STUDENT_DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/workspace/demo', label: 'Workspace', icon: Workflow },
+  { to: ROUTES.WORKSPACE_LIST, label: 'Workspace', icon: Workflow },
   { to: ROUTES.ONBOARDING, label: 'Profile Setup', icon: GraduationCap },
 ]
 

@@ -1,27 +1,39 @@
-import { useEffect, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { OrbitAnimation } from '@/components/find-groups/OrbitAnimation'
 import { MatchingProgress } from '@/components/find-groups/MatchingProgress'
 import { MatchFoundView } from '@/components/find-groups/MatchFoundView'
+import { CourseSelectPanel, courseKey } from '@/components/find-groups/CourseSelectPanel'
 import { useMatchingProgress } from '@/hooks/useMatchingProgress'
 import { Spinner } from '@/components/common/Spinner'
 import {
-  getActiveCourseLabel,
-  getActiveMatchingCourse,
+  getOnboardingErrorMessage,
   loadOnboardingProfile,
+  mergeOnboardingProfile,
+  saveOnboardingProfile,
   setCachedOnboardingProfile,
 } from '@/services/onboardingProfileService'
 import { fetchCourseGroups } from '@/services/matchingService'
 import { ROUTES } from '@/utils/constants'
+import { formatCourseName, getValidCourses } from '@/utils/onboarding'
 import { cn } from '@/utils/cn'
+
+function createEmptyCourse() {
+  return { id: crypto.randomUUID(), subject: '', courseNumber: '' }
+}
 
 export function FindGroupsPage() {
   const location = useLocation()
-  const [phase, setPhase] = useState('searching')
+  const [phase, setPhase] = useState('select-course')
   const [runKey, setRunKey] = useState(0)
+  const [courses, setCourses] = useState([createEmptyCourse()])
+  const [selectedCourseId, setSelectedCourseId] = useState(null)
+  const [selectedCourse, setSelectedCourse] = useState(null)
   const [courseLabel, setCourseLabel] = useState(null)
   const [courseGroups, setCourseGroups] = useState([])
   const [isProfileReady, setIsProfileReady] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [selectError, setSelectError] = useState('')
   const [profileError, setProfileError] = useState('')
 
   const { progress, steps, match, error, isWaitingForPeers, isComplete, reset } =
@@ -29,6 +41,7 @@ export function FindGroupsPage() {
       active: phase === 'searching',
       profileReady: isProfileReady,
       runKey,
+      selectedCourse,
     })
 
   useEffect(() => {
@@ -42,30 +55,24 @@ export function FindGroupsPage() {
         const profile = await loadOnboardingProfile()
         if (cancelled) return
 
-        if (profile) {
-          setCachedOnboardingProfile(profile)
-          setCourseLabel(getActiveCourseLabel())
-          setIsProfileReady(true)
+        const merged = mergeOnboardingProfile(profile)
+        setCachedOnboardingProfile(profile ?? merged)
 
-          const activeCourse = getActiveMatchingCourse()
-          if (activeCourse) {
-            try {
-              const courseData = await fetchCourseGroups(activeCourse)
-              if (!cancelled) {
-                setCourseGroups(courseData?.groups ?? [])
-              }
-            } catch {
-              if (!cancelled) {
-                setCourseGroups([])
-              }
-            }
-          }
-        } else {
-          setProfileError('Complete onboarding and select a course before finding a study group.')
+        const validCourses = getValidCourses(merged.courses)
+        setCourses(validCourses.length > 0 ? merged.courses : [createEmptyCourse()])
+
+        const preselectedId =
+          location.state?.preselectedCourseId ??
+          (validCourses.length === 1 ? courseKey(validCourses[0]) : null)
+
+        if (preselectedId) {
+          setSelectedCourseId(preselectedId)
         }
+
+        setIsProfileReady(true)
       } catch {
         if (!cancelled) {
-          setProfileError('Unable to load your onboarding profile. Please try again.')
+          setProfileError('Unable to load your profile. Please try again.')
         }
       }
     }
@@ -75,15 +82,7 @@ export function FindGroupsPage() {
     return () => {
       cancelled = true
     }
-  }, [])
-
-  useEffect(() => {
-    if (location.state?.fromOnboarding) {
-      setPhase('searching')
-      reset()
-      setRunKey((key) => key + 1)
-    }
-  }, [location.state?.fromOnboarding, reset])
+  }, [location.state?.preselectedCourseId])
 
   useEffect(() => {
     if (isComplete && phase === 'searching') {
@@ -93,24 +92,83 @@ export function FindGroupsPage() {
     return undefined
   }, [isComplete, phase])
 
-  const handleFindAnother = async () => {
+  const validCourses = useMemo(() => getValidCourses(courses), [courses])
+
+  useEffect(() => {
+    validCourses.forEach((course) => {
+      const key = courseKey(course)
+      if (!selectedCourseId && validCourses.length === 1) {
+        setSelectedCourseId(key)
+      }
+    })
+  }, [validCourses, selectedCourseId])
+
+  const handleStartSearch = async () => {
+    const course = validCourses.find((item) => courseKey(item) === selectedCourseId)
+    if (!course) {
+      setSelectError('Select a course with a subject and course number.')
+      return
+    }
+
+    setIsSaving(true)
+    setSelectError('')
+
+    try {
+      const existing = await loadOnboardingProfile()
+      const baseProfile = mergeOnboardingProfile(existing)
+      const saved = await saveOnboardingProfile({ ...baseProfile, courses })
+      setCachedOnboardingProfile(saved)
+
+      setSelectedCourse({
+        subject: course.subject.trim(),
+        courseNumber: course.courseNumber.trim(),
+      })
+      setCourseLabel(formatCourseName(course))
+      setPhase('searching')
+      reset()
+      setRunKey((key) => key + 1)
+
+      try {
+        const courseData = await fetchCourseGroups(course)
+        setCourseGroups(courseData?.groups ?? [])
+      } catch {
+        setCourseGroups([])
+      }
+    } catch (saveError) {
+      setSelectError(
+        saveError.message?.includes('Select') || saveError.message?.includes('Add')
+          ? saveError.message
+          : getOnboardingErrorMessage(saveError),
+      )
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleChangeCourse = () => {
     reset()
-    setPhase('searching')
+    setPhase('select-course')
+    setSelectedCourse(null)
+    setCourseGroups([])
+  }
+
+  const handleFindAnother = () => {
+    handleChangeCourse()
+  }
+
+  const handleCheckAgain = async () => {
+    reset()
     setRunKey((key) => key + 1)
 
-    const activeCourse = getActiveMatchingCourse()
-    if (activeCourse) {
+    if (selectedCourse) {
       try {
-        const courseData = await fetchCourseGroups(activeCourse)
+        const courseData = await fetchCourseGroups(selectedCourse)
         setCourseGroups(courseData?.groups ?? [])
       } catch {
         setCourseGroups([])
       }
     }
   }
-
-  const openGroupCount = courseGroups.filter((group) => (group.openSlots ?? 0) > 0).length
-  const totalOpenSlots = courseGroups.reduce((sum, group) => sum + (group.openSlots ?? 0), 0)
 
   if (phase === 'found' && match) {
     return (
@@ -123,14 +181,38 @@ export function FindGroupsPage() {
     )
   }
 
-  const statusMessage = profileError || error
+  if (phase === 'select-course') {
+    return (
+      <div className="px-4 py-10 sm:px-6 lg:px-8">
+        {!isProfileReady && !profileError ? (
+          <div className="flex min-h-[280px] items-center justify-center">
+            <Spinner size="lg" />
+          </div>
+        ) : (
+          <CourseSelectPanel
+            courses={courses}
+            selectedCourseId={selectedCourseId}
+            onSelectCourse={setSelectedCourseId}
+            onCoursesChange={setCourses}
+            onSearch={handleStartSearch}
+            isSaving={isSaving}
+            error={profileError || selectError}
+          />
+        )}
+      </div>
+    )
+  }
+
+  const statusMessage = error
+  const openGroupCount = courseGroups.filter((group) => (group.openSlots ?? 0) > 0).length
+  const totalOpenSlots = courseGroups.reduce((sum, group) => sum + (group.openSlots ?? 0), 0)
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
       <header className="mb-10 text-center">
         {courseLabel && (
           <p className="mb-3 inline-flex rounded-full bg-violet-50 px-4 py-1.5 text-sm font-semibold text-violet-700">
-            Matching for {courseLabel}
+            Searching pods for {courseLabel}
           </p>
         )}
         <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
@@ -141,7 +223,7 @@ export function FindGroupsPage() {
             ? `We're scanning students enrolled in ${courseLabel} to build a pod that fits your schedule, learning style, and study preferences.`
             : 'Our smart algorithm is searching for the perfect match for your learning style and goals.'}
         </p>
-        {isProfileReady && courseGroups.length > 0 && (
+        {courseGroups.length > 0 && (
           <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-500">
             {openGroupCount > 0
               ? `${openGroupCount} group${openGroupCount === 1 ? '' : 's'} with ${totalOpenSlots} open slot${totalOpenSlots === 1 ? '' : 's'} in ${courseLabel}.`
@@ -150,17 +232,11 @@ export function FindGroupsPage() {
         )}
       </header>
 
-      {!isProfileReady && !profileError && (
-        <div className="mb-6 flex justify-center">
-          <Spinner size="lg" />
-        </div>
-      )}
-
       {statusMessage && (
         <div
           className={cn(
             'mb-6 rounded-xl border px-4 py-3 text-center text-sm',
-            isWaitingForPeers || profileError
+            isWaitingForPeers
               ? 'border-amber-200 bg-amber-50 text-amber-800'
               : 'border-red-100 bg-red-50 text-red-600',
           )}
@@ -171,14 +247,6 @@ export function FindGroupsPage() {
               We&apos;ll keep checking as more students join {courseLabel ?? 'your course'}.
             </p>
           )}
-          {profileError && (
-            <Link
-              to={ROUTES.ONBOARDING}
-              className="mt-3 inline-flex text-sm font-semibold text-violet-700 hover:text-violet-800"
-            >
-              Go to onboarding
-            </Link>
-          )}
         </div>
       )}
 
@@ -188,17 +256,24 @@ export function FindGroupsPage() {
         <MatchingProgress progress={progress} steps={steps} />
       </div>
 
-      {isWaitingForPeers && (
-        <div className="mt-6 flex justify-center">
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        {isWaitingForPeers && (
           <button
             type="button"
-            onClick={handleFindAnother}
+            onClick={handleCheckAgain}
             className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             Check again
           </button>
-        </div>
-      )}
+        )}
+        <button
+          type="button"
+          onClick={handleChangeCourse}
+          className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          Change course
+        </button>
+      </div>
     </div>
   )
 }

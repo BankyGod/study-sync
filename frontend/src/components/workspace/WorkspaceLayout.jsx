@@ -1,6 +1,7 @@
-import { Outlet, useParams } from 'react-router-dom'
+import { Link, Outlet, useParams } from 'react-router-dom'
 import { SessionTimerProvider } from '@/context/SessionTimerContext'
 import { WorkspaceProvider, useWorkspace } from '@/context/WorkspaceContext'
+import { MemberProfileProvider } from '@/context/MemberProfileContext'
 import {
   WorkspaceScheduleProvider,
   useWorkspaceSchedule,
@@ -44,7 +45,7 @@ function WorkspaceAddTaskModal() {
 
 function WorkspaceShell() {
   const { groupId } = useParams()
-  const { title, isLoading } = useWorkspace()
+  const { title, courseLabel, isLoading } = useWorkspace()
 
   if (isLoading) {
     return (
@@ -62,7 +63,7 @@ function WorkspaceShell() {
 
           <div className="flex min-h-0 flex-1 gap-6 overflow-hidden p-5 lg:p-6">
             <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-              <WorkspaceHeader title={title} />
+              <WorkspaceHeader title={title} courseLabel={courseLabel} />
               <div className="flex min-h-0 flex-1 flex-col">
                 <Outlet />
               </div>
@@ -85,7 +86,9 @@ export function WorkspaceLayout() {
   return (
     <SessionTimerProvider>
       <WorkspaceProvider groupId={groupId}>
-        <WorkspaceShell />
+        <MemberProfileProvider>
+          <WorkspaceShell />
+        </MemberProfileProvider>
       </WorkspaceProvider>
     </SessionTimerProvider>
   )

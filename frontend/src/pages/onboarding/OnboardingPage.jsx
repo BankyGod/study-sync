@@ -6,7 +6,7 @@ import { AvailabilityStep } from '@/components/onboarding/steps/AvailabilityStep
 import { CoursesStep } from '@/components/onboarding/steps/CoursesStep'
 import { PreferencesStep } from '@/components/onboarding/steps/PreferencesStep'
 import { Spinner } from '@/components/common/Spinner'
-import { ONBOARDING_STEPS } from '@/utils/onboarding'
+import { ONBOARDING_STEPS, getValidCourses } from '@/utils/onboarding'
 import { ROUTES } from '@/utils/constants'
 import {
   getOnboardingErrorMessage,
@@ -69,7 +69,13 @@ export function OnboardingPage() {
       try {
         const saved = await saveOnboardingProfile(preferences)
         setCachedOnboardingProfile(saved)
-        navigate(ROUTES.FIND_GROUPS, { state: { fromOnboarding: true } })
+        const primaryCourse = getValidCourses(saved.courses ?? [])[0]
+        navigate(ROUTES.FIND_GROUPS, {
+          state: {
+            fromOnboarding: true,
+            preselectedCourseId: primaryCourse ? primaryCourse.id : null,
+          },
+        })
       } catch (saveError) {
         setError(
           saveError.message?.includes('Select') || saveError.message?.includes('Add')

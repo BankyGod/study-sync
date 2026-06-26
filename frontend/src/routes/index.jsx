@@ -13,6 +13,7 @@ import { WorkspaceBoardPage } from '@/pages/workspace/WorkspaceBoardPage'
 import { WorkspaceFilesPage } from '@/pages/workspace/WorkspaceFilesPage'
 import { WorkspaceChatPage } from '@/pages/workspace/WorkspaceChatPage'
 import { WorkspaceCalendarPage } from '@/pages/workspace/WorkspaceCalendarPage'
+import { WorkspacePodsPage } from '@/pages/workspace/WorkspacePodsPage'
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage'
 import { CohortManagementPage } from '@/pages/admin/CohortManagementPage'
 import { GroupOverviewPage } from '@/pages/admin/GroupOverviewPage'
@@ -47,12 +48,15 @@ export function AppRoutes() {
         <Route path={ROUTES.STUDENT_DASHBOARD} element={<StudentDashboardPage />} />
         <Route path={ROUTES.FIND_GROUPS} element={<FindGroupsPage />} />
         <Route path={ROUTES.MY_GROUPS} element={<Navigate to={ROUTES.STUDENT_DASHBOARD} replace />} />
-        <Route path={ROUTES.WORKSPACE} element={<WorkspaceLayout />}>
-          <Route index element={<WorkspaceBoardPage />} />
-          <Route path="board" element={<WorkspaceBoardPage />} />
-          <Route path="files" element={<WorkspaceFilesPage />} />
-          <Route path="chat" element={<WorkspaceChatPage />} />
-          <Route path="calendar" element={<WorkspaceCalendarPage />} />
+        <Route path={ROUTES.WORKSPACE_LIST}>
+          <Route index element={<WorkspacePodsPage />} />
+          <Route path=":groupId" element={<WorkspaceLayout />}>
+            <Route index element={<WorkspaceBoardPage />} />
+            <Route path="board" element={<WorkspaceBoardPage />} />
+            <Route path="files" element={<WorkspaceFilesPage />} />
+            <Route path="chat" element={<WorkspaceChatPage />} />
+            <Route path="calendar" element={<WorkspaceCalendarPage />} />
+          </Route>
         </Route>
       </Route>
 

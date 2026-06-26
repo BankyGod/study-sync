@@ -10,9 +10,12 @@ import { useAuth } from '@/hooks/useAuth'
 import { ROUTES } from '@/utils/constants'
 import {
   fetchUserGroups,
+  getAvatarUploadErrorMessage,
   getUserProfileErrorMessage,
   loadUserProfile,
   saveUserProfile,
+  uploadUserAvatar,
+  deleteUserAvatar,
 } from '@/services/usersService'
 import {
   getOnboardingErrorMessage,
@@ -23,13 +26,14 @@ import {
 } from '@/services/onboardingProfileService'
 
 export function ProfilePage() {
-  const { user } = useAuth()
+  const { user, refreshAvatar, avatarVersion } = useAuth()
   const [profile, setProfile] = useState(null)
   const [groupCount, setGroupCount] = useState(0)
   const [onboarding, setOnboarding] = useState(mergeOnboardingProfile(null))
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isAvatarUploading, setIsAvatarUploading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -90,6 +94,36 @@ export function ProfilePage() {
       )
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleAvatarUpload = async (file) => {
+    setIsAvatarUploading(true)
+    setError('')
+    setSuccess('')
+    try {
+      await uploadUserAvatar(file)
+      refreshAvatar()
+      setSuccess('Profile photo updated.')
+    } catch (uploadError) {
+      setError(getAvatarUploadErrorMessage(uploadError))
+    } finally {
+      setIsAvatarUploading(false)
+    }
+  }
+
+  const handleAvatarRemove = async () => {
+    setIsAvatarUploading(true)
+    setError('')
+    setSuccess('')
+    try {
+      await deleteUserAvatar()
+      refreshAvatar()
+      setSuccess('Profile photo removed.')
+    } catch (removeError) {
+      setError(getAvatarUploadErrorMessage(removeError))
+    } finally {
+      setIsAvatarUploading(false)
     }
   }
 
@@ -162,8 +196,13 @@ export function ProfilePage() {
 
         <ProfileSummaryCard
           profile={profile}
+          userId={user?.id}
           groupCount={groupCount}
+          avatarRefreshKey={avatarVersion}
+          isAvatarUploading={isAvatarUploading}
           onEdit={() => setIsEditOpen(true)}
+          onAvatarUpload={handleAvatarUpload}
+          onAvatarRemove={handleAvatarRemove}
         />
 
         <LearningStyleSelector

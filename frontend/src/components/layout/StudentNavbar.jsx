@@ -1,18 +1,21 @@
-import { NavLink, useLocation } from 'react-router-dom'
-import { Bell, Search, User } from 'lucide-react'
+import { NavLink, Link, useLocation } from 'react-router-dom'
+import { Bell, Search } from 'lucide-react'
 import { StudySyncLogo } from '@/components/layout/StudySyncLogo'
+import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
+import { useAuth } from '@/hooks/useAuth'
 import { ROUTES } from '@/utils/constants'
 import { cn } from '@/utils/cn'
 
 const navLinks = [
   { to: ROUTES.STUDENT_DASHBOARD, label: 'Dashboard' },
   { to: ROUTES.FIND_GROUPS, label: 'Find Groups' },
-  { to: '/workspace/demo', label: 'Workspace', prefix: '/workspace' },
+  { to: ROUTES.WORKSPACE_LIST, label: 'Workspace', prefix: '/workspace/' },
   { to: ROUTES.PROFILE, label: 'Profile' },
 ]
 
 export function StudentNavbar() {
   const location = useLocation()
+  const { user, avatarVersion } = useAuth()
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur">
@@ -22,7 +25,10 @@ export function StudentNavbar() {
         <nav className="hidden items-center gap-1 md:flex">
           {navLinks.map(({ to, label, prefix }) => {
             const isActive = prefix
-              ? location.pathname.startsWith(prefix)
+              ? prefix === '/workspace/'
+                ? location.pathname === ROUTES.WORKSPACE_LIST ||
+                  /^\/workspace\/[^/]+/.test(location.pathname)
+                : location.pathname.startsWith(prefix)
               : location.pathname === to
 
             return (
@@ -57,9 +63,18 @@ export function StudentNavbar() {
           >
             <Bell className="h-5 w-5" />
           </button>
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-500 text-white">
-            <User className="h-5 w-5" />
-          </div>
+          <Link
+            to={ROUTES.PROFILE}
+            className="block rounded-full transition hover:opacity-90"
+            aria-label="Your profile"
+          >
+            <ProfileAvatar
+              userId={user?.id}
+              fullName={user?.name ?? ''}
+              size="sm"
+              refreshKey={avatarVersion}
+            />
+          </Link>
         </div>
       </div>
     </header>

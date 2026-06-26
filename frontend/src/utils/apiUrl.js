@@ -14,7 +14,7 @@ export function resolveApiUrl(path) {
       return `${origin}${path}`
     }
 
-    if (path.startsWith('/workspaces/')) {
+    if (path.startsWith('/workspaces/') || path.startsWith('/users/')) {
       return `${base}${path}`
     }
 

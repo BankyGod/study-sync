@@ -23,6 +23,7 @@ function getInitialToken() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(getInitialUser)
   const [token, setToken] = useState(getInitialToken)
+  const [avatarVersion, setAvatarVersion] = useState(0)
   const [isLoading, setIsLoading] = useState(!DEV_BYPASS_AUTH && Boolean(getStoredToken()))
 
   useEffect(() => {
@@ -110,18 +111,24 @@ export function AuthProvider({ children }) {
     }
   }, [logout])
 
+  const refreshAvatar = useCallback(() => {
+    setAvatarVersion((version) => version + 1)
+  }, [])
+
   const value = useMemo(
     () => ({
       user: user ?? (DEV_BYPASS_AUTH ? DEV_MOCK_USER : null),
       token: token ?? (DEV_BYPASS_AUTH ? 'dev-token' : null),
       isAuthenticated: DEV_BYPASS_AUTH || Boolean(token && user),
       isLoading,
+      avatarVersion,
       login,
       register,
       logout,
       refreshUser,
+      refreshAvatar,
     }),
-    [user, token, isLoading, login, register, logout, refreshUser],
+    [user, token, isLoading, avatarVersion, login, register, logout, refreshUser, refreshAvatar],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

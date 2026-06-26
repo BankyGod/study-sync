@@ -5,7 +5,8 @@ import { cn } from '@/utils/cn'
 const devLinks = [
   { to: ROUTES.STUDENT_DASHBOARD, label: 'Dashboard' },
   { to: ROUTES.FIND_GROUPS, label: 'Find Groups' },
-  { to: '/workspace/demo', label: 'Workspace' },
+  { to: '/workspace', label: 'Workspace' },
+  { to: '/workspace/demo', label: 'Demo Pod' },
   { to: '/workspace/demo/chat', label: 'Chat' },
   { to: '/workspace/demo/files', label: 'Files' },
   { to: '/workspace/demo/calendar', label: 'Scheduler' },
