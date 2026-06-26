@@ -441,9 +441,44 @@ Creates in `todo`. Response `201`: full task object.
 **Drag-and-drop:** frontend sends multiple PATCH calls with `{ id, status, position }` per task.  
 **Optional:** `PUT /api/workspaces/:groupId/tasks/reorder` with `{ "tasks": [{ "id", "status", "position" }] }` returning full board (frontend will use this if available).
 
+**Kanban rules & notifications (new — see full spec):** [`BACKEND_TASKS_NOTIFICATIONS.md`](./BACKEND_TASKS_NOTIFICATIONS.md)
+
+| Feature | Backend behavior |
+|---------|------------------|
+| Delete | `DELETE /tasks/:taskId` — **creator only** (`createdBy` on task) |
+| Assignee progress | `POST /tasks/:taskId/progress` `{ "action": "start" \| "complete" }` — moves column automatically |
+| Move backward | PATCH with earlier `status` → `409 REGRESS_REQUIRES_APPROVAL`; use regress request flow |
+| Regress approval | `POST .../regress-requests` → creator notified → `.../approve` or `.../reject` |
+| Notifications | `GET /users/me/notifications`, unread count, mark read; WebSocket `notification:new` on `user:{userId}` |
+
+Task objects should include `createdBy`, `startedAt`, and `pendingRegressRequest` when applicable.
+
 ---
 
-### 4.7 Chat messages
+### 4.7 Notifications
+
+**Full spec:** [`BACKEND_TASKS_NOTIFICATIONS.md`](./BACKEND_TASKS_NOTIFICATIONS.md) §6–§8.
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/users/me/notifications` | List (`limit`, `cursor`, `unreadOnly`, `groupId`) |
+| GET | `/users/me/notifications/unread-count` | Navbar badge |
+| PATCH | `/users/me/notifications/:id/read` | Mark one read |
+| POST | `/users/me/notifications/read-all` | Mark all (optional `groupId` filter) |
+
+**Recipient rules (summary):**
+
+- Assignment / progress / completion → **assignees** (and creator on complete)
+- Regress requested → **creator**
+- Regress approved → **all pod members**
+- Regress rejected → **requester**
+- Task deleted → **assignee** if any
+
+WebSocket: `notification:new` → room `user:{userId}` with full notification object.
+
+---
+
+### 4.8 Chat messages
 
 **`GET /api/workspaces/:groupId/messages`**
 
@@ -502,7 +537,7 @@ Voice (multipart/form-data): `type=voice`, `file`, `durationSec` (max 120 sec, m
 
 ---
 
-### 4.8 Shared files
+### 4.9 Shared files
 
 **`GET /api/workspaces/:groupId/files`**
 
@@ -529,7 +564,7 @@ Voice (multipart/form-data): `type=voice`, `file`, `durationSec` (max 120 sec, m
 
 ---
 
-### 4.9 Scheduled sessions
+### 4.10 Scheduled sessions
 
 **`GET /api/workspaces/:groupId/sessions`**
 
@@ -558,7 +593,7 @@ Sorted ascending by `date` + `startTime`.
 
 ---
 
-### 4.10 WebSocket (Socket.IO)
+### 4.11 WebSocket (Socket.IO)
 
 **Connection:** same host as API; auth via `{ token: jwt }`.
 
@@ -610,6 +645,8 @@ Always include `error.message` for display.
 | P1 | `GET /matching/jobs/:jobId` with `progress`, `currentStep`, `match`, `waiting` |
 | P1 | `PATCH /tasks/:taskId` with `status` + `position` for kanban drag |
 | P1 | Chat + files + sessions GET/POST with shapes above |
+| P1 | **Kanban:** creator DELETE, assignee `POST /tasks/:id/progress`, regress requests — see [`BACKEND_TASKS_NOTIFICATIONS.md`](./BACKEND_TASKS_NOTIFICATIONS.md) |
+| P1 | **Notifications:** REST list/read + `notification:new` WebSocket |
 | P2 | `GET /users/:userId/profile` (pod-scoped) |
 | P2 | `DELETE` messages/files; `PATCH/DELETE` sessions |
 | P2 | `PUT /tasks/reorder` (optimization) |
@@ -642,4 +679,4 @@ Always include `error.message` for display.
 
 ---
 
-*Document version: matches frontend as of course-select Find Groups flow, workspace pod list, and member profile modal.*
+*Document version: includes kanban regress approval + notifications contract (`BACKEND_TASKS_NOTIFICATIONS.md`).*

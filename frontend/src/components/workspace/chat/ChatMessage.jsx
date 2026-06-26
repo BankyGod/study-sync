@@ -2,6 +2,7 @@ import { Paperclip, Trash2 } from 'lucide-react'
 import { VoiceMessagePlayer } from '@/components/workspace/chat/VoiceMessagePlayer'
 import { MemberAvatarButton } from '@/components/workspace/MemberAvatarButton'
 import { useMemberProfile } from '@/context/MemberProfileContext'
+import { useAuth } from '@/hooks/useAuth'
 import { useWorkspaceMember } from '@/context/WorkspaceContext'
 import { formatFileSize, formatMessageTime } from '@/services/workspaceChatService'
 import { cn } from '@/utils/cn'
@@ -9,6 +10,7 @@ import { cn } from '@/utils/cn'
 export function ChatMessage({ message, isOwnMessage, showSender, onDelete }) {
   const member = useWorkspaceMember(message.senderId)
   const { openMemberProfile } = useMemberProfile()
+  const { avatarVersion } = useAuth()
   const isAttachment = message.type === 'attachment'
   const isVoice = message.type === 'voice'
   const canDelete = isOwnMessage && onDelete
@@ -20,6 +22,7 @@ export function ChatMessage({ message, isOwnMessage, showSender, onDelete }) {
         <MemberAvatarButton
           member={member}
           size="sm"
+          refreshKey={avatarVersion}
           onClick={() => openMemberProfile(message.senderId)}
           className="mt-1"
         />

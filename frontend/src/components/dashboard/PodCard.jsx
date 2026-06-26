@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 import { BookOpen } from 'lucide-react'
+import { MemberAvatar } from '@/components/workspace/MemberAvatar'
+import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/utils/cn'
 
 const accentStyles = {
@@ -18,6 +20,7 @@ const accentStyles = {
 }
 
 export function PodCard({ title, members, progress, accent = 'blue', to }) {
+  const { avatarVersion } = useAuth()
   const styles = accentStyles[accent]
 
   const content = (
@@ -39,16 +42,13 @@ export function PodCard({ title, members, progress, accent = 'blue', to }) {
 
       <div className="mt-4 flex -space-x-2">
         {members.map((member) => (
-          <div
+          <MemberAvatar
             key={member.id ?? member.initials}
-            title={member.name}
-            className={cn(
-              'flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-xs font-semibold text-white',
-              member.color,
-            )}
-          >
-            {member.initials}
-          </div>
+            member={member}
+            size="sm"
+            bordered
+            refreshKey={avatarVersion}
+          />
         ))}
       </div>
 

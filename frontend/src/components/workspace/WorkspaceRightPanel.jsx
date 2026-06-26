@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { SessionTimerCard } from '@/components/workspace/SessionTimerCard'
 import { MemberAvatarButton } from '@/components/workspace/MemberAvatarButton'
 import { useMemberProfile } from '@/context/MemberProfileContext'
+import { useAuth } from '@/hooks/useAuth'
 import { useWorkspace } from '@/context/WorkspaceContext'
 import { useWorkspaceSchedule } from '@/context/WorkspaceScheduleContext'
 
@@ -17,6 +18,7 @@ export function WorkspaceRightPanel() {
   const location = useLocation()
   const view = getWorkspaceView(location.pathname)
   const { members } = useWorkspace()
+  const { avatarVersion } = useAuth()
   const { openMemberProfile } = useMemberProfile()
   const { openScheduleModal } = useWorkspaceSchedule()
 
@@ -60,6 +62,7 @@ export function WorkspaceRightPanel() {
                 <MemberAvatarButton
                   member={member}
                   size="lg"
+                  refreshKey={avatarVersion}
                   onClick={() => openMemberProfile(member.id)}
                 />
                 <button

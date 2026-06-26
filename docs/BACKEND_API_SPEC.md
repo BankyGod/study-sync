@@ -3,6 +3,7 @@
 **Audience:** Backend developers implementing the StudySync API  
 **Frontend status:** UI wired to live API (`frontend/` services call Render backend when `VITE_DEV_BYPASS_AUTH` is not set)  
 **Start here for current requirements:** [`BACKEND_HANDOFF.md`](./BACKEND_HANDOFF.md) — flows, endpoint checklist, request/response JSON, priorities  
+**Kanban + notifications (detailed):** [`BACKEND_TASKS_NOTIFICATIONS.md`](./BACKEND_TASKS_NOTIFICATIONS.md)  
 **Out of scope:** Reliability score system (`/reliability/*`, `reliability:updated` WebSocket events)
 
 ---
@@ -143,7 +144,41 @@ These entities map directly to what the frontend expects. Use UUIDs for all prim
 | due_date | date? | ISO date `YYYY-MM-DD` |
 | completed_at | date? | set when status = completed |
 | assignee_id | UUID? | FK → users |
+| created_by_id | UUID | FK → users; set on POST from JWT |
+| started_at | timestamp? | set when assignee marks task started |
 | position | int | order within column (for drag-and-drop) |
+| created_at | timestamp | |
+
+### `task_regress_requests`
+
+Pending approval when a member wants to move a task to an earlier Kanban column. See [`BACKEND_TASKS_NOTIFICATIONS.md`](./BACKEND_TASKS_NOTIFICATIONS.md).
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | |
+| task_id | UUID | |
+| group_id | UUID | |
+| requested_by_id | UUID | |
+| from_status | enum | `todo`, `in_progress`, `completed` |
+| target_status | enum | must be earlier than `from_status` |
+| reason | text? | |
+| status | enum | `pending`, `approved`, `rejected`, `cancelled` |
+| resolved_by_id | UUID? | creator |
+| resolved_at | timestamp? | |
+| created_at | timestamp | |
+
+### `notifications`
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | |
+| user_id | UUID | recipient |
+| group_id | UUID? | pod context |
+| type | string | e.g. `task.assigned`, `task.regress_approved` |
+| title | string | |
+| body | text? | |
+| data | jsonb | taskId, requestId, actorId, etc. |
+| read_at | timestamp? | |
 | created_at | timestamp | |
 
 ### `messages`
@@ -659,7 +694,27 @@ When `status` changes to `completed`, set `completedAt` to today (ISO date) and 
 
 ### `DELETE /api/workspaces/:groupId/tasks/:taskId`
 
-**Response `204`.**
+**Auth:** task creator (`created_by_id`) only. **Response `204`.**
+
+### `POST /api/workspaces/:groupId/tasks/:taskId/progress`
+
+Assignee marks **Started** or **Done**; server moves column automatically.
+
+```json
+{ "action": "start" }
+```
+
+or `{ "action": "complete" }`. Assignee only. See [`BACKEND_TASKS_NOTIFICATIONS.md`](./BACKEND_TASKS_NOTIFICATIONS.md).
+
+### Regress (move backward) — approval flow
+
+Backward column moves are **not** allowed via PATCH (`409 REGRESS_REQUIRES_APPROVAL`). Use:
+
+- `POST .../tasks/:taskId/regress-requests` — notify creator
+- `POST .../tasks/:taskId/regress-requests/:requestId/approve` — creator; notify all pod members
+- `POST .../tasks/:taskId/regress-requests/:requestId/reject` — notify requester
+
+Full rules, notification matrix, and payloads: [`BACKEND_TASKS_NOTIFICATIONS.md`](./BACKEND_TASKS_NOTIFICATIONS.md).
 
 ### Bulk reorder (optional)
 
@@ -865,7 +920,33 @@ Partial update. **Response `200`.**
 
 ---
 
-## 13. WebSocket (Socket.IO)
+## 13. Notifications
+
+**Full workflow (task events, recipient matrix, regress approval):** [`BACKEND_TASKS_NOTIFICATIONS.md`](./BACKEND_TASKS_NOTIFICATIONS.md)
+
+### `GET /api/users/me/notifications`
+
+Query: `limit` (default 20), `cursor`, `unreadOnly`, `groupId`.
+
+**Response `200`:** `{ notifications[], nextCursor, unreadCount }` — each item includes `id`, `type`, `title`, `body`, `groupId`, `readAt`, `createdAt`, `data`.
+
+### `GET /api/users/me/notifications/unread-count`
+
+**Response `200`:** `{ "unreadCount": 3 }`
+
+### `PATCH /api/users/me/notifications/:notificationId/read`
+
+**Response `200`:** `{ "id", "readAt" }`
+
+### `POST /api/users/me/notifications/read-all`
+
+Optional body `{ "groupId": "..." }`. **Response `200`:** `{ "markedCount": N }`
+
+Deliver real-time via WebSocket `notification:new` on room `user:{userId}`.
+
+---
+
+## 14. WebSocket (Socket.IO)
 
 ### Connection
 
@@ -899,6 +980,7 @@ Validate JWT on connection. Reject unauthenticated sockets.
 | `task:created` | `{ groupId, task }` | Full task object |
 | `task:updated` | `{ groupId, task }` | After PATCH / reorder |
 | `task:deleted` | `{ groupId, taskId }` | |
+| `notification:new` | `{ notification }` | To `user:{userId}` — see tasks/notifications doc |
 | `message:new` | `{ groupId, message }` | After POST message |
 | `session:created` | `{ groupId, session }` | optional |
 | `session:updated` | `{ groupId, session }` | optional |
@@ -909,7 +991,7 @@ Validate JWT on connection. Reject unauthenticated sockets.
 
 ---
 
-## 14. Admin API (instructor role)
+## 15. Admin API (instructor role)
 
 All routes require `role: instructor`. Frontend pages are scaffolded only.
 
@@ -977,7 +1059,7 @@ List students with onboarding status and group assignments. Support `?cohortId=&
 
 ---
 
-## 15. Error format
+## 16. Error format
 
 Use a consistent JSON error body:
 
@@ -1005,7 +1087,7 @@ Use a consistent JSON error body:
 
 ---
 
-## 16. File storage
+## 17. File storage
 
 | Use case | Max size | Format |
 |----------|----------|--------|
@@ -1017,7 +1099,7 @@ Store files in object storage (S3, Azure Blob, or local `uploads/` for dev). Per
 
 ---
 
-## 17. Security checklist
+## 18. Security checklist
 
 - Hash passwords (bcrypt/argon2)
 - Validate JWT on every protected route and WebSocket connection
@@ -1029,7 +1111,7 @@ Store files in object storage (S3, Azure Blob, or local `uploads/` for dev). Per
 
 ---
 
-## 18. Frontend swap checklist
+## 19. Frontend swap checklist
 
 When the API is ready, the frontend team will:
 
@@ -1048,7 +1130,7 @@ When the API is ready, the frontend team will:
 
 ---
 
-## 19. Reference map
+## 20. Reference map
 
 | Frontend file | Backend area |
 |---------------|--------------|
@@ -1067,7 +1149,7 @@ When the API is ready, the frontend team will:
 
 ---
 
-## 20. Suggested implementation order
+## 21. Suggested implementation order
 
 1. **Auth** — register, login, me, JWT middleware
 2. **Onboarding** — profile CRUD + user courses

@@ -1,4 +1,16 @@
+import { useEffect, useState } from 'react'
+import {
+  getProfileInitials,
+  loadUserAvatarObjectUrl,
+  revokeUserAvatarObjectUrl,
+} from '@/services/usersService'
 import { cn } from '@/utils/cn'
+
+const SIZE_CLASSES = {
+  sm: 'h-8 w-8 text-[10px]',
+  md: 'h-9 w-9 text-xs',
+  lg: 'h-11 w-11 text-sm',
+}
 
 export function MemberAvatar({
   member,
@@ -7,27 +19,66 @@ export function MemberAvatar({
   online = false,
   onClick,
   className,
+  refreshKey = 0,
+  bordered = false,
 }) {
-  const sizeClasses = {
-    sm: 'h-8 w-8 text-[10px]',
-    md: 'h-9 w-9 text-xs',
-    lg: 'h-11 w-11 text-sm',
-  }
+  const [src, setSrc] = useState(null)
+  const [isLoading, setIsLoading] = useState(Boolean(member?.id))
 
-  const initials = member?.initials ?? '?'
-  const color = member?.color ?? 'bg-slate-400'
+  const initials = member?.initials ?? getProfileInitials(member?.name ?? '')
+  const color = member?.color ?? 'bg-sky-500'
+  const showInitials = !src || isLoading
+
+  useEffect(() => {
+    if (!member?.id) {
+      setSrc(null)
+      setIsLoading(false)
+      return undefined
+    }
+
+    let cancelled = false
+    let objectUrl = null
+
+    async function load() {
+      setIsLoading(true)
+      const nextUrl = await loadUserAvatarObjectUrl(member.id)
+      if (cancelled) {
+        if (nextUrl) revokeUserAvatarObjectUrl(nextUrl)
+        return
+      }
+
+      objectUrl = nextUrl
+      setSrc(nextUrl)
+      setIsLoading(false)
+    }
+
+    load()
+
+    return () => {
+      cancelled = true
+      if (objectUrl) {
+        revokeUserAvatarObjectUrl(objectUrl)
+      }
+    }
+  }, [member?.id, refreshKey])
 
   const avatar = (
     <div
+      title={member?.name}
       className={cn(
-        'relative flex shrink-0 items-center justify-center rounded-full font-semibold text-white',
-        sizeClasses[size],
-        color,
+        'relative flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-white',
+        SIZE_CLASSES[size],
+        showInitials && color,
+        bordered && 'border-2 border-white',
         onClick && 'cursor-pointer transition hover:ring-2 hover:ring-violet-300 hover:ring-offset-2',
         className,
       )}
     >
-      {initials}
+      {showInitials ? (
+        initials
+      ) : (
+        <img src={src} alt="" className="h-full w-full object-cover" />
+      )}
       {showOnline && online && (
         <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
       )}
