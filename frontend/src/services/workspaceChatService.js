@@ -2,12 +2,14 @@ import { format, isToday, isYesterday, parseISO } from 'date-fns'
 import { DEV_BYPASS_AUTH, STORAGE_KEYS } from '@/utils/constants'
 import { resolveApiUrl } from '@/utils/apiUrl'
 import {
+  buildFileDownloadUrl,
   deleteWorkspaceMessage,
   fetchWorkspaceMessages,
   sendWorkspaceAttachmentMessage,
   sendWorkspaceTextMessage,
   sendWorkspaceVoiceMessage,
 } from '@/services/workspaceService'
+import { appendLocalGroupFile, downloadGroupFile } from '@/services/workspaceFileService'
 
 export const MAX_CHAT_FILE_SIZE = 10 * 1024 * 1024
 export const MAX_VOICE_FILE_SIZE = 2 * 1024 * 1024
@@ -46,14 +48,40 @@ export function groupMessagesByDate(messages) {
   }, [])
 }
 
-function normalizeMessage(message) {
-  const normalized = { ...message }
+function normalizeAttachment(groupId, attachment) {
+  if (!attachment) return attachment
 
-  if (normalized.attachment?.downloadUrl) {
-    normalized.attachment = {
-      ...normalized.attachment,
-      downloadUrl: resolveApiUrl(normalized.attachment.downloadUrl),
-    }
+  const fileId = attachment.fileId ?? attachment.id
+  const fileName = attachment.fileName ?? attachment.name ?? 'file'
+  const fileSize = attachment.fileSize ?? attachment.size ?? 0
+  const fileType = attachment.fileType ?? attachment.type ?? 'application/octet-stream'
+
+  const downloadUrl = attachment.downloadUrl
+    ? resolveApiUrl(attachment.downloadUrl)
+    : fileId
+      ? buildFileDownloadUrl(groupId, { id: fileId, downloadUrl: attachment.downloadUrl })
+      : undefined
+
+  return {
+    ...attachment,
+    fileId,
+    fileName,
+    fileSize,
+    fileType,
+    downloadUrl,
+    deleted: Boolean(attachment.deleted),
+  }
+}
+
+function normalizeMessage(groupId, message) {
+  const normalized = {
+    ...message,
+    senderId: message.senderId ?? message.sender_id,
+    sentAt: message.sentAt ?? message.sent_at,
+  }
+
+  if (normalized.attachment) {
+    normalized.attachment = normalizeAttachment(groupId, normalized.attachment)
   }
 
   if (normalized.voice?.streamUrl) {
@@ -91,7 +119,7 @@ export async function loadGroupMessages(groupId) {
   }
 
   const data = await fetchWorkspaceMessages(groupId)
-  return (data.messages ?? []).map(normalizeMessage)
+  return (data.messages ?? []).map((message) => normalizeMessage(groupId, message))
 }
 
 export async function sendGroupMessage(groupId, { content }) {
@@ -115,7 +143,7 @@ export async function sendGroupMessage(groupId, { content }) {
   const created = await sendWorkspaceTextMessage(groupId, trimmed)
 
   const messages = await loadGroupMessages(groupId)
-  return messages.length ? messages : [normalizeMessage(created)]
+  return messages.length ? messages : [normalizeMessage(groupId, created)]
 }
 
 export async function sendGroupAttachment(groupId, { file }) {
@@ -127,22 +155,38 @@ export async function sendGroupAttachment(groupId, { file }) {
 
   if (DEV_BYPASS_AUTH) {
     const messages = readLocalMessages(groupId)
+    const fileId = crypto.randomUUID()
     const message = {
       id: crypto.randomUUID(),
       senderId: 'local-user',
       type: 'attachment',
       content: `Shared a file: ${file.name}`,
-      attachment: { fileName: file.name, fileSize: file.size, fileType: file.type },
+      attachment: {
+        fileId,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type || 'application/octet-stream',
+      },
       sentAt: new Date().toISOString(),
     }
     const next = [...messages, message]
     writeLocalMessages(groupId, next)
+    appendLocalGroupFile(groupId, {
+      id: fileId,
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type || 'application/octet-stream',
+      uploadedBy: 'You',
+      uploadedById: 'local-user',
+      uploadedAt: message.sentAt,
+    })
     return next
   }
 
-  await sendWorkspaceAttachmentMessage(groupId, file)
+  const created = await sendWorkspaceAttachmentMessage(groupId, file)
 
-  return loadGroupMessages(groupId)
+  const messages = await loadGroupMessages(groupId)
+  return messages.length ? messages : [normalizeMessage(groupId, created)]
 }
 
 export async function sendGroupVoiceMessage(groupId, { file, durationSec }) {
@@ -185,4 +229,13 @@ export async function deleteGroupMessage(groupId, messageId) {
 
   await deleteWorkspaceMessage(groupId, messageId)
   return loadGroupMessages(groupId)
+}
+
+export function downloadChatAttachment(attachment) {
+  if (!attachment?.downloadUrl || attachment.deleted) return
+
+  downloadGroupFile({
+    fileName: attachment.fileName,
+    downloadUrl: attachment.downloadUrl,
+  })
 }

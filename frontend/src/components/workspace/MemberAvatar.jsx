@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   getProfileInitials,
   loadUserAvatarObjectUrl,
+  readCachedUserAvatar,
   revokeUserAvatarObjectUrl,
 } from '@/services/usersService'
 import { cn } from '@/utils/cn'
@@ -22,8 +23,8 @@ export function MemberAvatar({
   refreshKey = 0,
   bordered = false,
 }) {
-  const [src, setSrc] = useState(null)
-  const [isLoading, setIsLoading] = useState(Boolean(member?.id))
+  const [src, setSrc] = useState(() => readCachedUserAvatar(member?.id))
+  const [isLoading, setIsLoading] = useState(Boolean(member?.id) && !readCachedUserAvatar(member?.id))
 
   const initials = member?.initials ?? getProfileInitials(member?.name ?? '')
   const color = member?.color ?? 'bg-sky-500'
@@ -40,8 +41,14 @@ export function MemberAvatar({
     let objectUrl = null
 
     async function load() {
-      setIsLoading(true)
-      const nextUrl = await loadUserAvatarObjectUrl(member.id)
+      const cached = readCachedUserAvatar(member.id)
+      if (cached) {
+        setSrc(cached)
+      } else {
+        setIsLoading(true)
+      }
+
+      const nextUrl = await loadUserAvatarObjectUrl(member.id, { forceRefresh: refreshKey > 0 })
       if (cancelled) {
         if (nextUrl) revokeUserAvatarObjectUrl(nextUrl)
         return

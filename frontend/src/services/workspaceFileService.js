@@ -32,9 +32,21 @@ export function getFileIconType(fileType = '', fileName = '') {
 }
 
 function normalizeFile(groupId, file) {
+  const id = file.id
+  const fileName = file.fileName ?? file.file_name ?? file.name ?? 'file'
+  const fileSize = file.fileSize ?? file.file_size ?? 0
+  const fileType = file.fileType ?? file.file_type ?? 'application/octet-stream'
+
   return {
-    ...file,
-    downloadUrl: buildFileDownloadUrl(groupId, file),
+    id,
+    fileName,
+    fileSize,
+    fileType,
+    uploadedBy: file.uploadedBy ?? file.uploaded_by ?? 'Member',
+    uploadedById: file.uploadedById ?? file.uploaded_by_id,
+    uploadedAt: file.uploadedAt ?? file.uploaded_at,
+    source: file.source,
+    downloadUrl: buildFileDownloadUrl(groupId, { ...file, id, fileName }),
   }
 }
 
@@ -55,6 +67,13 @@ function writeLocalFiles(groupId, files) {
   const all = raw ? JSON.parse(raw) : {}
   all[groupId] = files
   localStorage.setItem(STORAGE_KEYS.GROUP_FILES, JSON.stringify(all))
+}
+
+export function appendLocalGroupFile(groupId, fileMeta) {
+  const files = readLocalFiles(groupId)
+  const next = [fileMeta, ...files]
+  writeLocalFiles(groupId, next)
+  return next
 }
 
 export async function loadGroupFiles(groupId) {

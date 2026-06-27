@@ -1,9 +1,13 @@
 import { format } from 'date-fns'
-import { DEV_BYPASS_AUTH, STORAGE_KEYS } from '@/utils/constants'
+import { getStoredUser } from '@/services/authService'
+import { getProfileInitials } from '@/services/usersService'
+import { DEV_BYPASS_AUTH, DEV_MOCK_USER, STORAGE_KEYS } from '@/utils/constants'
 import {
   createWorkspaceTask,
+  deleteWorkspaceTask,
   fetchWorkspaceTasks,
   reorderWorkspaceTasks,
+  updateWorkspaceTask,
 } from '@/services/workspaceService'
 
 export const COLUMN_IDS = ['todo', 'in_progress', 'completed']
@@ -29,6 +33,34 @@ export function toKanbanTask(task) {
     ...task,
     footer: formatTaskFooter(task),
     assignee: task.assignee ?? null,
+    createdBy: task.createdBy ?? null,
+  }
+}
+
+export function canManageTask(task, userId) {
+  if (!userId) return false
+  return task?.createdBy?.id === userId
+}
+
+function buildDevCreator() {
+  const user = getStoredUser() ?? DEV_MOCK_USER
+  return {
+    id: user.id,
+    name: user.name,
+    initials: getProfileInitials(user.name),
+    color: 'bg-violet-500',
+  }
+}
+
+function resolveDevAssignee(assigneeId, members = []) {
+  if (!assigneeId) return null
+  const member = members.find((item) => item.id === assigneeId)
+  if (!member) return { id: assigneeId, name: 'Member', initials: 'MB', color: 'bg-slate-400' }
+  return {
+    id: member.id,
+    name: member.name,
+    initials: member.initials ?? getProfileInitials(member.name),
+    color: member.color ?? member.avatarColor ?? 'bg-sky-500',
   }
 }
 
@@ -123,7 +155,7 @@ export async function saveGroupTasks(groupId, columns) {
   return mapBoardResponse(data)
 }
 
-export async function addGroupTask(groupId, { title, dueDate, assigneeId }) {
+export async function addGroupTask(groupId, { title, dueDate, assigneeId }, members = []) {
   if (DEV_BYPASS_AUTH) {
     const columns = readLocalTasks(groupId)
     const task = {
@@ -131,7 +163,8 @@ export async function addGroupTask(groupId, { title, dueDate, assigneeId }) {
       title: title.trim(),
       dueDate: dueDate || null,
       variant: 'default',
-      assignee: null,
+      assignee: resolveDevAssignee(assigneeId, members),
+      createdBy: buildDevCreator(),
       createdAt: new Date().toISOString(),
     }
     columns.todo = [...columns.todo, toKanbanTask(task)]
@@ -141,5 +174,73 @@ export async function addGroupTask(groupId, { title, dueDate, assigneeId }) {
 
   await createWorkspaceTask(groupId, { title, dueDate, assigneeId })
 
+  return loadGroupTasks(groupId)
+}
+
+export async function updateGroupTask(
+  groupId,
+  taskId,
+  { title, dueDate, assigneeId },
+  members = [],
+) {
+  if (DEV_BYPASS_AUTH) {
+    const columns = readLocalTasks(groupId)
+    const nextColumns = COLUMN_IDS.reduce((acc, columnId) => {
+      acc[columnId] = columns[columnId].map((task) => {
+        if (task.id !== taskId) return task
+
+        const updated = {
+          ...stripKanbanFields(task),
+          title: title.trim(),
+          dueDate: dueDate || null,
+          assignee: resolveDevAssignee(assigneeId, members),
+        }
+        return toKanbanTask(updated)
+      })
+      return acc
+    }, {})
+
+    writeLocalTasks(groupId, nextColumns)
+    return readLocalTasks(groupId)
+  }
+
+  await updateWorkspaceTask(groupId, taskId, {
+    title: title.trim(),
+    dueDate: dueDate || null,
+    assigneeId: assigneeId || null,
+  })
+
+  return loadGroupTasks(groupId)
+}
+
+export async function removeGroupTask(groupId, taskId) {
+  if (DEV_BYPASS_AUTH) {
+    const columns = readLocalTasks(groupId)
+    const task = COLUMN_IDS.flatMap((columnId) => columns[columnId]).find((item) => item.id === taskId)
+    const user = getStoredUser() ?? DEV_MOCK_USER
+
+    if (!task?.createdBy?.id) {
+      throw Object.assign(new Error('This task cannot be deleted because it has no creator record.'), {
+        response: {
+          data: { error: { message: 'This task cannot be deleted because it has no creator record.' } },
+        },
+      })
+    }
+
+    if (task.createdBy.id !== user.id) {
+      throw Object.assign(new Error('Only the task creator can delete this task.'), {
+        response: { data: { error: { message: 'Only the task creator can delete this task.' } } },
+      })
+    }
+
+    const nextColumns = COLUMN_IDS.reduce((acc, columnId) => {
+      acc[columnId] = columns[columnId].filter((task) => task.id !== taskId)
+      return acc
+    }, {})
+    writeLocalTasks(groupId, nextColumns)
+    return readLocalTasks(groupId)
+  }
+
+  await deleteWorkspaceTask(groupId, taskId)
   return loadGroupTasks(groupId)
 }

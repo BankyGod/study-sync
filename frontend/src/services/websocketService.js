@@ -39,6 +39,8 @@ export function subscribeToWorkspaceEvents(groupId, handlers = {}) {
     ['task:updated', handlers.onTaskUpdated],
     ['task:deleted', handlers.onTaskDeleted],
     ['message:new', handlers.onMessageNew],
+    ['file:uploaded', handlers.onFileUploaded],
+    ['file:deleted', handlers.onFileDeleted],
     ['reliability:updated', handlers.onReliabilityUpdated],
   ]
 
@@ -51,5 +53,25 @@ export function subscribeToWorkspaceEvents(groupId, handlers = {}) {
       if (handler) activeSocket.off(event, handler)
     })
     activeSocket.emit('leave:workspace', { groupId })
+  }
+}
+
+export function subscribeToUserEvents(handlers = {}) {
+  const activeSocket = getSocket()
+  if (!activeSocket) return () => {}
+
+  const events = [
+    ['notification:new', handlers.onNotificationNew],
+    ['notification:read', handlers.onNotificationRead],
+  ]
+
+  events.forEach(([event, handler]) => {
+    if (handler) activeSocket.on(event, handler)
+  })
+
+  return () => {
+    events.forEach(([event, handler]) => {
+      if (handler) activeSocket.off(event, handler)
+    })
   }
 }

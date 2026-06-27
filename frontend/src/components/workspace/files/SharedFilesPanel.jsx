@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   Download,
@@ -11,6 +11,7 @@ import {
   Upload,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { useWebSocket } from '@/hooks/useWebSocket'
 import {
   MAX_SHARED_FILE_SIZE,
   deleteGroupFile,
@@ -23,6 +24,7 @@ import {
   uploadGroupFile,
 } from '@/services/workspaceFileService'
 import { getWorkspaceErrorMessage } from '@/utils/workspaceErrors'
+import { DEV_BYPASS_AUTH } from '@/utils/constants'
 import { Spinner } from '@/components/common/Spinner'
 import { cn } from '@/utils/cn'
 
@@ -52,34 +54,44 @@ export function SharedFilesPanel() {
   const [error, setError] = useState('')
   const fileInputRef = useRef(null)
 
-  useEffect(() => {
-    let cancelled = false
-
-    async function load() {
-      setIsLoading(true)
+  const refreshFiles = useCallback(
+    async ({ showLoading = false } = {}) => {
+      if (showLoading) setIsLoading(true)
       setError('')
       try {
         const nextFiles = await loadGroupFiles(groupId)
-        if (!cancelled) {
-          setFiles(nextFiles)
-        }
+        setFiles(nextFiles)
       } catch (err) {
-        if (!cancelled) {
-          setError(getWorkspaceErrorMessage(err, 'Unable to load files.'))
-        }
+        setError(getWorkspaceErrorMessage(err, 'Unable to load files.'))
       } finally {
-        if (!cancelled) {
-          setIsLoading(false)
-        }
+        if (showLoading) setIsLoading(false)
       }
-    }
+    },
+    [groupId],
+  )
 
-    load()
+  useEffect(() => {
+    refreshFiles({ showLoading: true })
+  }, [refreshFiles])
 
-    return () => {
-      cancelled = true
-    }
-  }, [groupId])
+  const socketHandlers = useMemo(
+    () => ({
+      onFileUploaded: () => {
+        refreshFiles().catch(() => {})
+      },
+      onFileDeleted: () => {
+        refreshFiles().catch(() => {})
+      },
+      onMessageNew: (payload) => {
+        if (payload?.message?.type === 'attachment') {
+          refreshFiles().catch(() => {})
+        }
+      },
+    }),
+    [refreshFiles],
+  )
+
+  useWebSocket(DEV_BYPASS_AUTH ? null : groupId, socketHandlers)
 
   const handleUpload = async (event) => {
     const file = event.target.files?.[0]
@@ -153,7 +165,8 @@ export function SharedFilesPanel() {
           </div>
           <p className="mt-4 text-sm font-medium text-slate-700">No files uploaded yet</p>
           <p className="mt-1 max-w-sm text-sm text-slate-500">
-            Upload notes, assignments, and project assets for your study group.
+            Upload notes and project assets here, or share files in pod chat — they appear in this
+            library.
           </p>
         </div>
       ) : (

@@ -25,6 +25,7 @@ export const ROUTES = {
   REGISTER: '/register',
   ONBOARDING: '/onboarding',
   PROFILE: '/profile',
+  NOTIFICATIONS: '/notifications',
   STUDENT_DASHBOARD: '/dashboard',
   FIND_GROUPS: '/find-groups',
   WORKSPACE: '/workspace/:groupId',
@@ -47,6 +48,7 @@ export const STORAGE_KEYS = {
   GROUP_CHAT: 'studysync_group_chat',
   GROUP_FILES: 'studysync_group_files',
   PENDING_REGISTRATION: 'studysync_pending_registration',
+  NOTIFICATIONS: 'studysync_notifications',
 }
 
 export const DAYS_OF_WEEK = [

@@ -5,6 +5,7 @@ export function ProfileSummaryCard({
   profile,
   userId,
   groupCount = 0,
+  reliability = null,
   avatarRefreshKey = 0,
   isAvatarUploading = false,
   onEdit,
@@ -66,8 +67,14 @@ export function ProfileSummaryCard({
           <p className="text-sm text-slate-600">Total sessions</p>
         </div>
         <div className="rounded-xl bg-amber-50 px-4 py-3">
-          <p className="text-2xl font-bold text-slate-900">—</p>
-          <p className="text-sm text-slate-600">Total study time</p>
+          <p className="text-2xl font-bold text-slate-900">
+            {reliability?.score != null ? `${reliability.score}%` : '—'}
+          </p>
+          <p className="text-sm text-slate-600">
+            {reliability?.score != null
+              ? reliability.label || 'Reliability'
+              : `Reliability (${reliability?.tasksScored ?? 0}/3 tasks)`}
+          </p>
         </div>
       </div>
     </section>

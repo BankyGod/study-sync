@@ -19,7 +19,7 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !error.config?.skipAuthLogout) {
       localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
       localStorage.removeItem(STORAGE_KEYS.USER)
     }

@@ -7,7 +7,7 @@ import { Input } from '@/components/common/Input'
 import { Button } from '@/components/common/Button'
 import { cn } from '@/utils/cn'
 
-const addTaskSchema = z.object({
+const taskSchema = z.object({
   title: z.string().min(3, 'Task title is required'),
   dueDate: z.string().optional(),
   assigneeId: z.string().optional(),
@@ -39,8 +39,8 @@ function Select({ label, error, className, id, children, ...props }) {
   )
 }
 
-export function AddTaskModal({ open, onClose, onSave, members = [] }) {
-  const defaultAssigneeId = members[0]?.id ?? ''
+export function AddTaskModal({ open, onClose, onSave, members = [], task = null }) {
+  const isEdit = Boolean(task)
 
   const {
     register,
@@ -48,23 +48,23 @@ export function AddTaskModal({ open, onClose, onSave, members = [] }) {
     reset,
     formState: { errors, isSubmitting },
   } = useForm({
-    resolver: zodResolver(addTaskSchema),
+    resolver: zodResolver(taskSchema),
     defaultValues: {
       title: '',
       dueDate: '',
-      assigneeId: defaultAssigneeId,
+      assigneeId: '',
     },
   })
 
   useEffect(() => {
-    if (open) {
-      reset({
-        title: '',
-        dueDate: '',
-        assigneeId: members[0]?.id ?? '',
-      })
-    }
-  }, [open, reset, members])
+    if (!open) return
+
+    reset({
+      title: task?.title ?? '',
+      dueDate: task?.dueDate ?? '',
+      assigneeId: task?.assignee?.id ?? members[0]?.id ?? '',
+    })
+  }, [open, reset, task, members])
 
   const onSubmit = async (values) => {
     await onSave({
@@ -76,7 +76,7 @@ export function AddTaskModal({ open, onClose, onSave, members = [] }) {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Add Task">
+    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Task' : 'Add Task'}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <Input
           label="Task title"
@@ -94,6 +94,7 @@ export function AddTaskModal({ open, onClose, onSave, members = [] }) {
 
         {members.length > 0 && (
           <Select label="Assign to" error={errors.assigneeId?.message} {...register('assigneeId')}>
+            <option value="">Unassigned</option>
             {members.map((member) => (
               <option key={member.id} value={member.id}>
                 {member.name}
@@ -107,7 +108,7 @@ export function AddTaskModal({ open, onClose, onSave, members = [] }) {
             Cancel
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Adding...' : 'Add Task'}
+            {isSubmitting ? 'Saving...' : isEdit ? 'Save changes' : 'Add Task'}
           </Button>
         </div>
       </form>

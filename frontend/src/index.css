@@ -10,8 +10,18 @@
 }
 
 @layer base {
+  html,
+  body,
+  #root {
+    @apply max-w-full overflow-x-clip;
+  }
+
   body {
-    @apply min-h-screen bg-gradient-to-b from-slate-50 to-sky-50/30 text-slate-900 antialiased;
+    @apply min-h-dvh bg-gradient-to-b from-slate-50 to-sky-50/30 text-slate-900 antialiased;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
   }
 }
 

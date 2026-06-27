@@ -14,6 +14,7 @@ import { WorkspaceFilesPage } from '@/pages/workspace/WorkspaceFilesPage'
 import { WorkspaceChatPage } from '@/pages/workspace/WorkspaceChatPage'
 import { WorkspaceCalendarPage } from '@/pages/workspace/WorkspaceCalendarPage'
 import { WorkspacePodsPage } from '@/pages/workspace/WorkspacePodsPage'
+import { NotificationsPage } from '@/pages/student/NotificationsPage'
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage'
 import { CohortManagementPage } from '@/pages/admin/CohortManagementPage'
 import { GroupOverviewPage } from '@/pages/admin/GroupOverviewPage'
@@ -45,6 +46,7 @@ export function AppRoutes() {
         }
       >
         <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
+        <Route path={ROUTES.NOTIFICATIONS} element={<NotificationsPage />} />
         <Route path={ROUTES.STUDENT_DASHBOARD} element={<StudentDashboardPage />} />
         <Route path={ROUTES.FIND_GROUPS} element={<FindGroupsPage />} />
         <Route path={ROUTES.MY_GROUPS} element={<Navigate to={ROUTES.STUDENT_DASHBOARD} replace />} />

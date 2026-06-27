@@ -24,7 +24,7 @@ export function WorkspaceSidebar({ groupId }) {
   }
 
   return (
-    <aside className="flex w-16 shrink-0 flex-col items-center gap-2 border-r border-slate-200 bg-white py-4">
+    <aside className="hidden w-16 shrink-0 flex-col items-center gap-2 border-r border-slate-200 bg-white py-4 lg:flex">
       {items.map((item) => {
         const Icon = item.icon
         const active = isActive(item)

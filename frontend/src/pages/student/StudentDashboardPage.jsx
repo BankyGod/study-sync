@@ -8,6 +8,7 @@ import { UpcomingDeadlines } from '@/components/dashboard/UpcomingDeadlines'
 import { Spinner } from '@/components/common/Spinner'
 import { useAuth } from '@/hooks/useAuth'
 import { fetchUserGroups, getUserGroupsErrorMessage } from '@/services/usersService'
+import { fetchMyReliability } from '@/services/reliabilityService'
 import { ROUTES } from '@/utils/constants'
 import { buildWorkspacePath } from '@/utils/workspace'
 
@@ -16,6 +17,7 @@ const deadlines = []
 export function StudentDashboardPage() {
   const { user } = useAuth()
   const [groups, setGroups] = useState([])
+  const [reliability, setReliability] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -28,9 +30,13 @@ export function StudentDashboardPage() {
       setIsLoading(true)
       setError('')
       try {
-        const nextGroups = await fetchUserGroups()
+        const [nextGroups, reliabilityData] = await Promise.all([
+          fetchUserGroups(),
+          fetchMyReliability().catch(() => null),
+        ])
         if (!cancelled) {
           setGroups(nextGroups)
+          setReliability(reliabilityData)
         }
       } catch (loadError) {
         if (!cancelled) {
@@ -50,25 +56,30 @@ export function StudentDashboardPage() {
     }
   }, [])
 
-  const totalProgress =
-    groups.length === 0
-      ? 0
-      : Math.round(groups.reduce((sum, group) => sum + group.progress, 0) / groups.length)
+  const reliabilityLabel =
+    reliability?.score != null
+      ? reliability.label || 'Reliability'
+      : reliability?.tasksScored != null
+        ? `Reliability (${reliability.tasksScored}/3 tasks)`
+        : 'Reliability'
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
-        <div className="space-y-8">
-          <section className="flex flex-wrap items-center justify-between gap-6">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900">
+    <div className="mx-auto max-w-7xl px-4 py-5 pb-6 sm:px-6 sm:py-8 lg:px-8">
+      <div className="grid gap-6 lg:grid-cols-[1fr_300px] lg:gap-8">
+        <div className="space-y-6 sm:space-y-8">
+          <section className="flex flex-wrap items-center justify-between gap-4 sm:gap-6">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
                 Hello, {firstName}! <span aria-hidden="true">👋</span>
               </h1>
               <p className="mt-2 text-slate-500">
                 Ready to tackle your study goals for today, {firstName}?
               </p>
             </div>
-            <CircularProgress value={totalProgress} />
+            <CircularProgress
+              value={reliability?.score ?? null}
+              label={reliabilityLabel}
+            />
           </section>
 
           <section>
@@ -129,7 +140,9 @@ export function StudentDashboardPage() {
           </section>
         </div>
 
-        <UpcomingDeadlines deadlines={deadlines} />
+        <div className="hidden lg:block">
+          <UpcomingDeadlines deadlines={deadlines} />
+        </div>
       </div>
     </div>
   )

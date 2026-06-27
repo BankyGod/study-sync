@@ -10,6 +10,12 @@ export const endpoints = {
     avatar: '/users/me/avatar',
     avatarByUser: (userId) => `/users/${userId}/avatar`,
     groups: '/users/me/groups',
+    notifications: '/users/me/notifications',
+    notificationsUnreadCount: '/users/me/notifications/unread-count',
+    notificationsReadAll: '/users/me/notifications/read-all',
+    notificationRead: (notificationId) => `/users/me/notifications/${notificationId}/read`,
+    myReliability: '/users/me/reliability',
+    reliabilityByUser: (userId) => `/users/${userId}/reliability`,
   },
   onboarding: {
     profile: '/onboarding/profile',
@@ -41,9 +47,5 @@ export const endpoints = {
     messageVoice: (groupId, messageId) => `/workspaces/${groupId}/messages/${messageId}/voice`,
     sessions: (groupId) => `/workspaces/${groupId}/sessions`,
     session: (groupId, sessionId) => `/workspaces/${groupId}/sessions/${sessionId}`,
-  },
-  reliability: {
-    score: (userId) => `/reliability/${userId}`,
-    team: (groupId) => `/reliability/team/${groupId}`,
   },
 }

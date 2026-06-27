@@ -6,6 +6,7 @@ import {
   login as loginRequest,
   logout as logoutRequest,
   register as registerRequest,
+  updateStoredUser,
 } from '@/services/authService'
 import { disconnectSocket } from '@/services/websocketService'
 import { DEV_BYPASS_AUTH, DEV_MOCK_USER } from '@/utils/constants'
@@ -38,6 +39,7 @@ export function AuthProvider({ children }) {
       try {
         const currentUser = await fetchCurrentUser()
         if (!cancelled) {
+          updateStoredUser(currentUser)
           setUser(currentUser)
         }
       } catch {
@@ -66,6 +68,7 @@ export function AuthProvider({ children }) {
       const data = await loginRequest(credentials)
       setUser(data.user)
       setToken(data.token)
+      setAvatarVersion((version) => version + 1)
       return data
     } finally {
       setIsLoading(false)

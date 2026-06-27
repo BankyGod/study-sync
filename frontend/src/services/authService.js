@@ -71,6 +71,12 @@ function persistSession({ token, user }) {
   if (user) localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user))
 }
 
+export function updateStoredUser(user) {
+  if (user) {
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user))
+  }
+}
+
 export function getStoredUser() {
   const raw = localStorage.getItem(STORAGE_KEYS.USER)
   if (!raw) return null

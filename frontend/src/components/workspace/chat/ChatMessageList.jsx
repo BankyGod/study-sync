@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { ChatMessage } from '@/components/workspace/chat/ChatMessage'
 import { groupMessagesByDate } from '@/services/workspaceChatService'
+import { cn } from '@/utils/cn'
 
 export function ChatMessageList({ messages, currentUserId, onDeleteMessage }) {
   const listRef = useRef(null)
@@ -30,52 +31,69 @@ export function ChatMessageList({ messages, currentUserId, onDeleteMessage }) {
     scrollToBottom('smooth')
   }, [messages])
 
+  const hasMessages = groupedMessages.length > 0
+
   return (
     <div
       ref={listRef}
       onScroll={handleScroll}
-      className="h-full min-h-0 overflow-y-auto overscroll-contain px-5 py-5"
+      className="h-full min-h-0 min-w-0 w-full overflow-x-clip overflow-y-auto overscroll-contain bg-slate-100 px-3 py-2 lg:bg-white lg:px-5 lg:py-4"
     >
-      <div className="space-y-6">
-        {groupedMessages.length === 0 ? (
-          <div className="flex min-h-[200px] flex-col items-center justify-center text-center">
-            <p className="text-sm font-medium text-slate-700">No messages yet</p>
-            <p className="mt-1 text-sm text-slate-500">
-              Start the conversation with your study group.
+      <div
+        className={cn(
+          'mx-auto flex w-full min-w-0 max-w-full flex-col',
+          hasMessages ? 'min-h-full justify-end' : 'min-h-full justify-center',
+        )}
+      >
+        {!hasMessages ? (
+          <div className="flex flex-col items-center px-4 py-8 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-2xl shadow-sm">
+              💬
+            </div>
+            <p className="mt-4 text-sm font-semibold text-slate-800">No messages yet</p>
+            <p className="mt-1 max-w-xs text-sm text-slate-500">
+              Say hello to your pod — messages are only visible to group members.
             </p>
           </div>
         ) : (
-          groupedMessages.map((group) => (
-            <div key={group.label} className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-slate-200" />
-                <span className="text-xs font-medium text-slate-400">{group.label}</span>
-                <div className="h-px flex-1 bg-slate-200" />
-              </div>
+          <div className="space-y-3 pb-1 lg:space-y-4">
+            {groupedMessages.map((group) => (
+              <div key={group.label} className="space-y-2 lg:space-y-3">
+                <div className="flex items-center justify-center py-1">
+                  <span className="rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium text-slate-500 shadow-sm lg:bg-slate-50 lg:shadow-none">
+                    {group.label}
+                  </span>
+                </div>
 
-              <div className="space-y-4">
-                {group.messages.map((message, index) => {
-                  const previous = group.messages[index - 1]
-                  const isOwnMessage = message.senderId === currentUserId
-                  const showSender =
-                    !isOwnMessage &&
-                    (!previous ||
-                      previous.senderId !== message.senderId ||
-                      previous.senderId === currentUserId)
+                <div className="space-y-1 lg:space-y-3">
+                  {group.messages.map((message, index) => {
+                    const previous = group.messages[index - 1]
+                    const next = group.messages[index + 1]
+                    const isOwnMessage = message.senderId === currentUserId
+                    const showSender =
+                      !isOwnMessage &&
+                      (!previous ||
+                        previous.senderId !== message.senderId ||
+                        previous.senderId === currentUserId)
+                    const isGroupedWithPrevious = previous?.senderId === message.senderId
+                    const isGroupedWithNext = next?.senderId === message.senderId
 
-                  return (
-                    <ChatMessage
-                      key={message.id}
-                      message={message}
-                      isOwnMessage={isOwnMessage}
-                      showSender={showSender}
-                      onDelete={onDeleteMessage}
-                    />
-                  )
-                })}
+                    return (
+                      <ChatMessage
+                        key={message.id}
+                        message={message}
+                        isOwnMessage={isOwnMessage}
+                        showSender={showSender}
+                        isGroupedWithPrevious={isGroupedWithPrevious}
+                        isGroupedWithNext={isGroupedWithNext}
+                        onDelete={onDeleteMessage}
+                      />
+                    )
+                  })}
+                </div>
               </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
     </div>

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { GraduationCap, MapPin } from 'lucide-react'
 import { Modal } from '@/components/common/Modal'
 import { Spinner } from '@/components/common/Spinner'
+import { ReliabilityPanel } from '@/components/reliability/ReliabilityPanel'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
 import { ROUTES } from '@/utils/constants'
 
@@ -10,6 +11,7 @@ export function MemberProfileModal({
   onClose,
   member,
   profile,
+  reliability,
   isLoading,
   isOwnProfile,
 }) {
@@ -55,6 +57,10 @@ export function MemberProfileModal({
               once they update their profile.
             </p>
           )}
+
+          {reliability ? (
+            <ReliabilityPanel reliability={reliability} scopeLabel="In this pod" />
+          ) : null}
 
           {isOwnProfile && (
             <Link

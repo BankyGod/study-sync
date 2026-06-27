@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { MessageSquare, Users } from 'lucide-react'
+import { Users } from 'lucide-react'
 import { ChatComposer } from '@/components/workspace/chat/ChatComposer'
 import { ChatMessageList } from '@/components/workspace/chat/ChatMessageList'
 import { useAuth } from '@/hooks/useAuth'
@@ -20,7 +20,7 @@ import { Spinner } from '@/components/common/Spinner'
 export function WorkspaceChatPanel() {
   const { groupId } = useParams()
   const { user } = useAuth()
-  const { members } = useWorkspace()
+  const { title, members } = useWorkspace()
   const [messages, setMessages] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -113,40 +113,44 @@ export function WorkspaceChatPanel() {
 
   if (isLoading) {
     return (
-      <div className="flex h-full min-h-[calc(100vh-8.5rem)] items-center justify-center rounded-2xl border border-slate-200/80 bg-white">
+      <div className="flex h-full min-h-0 flex-1 items-center justify-center bg-slate-100 lg:rounded-2xl lg:border lg:border-slate-200/80 lg:bg-white">
         <Spinner size="lg" />
       </div>
     )
   }
 
   return (
-    <section className="grid h-full min-h-[calc(100vh-8.5rem)] flex-1 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
-            <MessageSquare className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-base font-bold text-slate-900">Group Chat</h2>
-            <p className="text-sm text-slate-500">Messages are visible only to your pod members.</p>
-          </div>
+    <section className="grid h-full min-h-0 min-w-0 flex-1 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden bg-slate-100 lg:rounded-2xl lg:border lg:border-slate-200/80 lg:bg-white lg:shadow-sm">
+      <header className="flex shrink-0 items-center gap-3 border-b border-slate-200/80 bg-white px-4 py-3 lg:px-5 lg:py-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-violet-700 text-sm font-bold text-white">
+          {title?.charAt(0)?.toUpperCase() ?? 'P'}
         </div>
-
-        <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
-          <Users className="h-3.5 w-3.5" />
-          {members.length} member{members.length === 1 ? '' : 's'}
+        <div className="min-w-0 flex-1">
+          <h2 className="line-clamp-2 text-base font-bold leading-snug text-slate-900 lg:truncate">
+            {title}
+          </h2>
+          <p className="flex items-center gap-1.5 text-xs text-slate-500">
+            <Users className="h-3.5 w-3.5 shrink-0" />
+            {members.length} member{members.length === 1 ? '' : 's'} · Pod chat
+          </p>
         </div>
+        <span className="hidden shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 sm:inline-flex">
+          Live
+        </span>
       </header>
 
-      {error && (
-        <p className="border-b border-red-100 bg-red-50 px-5 py-2 text-sm text-red-600">{error}</p>
-      )}
-
-      <ChatMessageList
-        messages={messages}
-        currentUserId={user?.id}
-        onDeleteMessage={handleDeleteMessage}
-      />
+      <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
+        {error && (
+          <p className="shrink-0 border-b border-red-100 bg-red-50 px-4 py-2 text-sm text-red-600 lg:px-5">
+            {error}
+          </p>
+        )}
+        <ChatMessageList
+          messages={messages}
+          currentUserId={user?.id}
+          onDeleteMessage={handleDeleteMessage}
+        />
+      </div>
       <ChatComposer
         onSend={handleSend}
         onSendAttachment={handleSendAttachment}

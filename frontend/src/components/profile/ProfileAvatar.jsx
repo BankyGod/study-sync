@@ -3,6 +3,7 @@ import { Camera, Loader2, Trash2 } from 'lucide-react'
 import {
   getProfileInitials,
   loadUserAvatarObjectUrl,
+  readCachedUserAvatar,
   revokeUserAvatarObjectUrl,
 } from '@/services/usersService'
 import { cn } from '@/utils/cn'
@@ -25,9 +26,9 @@ export function ProfileAvatar({
   onRemove,
   isUploading = false,
 }) {
-  const [src, setSrc] = useState(null)
-  const [hasPhoto, setHasPhoto] = useState(false)
-  const [isLoading, setIsLoading] = useState(Boolean(userId))
+  const [src, setSrc] = useState(() => readCachedUserAvatar(userId))
+  const [hasPhoto, setHasPhoto] = useState(Boolean(readCachedUserAvatar(userId)))
+  const [isLoading, setIsLoading] = useState(Boolean(userId) && !readCachedUserAvatar(userId))
   const fileInputRef = useRef(null)
   const initials = getProfileInitials(fullName)
 
@@ -43,8 +44,15 @@ export function ProfileAvatar({
     let objectUrl = null
 
     async function load() {
-      setIsLoading(true)
-      const nextUrl = await loadUserAvatarObjectUrl(userId)
+      const cached = readCachedUserAvatar(userId)
+      if (cached) {
+        setSrc(cached)
+        setHasPhoto(true)
+      } else {
+        setIsLoading(true)
+      }
+
+      const nextUrl = await loadUserAvatarObjectUrl(userId, { forceRefresh: refreshKey > 0 })
       if (cancelled) {
         if (nextUrl) revokeUserAvatarObjectUrl(nextUrl)
         return

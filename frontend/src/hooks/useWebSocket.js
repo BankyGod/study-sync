@@ -1,10 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import {
-  connectSocket,
-  disconnectSocket,
-  subscribeToWorkspaceEvents,
-} from '@/services/websocketService'
+import { connectSocket, subscribeToWorkspaceEvents } from '@/services/websocketService'
 
 export function useWebSocket(groupId, handlers = {}) {
   const { token } = useAuth()
@@ -27,7 +23,6 @@ export function useWebSocket(groupId, handlers = {}) {
       unsubscribe()
       socket.off('connect', onConnect)
       socket.off('disconnect', onDisconnect)
-      disconnectSocket()
       setIsConnected(false)
     }
   }, [token, groupId, handlers])

@@ -127,7 +127,7 @@ export function WorkspaceKanban() {
           <Spinner size="lg" />
         </div>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-3">
+        <div className="flex flex-col gap-6 lg:grid lg:grid-cols-3 lg:gap-5">
         <KanbanColumn
           columnId="todo"
           tasks={columns.todo}

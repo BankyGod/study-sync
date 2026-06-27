@@ -155,29 +155,95 @@ export function validateAvatarFile(file) {
   return null
 }
 
+function avatarCacheKey(userId) {
+  return `${STORAGE_KEYS.USER_AVATAR}_${userId}`
+}
+
+function readAvatarCache(userId) {
+  if (!userId) return null
+  if (DEV_BYPASS_AUTH) {
+    return localStorage.getItem(STORAGE_KEYS.USER_AVATAR) || null
+  }
+  return localStorage.getItem(avatarCacheKey(userId)) || null
+}
+
+function writeAvatarCache(userId, dataUrl) {
+  if (!userId) return
+  if (DEV_BYPASS_AUTH) {
+    if (dataUrl) localStorage.setItem(STORAGE_KEYS.USER_AVATAR, dataUrl)
+    else localStorage.removeItem(STORAGE_KEYS.USER_AVATAR)
+    return
+  }
+  if (dataUrl) localStorage.setItem(avatarCacheKey(userId), dataUrl)
+  else localStorage.removeItem(avatarCacheKey(userId))
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(new Error('Unable to read image.'))
+    reader.readAsDataURL(file)
+  })
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(new Error('Unable to read image.'))
+    reader.readAsDataURL(blob)
+  })
+}
+
+function isValidImageBlob(blob) {
+  return blob && blob.size > 0 && !blob.type?.includes('json')
+}
+
+export function readCachedUserAvatar(userId) {
+  return readAvatarCache(userId)
+}
+
 export function revokeUserAvatarObjectUrl(url) {
   if (url?.startsWith('blob:')) {
     URL.revokeObjectURL(url)
   }
 }
 
-export async function loadUserAvatarObjectUrl(userId) {
+export async function loadUserAvatarObjectUrl(userId, { forceRefresh = false } = {}) {
   if (!userId) return null
 
+  if (!forceRefresh) {
+    const cached = readAvatarCache(userId)
+    if (cached) return cached
+  }
+
   if (DEV_BYPASS_AUTH) {
-    return localStorage.getItem(STORAGE_KEYS.USER_AVATAR) || null
+    return readAvatarCache(userId)
   }
 
   try {
     const { data } = await apiClient.get(endpoints.users.avatarByUser(userId), {
       responseType: 'blob',
+      skipAuthLogout: true,
+      params: forceRefresh ? { t: Date.now() } : undefined,
     })
-    return URL.createObjectURL(data)
-  } catch (error) {
-    if (error.response?.status === 404) {
+
+    if (!isValidImageBlob(data)) {
+      writeAvatarCache(userId, null)
       return null
     }
-    return null
+
+    const dataUrl = await blobToDataUrl(data)
+    writeAvatarCache(userId, dataUrl)
+    return dataUrl
+  } catch (error) {
+    if (error.response?.status === 404) {
+      writeAvatarCache(userId, null)
+      return null
+    }
+
+    return readAvatarCache(userId)
   }
 }
 
@@ -187,15 +253,12 @@ export async function uploadUserAvatar(file) {
     throw new Error(validationError)
   }
 
+  const previewDataUrl = await fileToDataUrl(file)
+  const userId = getStoredUser()?.id
+
   if (DEV_BYPASS_AUTH) {
-    const dataUrl = await new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(reader.result)
-      reader.onerror = () => reject(new Error('Unable to read image.'))
-      reader.readAsDataURL(file)
-    })
-    localStorage.setItem(STORAGE_KEYS.USER_AVATAR, dataUrl)
-    return { avatarUrl: dataUrl }
+    writeAvatarCache(userId, previewDataUrl)
+    return { avatarUrl: previewDataUrl }
   }
 
   const formData = new FormData()
@@ -205,16 +268,23 @@ export async function uploadUserAvatar(file) {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
 
+  if (userId) {
+    writeAvatarCache(userId, previewDataUrl)
+  }
+
   return data
 }
 
 export async function deleteUserAvatar() {
+  const userId = getStoredUser()?.id
+
   if (DEV_BYPASS_AUTH) {
-    localStorage.removeItem(STORAGE_KEYS.USER_AVATAR)
+    writeAvatarCache(userId, null)
     return
   }
 
   await apiClient.delete(endpoints.users.avatar)
+  writeAvatarCache(userId, null)
 }
 
 export function getAvatarUploadErrorMessage(error) {

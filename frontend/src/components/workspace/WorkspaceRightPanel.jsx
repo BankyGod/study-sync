@@ -48,7 +48,7 @@ export function WorkspaceRightPanel() {
   const config = panelConfig[view]
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col gap-5">
+    <aside className="hidden w-72 shrink-0 flex-col gap-5 xl:flex">
       <SessionTimerCard />
 
       <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">

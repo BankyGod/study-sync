@@ -17,6 +17,7 @@ import {
   uploadUserAvatar,
   deleteUserAvatar,
 } from '@/services/usersService'
+import { fetchMyReliability } from '@/services/reliabilityService'
 import {
   getOnboardingErrorMessage,
   loadOnboardingProfile,
@@ -29,6 +30,7 @@ export function ProfilePage() {
   const { user, refreshAvatar, avatarVersion } = useAuth()
   const [profile, setProfile] = useState(null)
   const [groupCount, setGroupCount] = useState(0)
+  const [reliability, setReliability] = useState(null)
   const [onboarding, setOnboarding] = useState(mergeOnboardingProfile(null))
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -45,15 +47,17 @@ export function ProfilePage() {
       setError('')
 
       try {
-        const [displayProfile, onboardingProfile, groups] = await Promise.all([
+        const [displayProfile, onboardingProfile, groups, reliabilityData] = await Promise.all([
           loadUserProfile(),
           loadOnboardingProfile(),
           fetchUserGroups().catch(() => []),
+          fetchMyReliability().catch(() => null),
         ])
 
         if (!cancelled) {
           setProfile(displayProfile)
           setGroupCount(groups.length)
+          setReliability(reliabilityData)
           if (onboardingProfile) {
             setCachedOnboardingProfile(onboardingProfile)
             setOnboarding(mergeOnboardingProfile(onboardingProfile))
@@ -198,6 +202,7 @@ export function ProfilePage() {
           profile={profile}
           userId={user?.id}
           groupCount={groupCount}
+          reliability={reliability}
           avatarRefreshKey={avatarVersion}
           isAvatarUploading={isAvatarUploading}
           onEdit={() => setIsEditOpen(true)}
