@@ -13,6 +13,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    // Repo root dist/ — matches Render publish directory
+    outDir: path.resolve(__dirname, '../dist'),
+    emptyOutDir: true,
+  },
   server: {
     host: true,
     port: 5173,

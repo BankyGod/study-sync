@@ -4,7 +4,7 @@ services:
     name: study-sync-frontend
     runtime: static
     buildCommand: npm run build
-    staticPublishPath: frontend/dist
+    staticPublishPath: dist
     routes:
       - type: rewrite
         source: /*
