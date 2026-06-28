@@ -5,7 +5,10 @@ export function resolveApiUrl(path) {
   if (!path) return path
   if (path.startsWith('http')) return path
 
-  const base = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
+  const base = (
+    import.meta.env.VITE_API_BASE_URL ||
+    (import.meta.env.PROD ? 'https://studysync-backend-5i2a.onrender.com/api' : '/api')
+  ).replace(/\/$/, '')
 
   if (base.startsWith('http')) {
     const { origin } = new URL(base)

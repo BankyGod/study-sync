@@ -9,6 +9,7 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { useAuthContext } from '@/context/AuthContext'
 import { ACADEMIC_LEVELS, ACADEMIC_PROGRAMS, UNIVERSITIES } from '@/utils/auth'
+import { getWorkspaceErrorMessage } from '@/utils/workspaceErrors'
 import { ROUTES, ROLES } from '@/utils/constants'
 import { cn } from '@/utils/cn'
 
@@ -66,8 +67,10 @@ export function RegisterPage() {
       setAuthError('')
       await registerUser(values)
       navigate(ROUTES.ONBOARDING)
-    } catch {
-      setAuthError('Unable to create your account right now. Please try again.')
+    } catch (error) {
+      setAuthError(
+        getWorkspaceErrorMessage(error, 'Unable to create your account right now. Please try again.'),
+      )
     }
   }
 

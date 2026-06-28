@@ -5,7 +5,7 @@ let socket = null
 export function connectSocket(token, groupId) {
   if (socket?.connected) return socket
 
-  const url = import.meta.env.VITE_WS_URL || window.location.origin
+  const url = import.meta.env.VITE_WS_URL || (import.meta.env.PROD ? 'https://studysync-backend-5i2a.onrender.com' : window.location.origin)
 
   socket = io(url, {
     auth: { token },

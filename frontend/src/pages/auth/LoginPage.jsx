@@ -7,6 +7,7 @@ import { AuthFooterLink, AuthLayout } from '@/components/auth/AuthLayout'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { useAuthContext } from '@/context/AuthContext'
+import { getWorkspaceErrorMessage } from '@/utils/workspaceErrors'
 import { ROUTES } from '@/utils/constants'
 
 const loginSchema = z.object({
@@ -33,8 +34,8 @@ export function LoginPage() {
       setAuthError('')
       await login(values)
       navigate(ROUTES.STUDENT_DASHBOARD)
-    } catch {
-      setAuthError('Unable to sign in. Check your email and password.')
+    } catch (error) {
+      setAuthError(getWorkspaceErrorMessage(error, 'Unable to sign in. Check your email and password.'))
     }
   }
 
