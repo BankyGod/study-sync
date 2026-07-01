@@ -50,6 +50,7 @@ export const STORAGE_KEYS = {
   PENDING_REGISTRATION: 'studysync_pending_registration',
   NOTIFICATIONS: 'studysync_notifications',
   CHAT_UNREAD: 'studysync_chat_unread',
+  SPA_PATH_RECOVERY: 'studysync_spa_path',
 }
 
 export const DAYS_OF_WEEK = [

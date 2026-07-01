@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { StudentLayout } from '@/components/layout/StudentLayout'
@@ -50,7 +50,7 @@ export function AppRoutes() {
         <Route path={ROUTES.STUDENT_DASHBOARD} element={<StudentDashboardPage />} />
         <Route path={ROUTES.FIND_GROUPS} element={<FindGroupsPage />} />
         <Route path={ROUTES.MY_GROUPS} element={<Navigate to={ROUTES.STUDENT_DASHBOARD} replace />} />
-        <Route path={ROUTES.WORKSPACE_LIST}>
+        <Route path={ROUTES.WORKSPACE_LIST} element={<Outlet />}>
           <Route index element={<WorkspacePodsPage />} />
           <Route path=":groupId" element={<WorkspaceLayout />}>
             <Route index element={<WorkspaceBoardPage />} />

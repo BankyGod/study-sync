@@ -1,4 +1,7 @@
 # Render static site — https://render.com/docs/static-sites
+# IMPORTANT: If the site was created manually (not via Blueprint), add this rewrite
+# in Render Dashboard → Static Site → Redirects/Rewrites:
+#   Source: /*   Destination: /index.html   Action: Rewrite
 services:
   - type: web
     name: study-sync-frontend

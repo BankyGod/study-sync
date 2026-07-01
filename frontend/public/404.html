@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StudySync</title>
+    <script>
+      ;(function () {
+        var path = window.location.pathname + window.location.search + window.location.hash
+        if (path && path !== '/' && path !== '/index.html') {
+          try {
+            sessionStorage.setItem('studysync_spa_path', path)
+          } catch (e) {}
+        }
+        window.location.replace('/')
+      })()
+    </script>
+  </head>
+  <body></body>
+</html>

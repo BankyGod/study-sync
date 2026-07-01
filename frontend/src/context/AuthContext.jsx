@@ -34,6 +34,11 @@ export function AuthProvider({ children }) {
     }
 
     let cancelled = false
+    const timeoutId = window.setTimeout(() => {
+      if (!cancelled) {
+        setIsLoading(false)
+      }
+    }, 12_000)
 
     async function hydrate() {
       try {
@@ -50,6 +55,7 @@ export function AuthProvider({ children }) {
         }
       } finally {
         if (!cancelled) {
+          window.clearTimeout(timeoutId)
           setIsLoading(false)
         }
       }
@@ -59,6 +65,7 @@ export function AuthProvider({ children }) {
 
     return () => {
       cancelled = true
+      window.clearTimeout(timeoutId)
     }
   }, [])
 
