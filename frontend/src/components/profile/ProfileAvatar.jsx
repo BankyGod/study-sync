@@ -1,11 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Camera, Loader2, Trash2 } from 'lucide-react'
-import {
-  getProfileInitials,
-  loadUserAvatarObjectUrl,
-  readCachedUserAvatar,
-  revokeUserAvatarObjectUrl,
-} from '@/services/usersService'
+import { getProfileInitials, readCachedUserAvatar } from '@/services/usersService'
+import { DEV_BYPASS_AUTH } from '@/utils/constants'
 import { cn } from '@/utils/cn'
 
 const SIZE_CLASSES = {
@@ -18,6 +14,7 @@ const SIZE_CLASSES = {
 export function ProfileAvatar({
   userId,
   fullName = '',
+  avatarUrl = null,
   size = 'lg',
   className,
   editable = false,
@@ -26,53 +23,28 @@ export function ProfileAvatar({
   onRemove,
   isUploading = false,
 }) {
-  const [src, setSrc] = useState(() => readCachedUserAvatar(userId))
-  const [hasPhoto, setHasPhoto] = useState(Boolean(readCachedUserAvatar(userId)))
-  const [isLoading, setIsLoading] = useState(Boolean(userId) && !readCachedUserAvatar(userId))
+  const [src, setSrc] = useState(() => avatarUrl || (DEV_BYPASS_AUTH ? readCachedUserAvatar(userId) : null))
+  const [hasPhoto, setHasPhoto] = useState(Boolean(avatarUrl || (DEV_BYPASS_AUTH && readCachedUserAvatar(userId))))
   const fileInputRef = useRef(null)
   const initials = getProfileInitials(fullName)
 
   useEffect(() => {
-    if (!userId) {
-      setSrc(null)
-      setHasPhoto(false)
-      setIsLoading(false)
-      return undefined
+    if (avatarUrl) {
+      setSrc(avatarUrl)
+      setHasPhoto(true)
+      return
     }
 
-    let cancelled = false
-    let objectUrl = null
-
-    async function load() {
+    if (DEV_BYPASS_AUTH) {
       const cached = readCachedUserAvatar(userId)
-      if (cached) {
-        setSrc(cached)
-        setHasPhoto(true)
-      } else {
-        setIsLoading(true)
-      }
-
-      const nextUrl = await loadUserAvatarObjectUrl(userId, { forceRefresh: refreshKey > 0 })
-      if (cancelled) {
-        if (nextUrl) revokeUserAvatarObjectUrl(nextUrl)
-        return
-      }
-
-      objectUrl = nextUrl
-      setSrc(nextUrl)
-      setHasPhoto(Boolean(nextUrl))
-      setIsLoading(false)
+      setSrc(cached)
+      setHasPhoto(Boolean(cached))
+      return
     }
 
-    load()
-
-    return () => {
-      cancelled = true
-      if (objectUrl) {
-        revokeUserAvatarObjectUrl(objectUrl)
-      }
-    }
-  }, [userId, refreshKey])
+    setSrc(null)
+    setHasPhoto(false)
+  }, [avatarUrl, userId, refreshKey])
 
   const handleFileChange = (event) => {
     const file = event.target.files?.[0]
@@ -82,7 +54,7 @@ export function ProfileAvatar({
     }
   }
 
-  const showInitials = !src || isLoading
+  const showInitials = !src
 
   return (
     <div className={cn('relative shrink-0', className)}>
@@ -99,7 +71,7 @@ export function ProfileAvatar({
           <img src={src} alt="" className="h-full w-full object-cover" />
         )}
 
-        {(isLoading || isUploading) && (
+        {isUploading && (
           <div className="absolute inset-0 flex items-center justify-center bg-slate-900/40">
             <Loader2 className="h-5 w-5 animate-spin text-white" />
           </div>

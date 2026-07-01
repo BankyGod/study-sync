@@ -71,20 +71,18 @@ export async function sendWorkspaceAttachmentMessage(groupId, file) {
   formData.append('type', 'attachment')
   formData.append('file', file)
 
-  const { data } = await apiClient.post(endpoints.workspace.messages(groupId), formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+  const { data } = await apiClient.post(endpoints.workspace.messages(groupId), formData)
   return data
 }
 
 export async function sendWorkspaceVoiceMessage(groupId, { file, durationSec }) {
   const formData = new FormData()
   formData.append('type', 'voice')
-  formData.append('file', file)
+  formData.append('file', file, file.name || 'voice.webm')
   formData.append('durationSec', String(durationSec))
 
   const { data } = await apiClient.post(endpoints.workspace.messages(groupId), formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    params: { type: 'voice' },
   })
   return data
 }
@@ -109,9 +107,7 @@ export async function uploadWorkspaceFile(groupId, file) {
   const formData = new FormData()
   formData.append('file', file)
 
-  const { data } = await apiClient.post(endpoints.workspace.files(groupId), formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+  const { data } = await apiClient.post(endpoints.workspace.files(groupId), formData)
   return data
 }
 

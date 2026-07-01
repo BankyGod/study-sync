@@ -1,10 +1,6 @@
 import { useEffect, useState } from 'react'
-import {
-  getProfileInitials,
-  loadUserAvatarObjectUrl,
-  readCachedUserAvatar,
-  revokeUserAvatarObjectUrl,
-} from '@/services/usersService'
+import { getProfileInitials, readCachedUserAvatar } from '@/services/usersService'
+import { DEV_BYPASS_AUTH } from '@/utils/constants'
 import { cn } from '@/utils/cn'
 
 const SIZE_CLASSES = {
@@ -23,51 +19,28 @@ export function MemberAvatar({
   refreshKey = 0,
   bordered = false,
 }) {
-  const [src, setSrc] = useState(() => readCachedUserAvatar(member?.id))
-  const [isLoading, setIsLoading] = useState(Boolean(member?.id) && !readCachedUserAvatar(member?.id))
+  const avatarUrl = member?.avatarUrl ?? null
+  const [src, setSrc] = useState(
+    () => avatarUrl || (DEV_BYPASS_AUTH ? readCachedUserAvatar(member?.id) : null),
+  )
 
   const initials = member?.initials ?? getProfileInitials(member?.name ?? '')
   const color = member?.color ?? 'bg-sky-500'
-  const showInitials = !src || isLoading
+  const showInitials = !src
 
   useEffect(() => {
-    if (!member?.id) {
-      setSrc(null)
-      setIsLoading(false)
-      return undefined
+    if (avatarUrl) {
+      setSrc(avatarUrl)
+      return
     }
 
-    let cancelled = false
-    let objectUrl = null
-
-    async function load() {
-      const cached = readCachedUserAvatar(member.id)
-      if (cached) {
-        setSrc(cached)
-      } else {
-        setIsLoading(true)
-      }
-
-      const nextUrl = await loadUserAvatarObjectUrl(member.id, { forceRefresh: refreshKey > 0 })
-      if (cancelled) {
-        if (nextUrl) revokeUserAvatarObjectUrl(nextUrl)
-        return
-      }
-
-      objectUrl = nextUrl
-      setSrc(nextUrl)
-      setIsLoading(false)
+    if (DEV_BYPASS_AUTH) {
+      setSrc(readCachedUserAvatar(member?.id))
+      return
     }
 
-    load()
-
-    return () => {
-      cancelled = true
-      if (objectUrl) {
-        revokeUserAvatarObjectUrl(objectUrl)
-      }
-    }
-  }, [member?.id, refreshKey])
+    setSrc(null)
+  }, [avatarUrl, member?.id, refreshKey])
 
   const avatar = (
     <div
@@ -81,11 +54,7 @@ export function MemberAvatar({
         className,
       )}
     >
-      {showInitials ? (
-        initials
-      ) : (
-        <img src={src} alt="" className="h-full w-full object-cover" />
-      )}
+      {showInitials ? initials : <img src={src} alt="" className="h-full w-full object-cover" />}
       {showOnline && online && (
         <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
       )}

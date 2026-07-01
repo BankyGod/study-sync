@@ -1,6 +1,5 @@
 import apiClient from '@/api/client'
 import { endpoints } from '@/api/endpoints'
-import { getMatchingPayload } from '@/services/onboardingProfileService'
 import { courseToGroupId } from '@/utils/onboarding'
 import {
   getMatchingErrorMessage,
@@ -10,13 +9,8 @@ import {
 export { getMatchingErrorMessage, isNoEnrolledStudentsError }
 
 export function buildMatchingRequest(overrides = {}) {
-  const payload = getMatchingPayload()
-
   return {
-    course: overrides.course ?? payload.course,
-    learningStyle: overrides.learningStyle ?? payload.learningStyle,
-    availability: overrides.availability ?? payload.availability,
-    studyPreferences: overrides.studyPreferences ?? payload.studyPreferences,
+    course: overrides.course ?? null,
   }
 }
 
@@ -48,9 +42,6 @@ export async function startMatching(overrides = {}) {
       subject: body.course.subject.trim(),
       courseNumber: body.course.courseNumber.trim(),
     },
-    learningStyle: body.learningStyle,
-    availability: body.availability ?? [],
-    studyPreferences: body.studyPreferences,
   })
 
   return data
@@ -77,6 +68,14 @@ export function isMatchingWaiting(response) {
 
 export function isMatchingComplete(response) {
   return response?.status === 'completed' && Boolean(response?.match)
+}
+
+export function isMatchingRunning(response) {
+  return (
+    response?.status === 'running' ||
+    response?.status === 'pending' ||
+    (Boolean(response?.jobId) && !isMatchingComplete(response) && !isMatchingFailed(response))
+  )
 }
 
 export function isMatchingFailed(response) {

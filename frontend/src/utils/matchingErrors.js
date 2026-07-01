@@ -1,3 +1,5 @@
+import { getApiErrorMessage } from '@/utils/apiErrors'
+
 export const NO_ENROLLED_STUDENTS_MESSAGE =
   'There are no other enrolled students for this course yet. Please wait a while and try again.'
 
@@ -34,8 +36,17 @@ export function getMatchingErrorMessage(error, { profileReady = true } = {}) {
     return NO_ENROLLED_STUDENTS_MESSAGE
   }
 
+  const status = error?.response?.status
   const code = error?.response?.data?.error?.code
   const message = error?.response?.data?.error?.message
+
+  if (status === 409) {
+    return message || 'You are already in a group for this course. Leave it before searching again.'
+  }
+
+  if (status === 400 && message) {
+    return message
+  }
 
   if (code === 'VALIDATION_ERROR' || isOnboardingRequiredMessage(message)) {
     return ONBOARDING_REQUIRED_MESSAGE
@@ -49,13 +60,5 @@ export function getMatchingErrorMessage(error, { profileReady = true } = {}) {
     return NO_ENROLLED_STUDENTS_MESSAGE
   }
 
-  if (message) {
-    return message
-  }
-
-  if (error?.message) {
-    return error.message
-  }
-
-  return 'Unable to start matching. Please try again.'
+  return getApiErrorMessage(error, 'Unable to start matching. Please try again.')
 }

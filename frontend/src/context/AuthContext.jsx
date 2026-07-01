@@ -118,6 +118,14 @@ export function AuthProvider({ children }) {
     setAvatarVersion((version) => version + 1)
   }, [])
 
+  const updateUser = useCallback((patch) => {
+    setUser((previous) => {
+      const next = { ...(previous ?? {}), ...patch }
+      updateStoredUser(next)
+      return next
+    })
+  }, [])
+
   const value = useMemo(
     () => ({
       user: user ?? (DEV_BYPASS_AUTH ? DEV_MOCK_USER : null),
@@ -130,8 +138,9 @@ export function AuthProvider({ children }) {
       logout,
       refreshUser,
       refreshAvatar,
+      updateUser,
     }),
-    [user, token, isLoading, avatarVersion, login, register, logout, refreshUser, refreshAvatar],
+    [user, token, isLoading, avatarVersion, login, register, logout, refreshUser, refreshAvatar, updateUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

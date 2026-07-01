@@ -1,5 +1,6 @@
 import apiClient from '@/api/client'
 import { endpoints } from '@/api/endpoints'
+import { getApiErrorMessage } from '@/utils/apiErrors'
 import { DEV_BYPASS_AUTH, STORAGE_KEYS } from '@/utils/constants'
 import {
   DEFAULT_AVAILABILITY,
@@ -40,11 +41,7 @@ export function normalizeOnboardingProfile(profile = {}) {
 }
 
 export function getOnboardingErrorMessage(error) {
-  const apiError = error?.response?.data?.error
-  if (apiError?.details?.length) {
-    return apiError.details.map((item) => item.message).join(' ')
-  }
-  return apiError?.message || 'Unable to save your onboarding profile. Please try again.'
+  return getApiErrorMessage(error, 'Unable to save your onboarding profile. Please try again.')
 }
 
 export async function saveOnboardingProfile(profile) {

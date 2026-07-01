@@ -32,7 +32,12 @@ export function MemberProfileModal({
       ) : (
         <div className="space-y-5">
           <div className="flex items-start gap-4">
-            <ProfileAvatar userId={member?.id} fullName={displayName} size="md" />
+            <ProfileAvatar
+              userId={member?.id}
+              fullName={displayName}
+              avatarUrl={member?.avatarUrl}
+              size="md"
+            />
             <div className="min-w-0">
               <h3 className="text-lg font-bold text-slate-900">{displayName}</h3>
               <p className="mt-1 text-sm text-slate-600">{role}</p>

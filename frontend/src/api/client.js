@@ -1,10 +1,9 @@
 import axios from 'axios'
+import { API_BASE_URL } from '@/api/config'
 import { STORAGE_KEYS } from '@/utils/constants'
 
-const DEFAULT_PROD_API_BASE = 'https://studysync-backend-5i2a.onrender.com/api'
-
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? DEFAULT_PROD_API_BASE : '/api'),
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -15,6 +14,11 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type']
+  }
+
   return config
 })
 

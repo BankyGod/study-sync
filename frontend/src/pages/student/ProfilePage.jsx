@@ -29,7 +29,7 @@ import {
 } from '@/services/onboardingProfileService'
 
 export function ProfilePage() {
-  const { user, refreshAvatar, avatarVersion } = useAuth()
+  const { user, refreshAvatar, avatarVersion, updateUser } = useAuth()
   const [profile, setProfile] = useState(null)
   const [groupCount, setGroupCount] = useState(0)
   const [reliability, setReliability] = useState(null)
@@ -112,7 +112,8 @@ export function ProfilePage() {
     setError('')
     setSuccess('')
     try {
-      await uploadUserAvatar(file)
+      const data = await uploadUserAvatar(file)
+      updateUser({ avatarUrl: data.avatarUrl ?? null })
       refreshAvatar()
       setSuccess('Profile photo updated.')
     } catch (uploadError) {
@@ -128,6 +129,7 @@ export function ProfilePage() {
     setSuccess('')
     try {
       await deleteUserAvatar()
+      updateUser({ avatarUrl: null })
       refreshAvatar()
       setSuccess('Profile photo removed.')
     } catch (removeError) {
@@ -215,6 +217,7 @@ export function ProfilePage() {
         <ProfileSummaryCard
           profile={profile}
           userId={user?.id}
+          avatarUrl={user?.avatarUrl}
           groupCount={groupCount}
           reliability={reliability}
           avatarRefreshKey={avatarVersion}

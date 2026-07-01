@@ -6,6 +6,7 @@ import {
   getMatchingErrorMessage,
   isMatchingComplete,
   isMatchingFailed,
+  isMatchingRunning,
   isMatchingWaiting,
   isNoEnrolledStudentsError,
   startMatching,
@@ -42,6 +43,7 @@ function applyJobResult(job, { setProgress, setMatch, setError, setIsWaitingForP
 
   if (isMatchingComplete(job)) {
     setMatch(job.match)
+    setProgress(100)
     return 'completed'
   }
 
@@ -108,7 +110,7 @@ export function useMatchingProgress({
           profileReady,
         })
 
-        if (initialStatus !== 'running') {
+        if (initialStatus !== 'running' || !isMatchingRunning(started)) {
           return
         }
 

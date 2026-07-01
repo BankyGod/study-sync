@@ -88,6 +88,7 @@ export function StudentNavbar({ className }) {
             <ProfileAvatar
               userId={user?.id}
               fullName={user?.name ?? ''}
+              avatarUrl={user?.avatarUrl}
               size="sm"
               refreshKey={avatarVersion}
             />

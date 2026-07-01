@@ -4,6 +4,7 @@ import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
 export function ProfileSummaryCard({
   profile,
   userId,
+  avatarUrl,
   groupCount = 0,
   reliability = null,
   avatarRefreshKey = 0,
@@ -23,6 +24,7 @@ export function ProfileSummaryCard({
           <ProfileAvatar
             userId={userId}
             fullName={profile.fullName}
+            avatarUrl={avatarUrl}
             size="lg"
             editable
             refreshKey={avatarRefreshKey}

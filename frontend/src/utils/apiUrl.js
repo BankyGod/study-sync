@@ -1,14 +1,14 @@
+import { API_BASE_URL } from '@/api/config'
+
 /**
  * Build a full URL for API paths returned by the backend (e.g. file downloads).
+ * Signed avatar URLs from the API should be used as-is — do not pass through here.
  */
 export function resolveApiUrl(path) {
   if (!path) return path
   if (path.startsWith('http')) return path
 
-  const base = (
-    import.meta.env.VITE_API_BASE_URL ||
-    (import.meta.env.PROD ? 'https://studysync-backend-5i2a.onrender.com/api' : '/api')
-  ).replace(/\/$/, '')
+  const base = API_BASE_URL.replace(/\/$/, '')
 
   if (base.startsWith('http')) {
     const { origin } = new URL(base)

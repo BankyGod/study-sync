@@ -1,5 +1,6 @@
 import apiClient from '@/api/client'
 import { endpoints } from '@/api/endpoints'
+import { getApiErrorMessage } from '@/utils/apiErrors'
 import { getStoredUser } from '@/services/authService'
 import { DEV_BYPASS_AUTH, STORAGE_KEYS } from '@/utils/constants'
 
@@ -48,11 +49,7 @@ export function normalizeUserProfile(profile = {}, authUser = getStoredUser()) {
 }
 
 export function getUserProfileErrorMessage(error) {
-  const apiError = error?.response?.data?.error
-  if (apiError?.details?.length) {
-    return apiError.details.map((item) => item.message).join(' ')
-  }
-  return apiError?.message || 'Unable to save your profile. Please try again.'
+  return getApiErrorMessage(error, 'Unable to save your profile. Please try again.')
 }
 
 export async function loadUserProfile() {
@@ -155,27 +152,13 @@ export function validateAvatarFile(file) {
   return null
 }
 
-function avatarCacheKey(userId) {
-  return `${STORAGE_KEYS.USER_AVATAR}_${userId}`
+function readDevAvatarCache() {
+  return localStorage.getItem(STORAGE_KEYS.USER_AVATAR) || null
 }
 
-function readAvatarCache(userId) {
-  if (!userId) return null
-  if (DEV_BYPASS_AUTH) {
-    return localStorage.getItem(STORAGE_KEYS.USER_AVATAR) || null
-  }
-  return localStorage.getItem(avatarCacheKey(userId)) || null
-}
-
-function writeAvatarCache(userId, dataUrl) {
-  if (!userId) return
-  if (DEV_BYPASS_AUTH) {
-    if (dataUrl) localStorage.setItem(STORAGE_KEYS.USER_AVATAR, dataUrl)
-    else localStorage.removeItem(STORAGE_KEYS.USER_AVATAR)
-    return
-  }
-  if (dataUrl) localStorage.setItem(avatarCacheKey(userId), dataUrl)
-  else localStorage.removeItem(avatarCacheKey(userId))
+function writeDevAvatarCache(dataUrl) {
+  if (dataUrl) localStorage.setItem(STORAGE_KEYS.USER_AVATAR, dataUrl)
+  else localStorage.removeItem(STORAGE_KEYS.USER_AVATAR)
 }
 
 function fileToDataUrl(file) {
@@ -187,63 +170,14 @@ function fileToDataUrl(file) {
   })
 }
 
-function blobToDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = () => reject(new Error('Unable to read image.'))
-    reader.readAsDataURL(blob)
-  })
-}
-
-function isValidImageBlob(blob) {
-  return blob && blob.size > 0 && !blob.type?.includes('json')
-}
-
 export function readCachedUserAvatar(userId) {
-  return readAvatarCache(userId)
+  if (!DEV_BYPASS_AUTH || !userId) return null
+  return readDevAvatarCache()
 }
 
 export function revokeUserAvatarObjectUrl(url) {
   if (url?.startsWith('blob:')) {
     URL.revokeObjectURL(url)
-  }
-}
-
-export async function loadUserAvatarObjectUrl(userId, { forceRefresh = false } = {}) {
-  if (!userId) return null
-
-  if (!forceRefresh) {
-    const cached = readAvatarCache(userId)
-    if (cached) return cached
-  }
-
-  if (DEV_BYPASS_AUTH) {
-    return readAvatarCache(userId)
-  }
-
-  try {
-    const { data } = await apiClient.get(endpoints.users.avatarByUser(userId), {
-      responseType: 'blob',
-      skipAuthLogout: true,
-      params: forceRefresh ? { t: Date.now() } : undefined,
-    })
-
-    if (!isValidImageBlob(data)) {
-      writeAvatarCache(userId, null)
-      return null
-    }
-
-    const dataUrl = await blobToDataUrl(data)
-    writeAvatarCache(userId, dataUrl)
-    return dataUrl
-  } catch (error) {
-    if (error.response?.status === 404) {
-      writeAvatarCache(userId, null)
-      return null
-    }
-
-    return readAvatarCache(userId)
   }
 }
 
@@ -253,46 +187,32 @@ export async function uploadUserAvatar(file) {
     throw new Error(validationError)
   }
 
-  const previewDataUrl = await fileToDataUrl(file)
-  const userId = getStoredUser()?.id
-
   if (DEV_BYPASS_AUTH) {
-    writeAvatarCache(userId, previewDataUrl)
-    return { avatarUrl: previewDataUrl }
+    const previewDataUrl = await fileToDataUrl(file)
+    writeDevAvatarCache(previewDataUrl)
+    return { avatarUrl: previewDataUrl, updatedAt: new Date().toISOString() }
   }
 
   const formData = new FormData()
   formData.append('photo', file)
 
-  const { data } = await apiClient.post(endpoints.users.avatar, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
-
-  if (userId) {
-    writeAvatarCache(userId, previewDataUrl)
-  }
-
+  const { data } = await apiClient.post(endpoints.users.avatar, formData)
   return data
 }
 
 export async function deleteUserAvatar() {
-  const userId = getStoredUser()?.id
-
   if (DEV_BYPASS_AUTH) {
-    writeAvatarCache(userId, null)
+    writeDevAvatarCache(null)
     return
   }
 
   await apiClient.delete(endpoints.users.avatar)
-  writeAvatarCache(userId, null)
 }
 
 export function getAvatarUploadErrorMessage(error) {
-  const apiError = error?.response?.data?.error
-  return apiError?.message || error?.message || 'Unable to update profile photo.'
+  return getApiErrorMessage(error, 'Unable to update profile photo.')
 }
 
 export function getUserGroupsErrorMessage(error) {
-  const apiError = error?.response?.data?.error
-  return apiError?.message || 'Unable to load your study groups.'
+  return getApiErrorMessage(error, 'Unable to load your study groups.')
 }
