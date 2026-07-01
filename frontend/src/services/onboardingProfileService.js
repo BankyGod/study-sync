@@ -94,9 +94,13 @@ export async function loadOnboardingProfile() {
   }
 }
 
+export function isOnboardingProfileSaved(profile) {
+  return Boolean(profile)
+}
+
 export async function hasOnboardingProfile() {
   const profile = await loadOnboardingProfile()
-  return Boolean(profile?.courses?.length && getValidCourses(profile.courses).length > 0)
+  return isOnboardingProfileSaved(profile) && getValidCourses(profile.courses).length > 0
 }
 
 export function getActiveMatchingCourse() {

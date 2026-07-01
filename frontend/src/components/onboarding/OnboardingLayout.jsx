@@ -14,6 +14,9 @@ export function OnboardingLayout({
   continueLabel = 'Continue',
   wide = false,
   gradientContinue = false,
+  skipTo = ROUTES.STUDENT_DASHBOARD,
+  skipLabel = 'Skip for now',
+  showSkip = true,
 }) {
   const contentWidth = wide ? 'max-w-4xl' : 'max-w-2xl'
 
@@ -21,12 +24,16 @@ export function OnboardingLayout({
     <div className="min-h-screen bg-white">
       <header className="mx-auto flex max-w-3xl items-center justify-between px-4 py-6 sm:px-6">
         <StudySyncLogo />
-        <Link
-          to={ROUTES.STUDENT_DASHBOARD}
-          className="text-sm font-medium text-slate-500 transition hover:text-slate-700"
-        >
-          Skip for now
-        </Link>
+        {showSkip ? (
+          <Link
+            to={skipTo}
+            className="text-sm font-medium text-slate-500 transition hover:text-slate-700"
+          >
+            {skipLabel}
+          </Link>
+        ) : (
+          <span className="w-16" aria-hidden="true" />
+        )}
       </header>
 
       <div className="mx-auto max-w-3xl px-4 sm:px-6">

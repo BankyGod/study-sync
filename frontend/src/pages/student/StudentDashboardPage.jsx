@@ -5,12 +5,18 @@ import { CircularProgress } from '@/components/dashboard/CircularProgress'
 import { PodCard } from '@/components/dashboard/PodCard'
 import { QuickStatCard } from '@/components/dashboard/QuickStatCard'
 import { UpcomingDeadlines } from '@/components/dashboard/UpcomingDeadlines'
+import { CompleteStudyPreferencesBanner } from '@/components/onboarding/CompleteStudyPreferencesBanner'
 import { Spinner } from '@/components/common/Spinner'
 import { useAuth } from '@/hooks/useAuth'
 import { fetchUserGroups, getUserGroupsErrorMessage } from '@/services/usersService'
 import { fetchMyReliability } from '@/services/reliabilityService'
+import {
+  isOnboardingProfileSaved,
+  loadOnboardingProfile,
+} from '@/services/onboardingProfileService'
 import { ROUTES } from '@/utils/constants'
 import { buildWorkspacePath } from '@/utils/workspace'
+import { cn } from '@/utils/cn'
 
 const deadlines = []
 
@@ -18,6 +24,7 @@ export function StudentDashboardPage() {
   const { user } = useAuth()
   const [groups, setGroups] = useState([])
   const [reliability, setReliability] = useState(null)
+  const [hasSavedProfile, setHasSavedProfile] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -30,13 +37,15 @@ export function StudentDashboardPage() {
       setIsLoading(true)
       setError('')
       try {
-        const [nextGroups, reliabilityData] = await Promise.all([
+        const [nextGroups, reliabilityData, onboardingProfile] = await Promise.all([
           fetchUserGroups(),
           fetchMyReliability().catch(() => null),
+          loadOnboardingProfile().catch(() => null),
         ])
         if (!cancelled) {
           setGroups(nextGroups)
           setReliability(reliabilityData)
+          setHasSavedProfile(isOnboardingProfileSaved(onboardingProfile))
         }
       } catch (loadError) {
         if (!cancelled) {
@@ -65,6 +74,13 @@ export function StudentDashboardPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-5 pb-6 sm:px-6 sm:py-8 lg:px-8">
+      {!hasSavedProfile ? (
+        <CompleteStudyPreferencesBanner
+          returnTo={ROUTES.FIND_GROUPS}
+          className="mb-6"
+          description="Finish your learning style, availability, courses, and study preferences to find and join study pods."
+        />
+      ) : null}
       <div className="grid gap-6 lg:grid-cols-[1fr_300px] lg:gap-8">
         <div className="space-y-6 sm:space-y-8">
           <section className="flex flex-wrap items-center justify-between gap-4 sm:gap-6">
@@ -108,14 +124,30 @@ export function StudentDashboardPage() {
               <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-12 text-center">
                 <p className="text-sm font-medium text-slate-700">No study pods yet</p>
                 <p className="mt-1 text-sm text-slate-500">
-                  Complete onboarding and find a group to get started.
+                  Complete your study preferences, then find a group to get started.
                 </p>
-                <Link
-                  to={ROUTES.FIND_GROUPS}
-                  className="mt-4 inline-flex rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white"
-                >
-                  Find a Study Group
-                </Link>
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                  {!hasSavedProfile ? (
+                    <Link
+                      to={ROUTES.ONBOARDING}
+                      state={{ returnTo: ROUTES.FIND_GROUPS }}
+                      className="inline-flex rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white"
+                    >
+                      Complete setup
+                    </Link>
+                  ) : null}
+                  <Link
+                    to={ROUTES.FIND_GROUPS}
+                    className={cn(
+                      'inline-flex rounded-xl px-4 py-2.5 text-sm font-semibold',
+                      hasSavedProfile
+                        ? 'bg-violet-600 text-white'
+                        : 'border border-slate-200 bg-white text-slate-700',
+                    )}
+                  >
+                    Find a Study Group
+                  </Link>
+                </div>
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

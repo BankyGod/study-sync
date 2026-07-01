@@ -1,8 +1,20 @@
 export const NO_ENROLLED_STUDENTS_MESSAGE =
   'There are no other enrolled students for this course yet. Please wait a while and try again.'
 
+export const ONBOARDING_REQUIRED_MESSAGE =
+  'Complete your study preferences before matching.'
+
 export const MATCHING_ERROR_CODES = {
   NO_ENROLLED_STUDENTS: 'NO_ENROLLED_STUDENTS',
+}
+
+export function isOnboardingRequiredMessage(message) {
+  const normalized = (message ?? '').toLowerCase()
+  return (
+    normalized.includes('study preference') ||
+    normalized.includes('onboarding') ||
+    normalized.includes('complete your preferences')
+  )
 }
 
 export function isNoEnrolledStudentsError(error) {
@@ -25,8 +37,8 @@ export function getMatchingErrorMessage(error, { profileReady = true } = {}) {
   const code = error?.response?.data?.error?.code
   const message = error?.response?.data?.error?.message
 
-  if (code === 'VALIDATION_ERROR' || message?.toLowerCase().includes('onboarding')) {
-    return 'Complete your study preferences before matching.'
+  if (code === 'VALIDATION_ERROR' || isOnboardingRequiredMessage(message)) {
+    return ONBOARDING_REQUIRED_MESSAGE
   }
 
   if (message?.toLowerCase().includes('no course') || message?.toLowerCase().includes('select a course')) {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ProfileSummaryCard } from '@/components/profile/ProfileSummaryCard'
 import { EditProfileModal } from '@/components/profile/EditProfileModal'
+import { CompleteStudyPreferencesBanner } from '@/components/onboarding/CompleteStudyPreferencesBanner'
 import { LearningStyleSelector } from '@/components/profile/LearningStyleSelector'
 import { AvailabilityScheduler } from '@/components/profile/AvailabilityScheduler'
 import { EnrolledCourses } from '@/components/profile/EnrolledCourses'
@@ -20,6 +21,7 @@ import {
 import { fetchMyReliability } from '@/services/reliabilityService'
 import {
   getOnboardingErrorMessage,
+  isOnboardingProfileSaved,
   loadOnboardingProfile,
   mergeOnboardingProfile,
   saveOnboardingProfile,
@@ -32,6 +34,7 @@ export function ProfilePage() {
   const [groupCount, setGroupCount] = useState(0)
   const [reliability, setReliability] = useState(null)
   const [onboarding, setOnboarding] = useState(mergeOnboardingProfile(null))
+  const [hasSavedProfile, setHasSavedProfile] = useState(true)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -58,9 +61,12 @@ export function ProfilePage() {
           setProfile(displayProfile)
           setGroupCount(groups.length)
           setReliability(reliabilityData)
+          setHasSavedProfile(isOnboardingProfileSaved(onboardingProfile))
           if (onboardingProfile) {
             setCachedOnboardingProfile(onboardingProfile)
             setOnboarding(mergeOnboardingProfile(onboardingProfile))
+          } else {
+            setOnboarding(mergeOnboardingProfile(null))
           }
         }
       } catch (loadError) {
@@ -147,6 +153,7 @@ export function ProfilePage() {
       setGroupCount(groups.length)
       setCachedOnboardingProfile(savedOnboarding)
       setOnboarding(mergeOnboardingProfile(savedOnboarding))
+      setHasSavedProfile(true)
       setSuccess('Profile and study preferences saved.')
     } catch (saveError) {
       const message =
@@ -197,6 +204,13 @@ export function ProfilePage() {
             {success}
           </p>
         )}
+
+        {!hasSavedProfile ? (
+          <CompleteStudyPreferencesBanner
+            returnTo={ROUTES.PROFILE}
+            description="Use the guided setup to add your learning style, availability, courses, and study preferences. You can still edit individual sections below after finishing."
+          />
+        ) : null}
 
         <ProfileSummaryCard
           profile={profile}

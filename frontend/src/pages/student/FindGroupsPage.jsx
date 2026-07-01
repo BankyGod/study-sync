@@ -4,10 +4,12 @@ import { OrbitAnimation } from '@/components/find-groups/OrbitAnimation'
 import { MatchingProgress } from '@/components/find-groups/MatchingProgress'
 import { MatchFoundView } from '@/components/find-groups/MatchFoundView'
 import { CourseSelectPanel, courseKey } from '@/components/find-groups/CourseSelectPanel'
+import { CompleteStudyPreferencesBanner } from '@/components/onboarding/CompleteStudyPreferencesBanner'
 import { useMatchingProgress } from '@/hooks/useMatchingProgress'
 import { Spinner } from '@/components/common/Spinner'
 import {
   getOnboardingErrorMessage,
+  isOnboardingProfileSaved,
   loadOnboardingProfile,
   mergeOnboardingProfile,
   saveOnboardingProfile,
@@ -16,6 +18,10 @@ import {
 import { fetchCourseGroups } from '@/services/matchingService'
 import { ROUTES } from '@/utils/constants'
 import { formatCourseName, getValidCourses } from '@/utils/onboarding'
+import {
+  isOnboardingRequiredMessage,
+  ONBOARDING_REQUIRED_MESSAGE,
+} from '@/utils/matchingErrors'
 import { cn } from '@/utils/cn'
 
 function createEmptyCourse() {
@@ -32,6 +38,7 @@ export function FindGroupsPage() {
   const [courseLabel, setCourseLabel] = useState(null)
   const [courseGroups, setCourseGroups] = useState([])
   const [isProfileReady, setIsProfileReady] = useState(false)
+  const [hasSavedProfile, setHasSavedProfile] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [selectError, setSelectError] = useState('')
   const [profileError, setProfileError] = useState('')
@@ -54,6 +61,8 @@ export function FindGroupsPage() {
       try {
         const profile = await loadOnboardingProfile()
         if (cancelled) return
+
+        setHasSavedProfile(isOnboardingProfileSaved(profile))
 
         const merged = mergeOnboardingProfile(profile)
         setCachedOnboardingProfile(profile ?? merged)
@@ -82,7 +91,7 @@ export function FindGroupsPage() {
     return () => {
       cancelled = true
     }
-  }, [location.state?.preselectedCourseId])
+  }, [location.state?.preselectedCourseId, location.state?.fromOnboarding])
 
   useEffect(() => {
     if (isComplete && phase === 'searching') {
@@ -104,6 +113,11 @@ export function FindGroupsPage() {
   }, [validCourses, selectedCourseId])
 
   const handleStartSearch = async () => {
+    if (!hasSavedProfile) {
+      setSelectError(ONBOARDING_REQUIRED_MESSAGE)
+      return
+    }
+
     const course = validCourses.find((item) => courseKey(item) === selectedCourseId)
     if (!course) {
       setSelectError('Select a course with a subject and course number.')
@@ -118,6 +132,7 @@ export function FindGroupsPage() {
       const baseProfile = mergeOnboardingProfile(existing)
       const saved = await saveOnboardingProfile({ ...baseProfile, courses })
       setCachedOnboardingProfile(saved)
+      setHasSavedProfile(true)
 
       setSelectedCourse({
         subject: course.subject.trim(),
@@ -182,6 +197,11 @@ export function FindGroupsPage() {
   }
 
   if (phase === 'select-course') {
+    const showOnboardingPrompt =
+      !hasSavedProfile ||
+      isOnboardingRequiredMessage(profileError || selectError) ||
+      isOnboardingRequiredMessage(error)
+
     return (
       <div className="px-4 py-10 sm:px-6 lg:px-8">
         {!isProfileReady && !profileError ? (
@@ -189,15 +209,25 @@ export function FindGroupsPage() {
             <Spinner size="lg" />
           </div>
         ) : (
-          <CourseSelectPanel
-            courses={courses}
-            selectedCourseId={selectedCourseId}
-            onSelectCourse={setSelectedCourseId}
-            onCoursesChange={setCourses}
-            onSearch={handleStartSearch}
-            isSaving={isSaving}
-            error={profileError || selectError}
-          />
+          <div className="space-y-6">
+            {showOnboardingPrompt ? (
+              <CompleteStudyPreferencesBanner returnTo={ROUTES.FIND_GROUPS} />
+            ) : null}
+            <CourseSelectPanel
+              courses={courses}
+              selectedCourseId={selectedCourseId}
+              onSelectCourse={setSelectedCourseId}
+              onCoursesChange={setCourses}
+              onSearch={handleStartSearch}
+              isSaving={isSaving}
+              canSearch={hasSavedProfile}
+              error={
+                showOnboardingPrompt && isOnboardingRequiredMessage(profileError || selectError)
+                  ? ''
+                  : profileError || selectError
+              }
+            />
+          </div>
         )}
       </div>
     )
@@ -249,6 +279,12 @@ export function FindGroupsPage() {
           )}
         </div>
       )}
+
+      {isOnboardingRequiredMessage(statusMessage) ? (
+        <div className="mb-6">
+          <CompleteStudyPreferencesBanner returnTo={ROUTES.FIND_GROUPS} />
+        </div>
+      ) : null}
 
       <OrbitAnimation paused={Boolean(statusMessage)} />
 

@@ -21,11 +21,12 @@ export function CourseSelectPanel({
   onCoursesChange,
   onSearch,
   isSaving = false,
+  canSearch = true,
   error = '',
 }) {
   const validCourses = getValidCourses(courses)
   const selectedCourse = validCourses.find((course) => courseKey(course) === selectedCourseId)
-  const canSearch = Boolean(selectedCourse) && !isSaving
+  const canSubmitSearch = Boolean(selectedCourse) && !isSaving && canSearch
 
   const addCourse = () => {
     onCoursesChange([...courses, createCourseEntry()])
@@ -181,10 +182,10 @@ export function CourseSelectPanel({
         <button
           type="button"
           onClick={onSearch}
-          disabled={!canSearch}
+          disabled={!canSubmitSearch}
           className={cn(
             'session-start-btn inline-flex items-center gap-2 rounded-xl px-8 py-3 text-sm font-semibold text-white shadow-sm transition',
-            canSearch ? 'hover:opacity-90' : 'cursor-not-allowed opacity-50',
+            canSubmitSearch ? 'hover:opacity-90' : 'cursor-not-allowed opacity-50',
           )}
         >
           <Search className="h-4 w-4" />
@@ -192,12 +193,18 @@ export function CourseSelectPanel({
         </button>
       </div>
 
-      {selectedCourse && (
+      {!canSearch && selectedCourse ? (
+        <p className="mt-4 text-center text-sm text-amber-700">
+          Complete your study preferences above before searching.
+        </p>
+      ) : null}
+
+      {canSearch && selectedCourse ? (
         <p className="mt-4 text-center text-sm text-slate-500">
           Searching will look for study pods enrolled in{' '}
           <span className="font-semibold text-slate-700">{formatCourseName(selectedCourse)}</span>.
         </p>
-      )}
+      ) : null}
     </div>
   )
 }
