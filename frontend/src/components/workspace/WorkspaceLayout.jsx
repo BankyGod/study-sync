@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom'
 import { SessionTimerProvider } from '@/context/SessionTimerContext'
 import { WorkspaceProvider, useWorkspace } from '@/context/WorkspaceContext'
+import { WorkspaceChatActivityProvider } from '@/context/WorkspaceChatActivityContext'
 import { MemberProfileProvider } from '@/context/MemberProfileContext'
 import {
   WorkspaceScheduleProvider,
@@ -140,7 +141,9 @@ export function WorkspaceLayout() {
     <SessionTimerProvider>
       <WorkspaceProvider groupId={groupId}>
         <MemberProfileProvider>
-          <WorkspaceShell />
+          <WorkspaceChatActivityProvider>
+            <WorkspaceShell />
+          </WorkspaceChatActivityProvider>
         </MemberProfileProvider>
       </WorkspaceProvider>
     </SessionTimerProvider>

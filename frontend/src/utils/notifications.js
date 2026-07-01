@@ -2,6 +2,7 @@ import {
   ArrowLeft,
   Bell,
   CheckCircle2,
+  MessageSquare,
   Play,
   Trash2,
   UserMinus,
@@ -52,6 +53,11 @@ const TYPE_META = {
     icon: Trash2,
     accent: 'bg-slate-100 text-slate-600',
   },
+  'message.new': {
+    label: 'Pod chat',
+    icon: MessageSquare,
+    accent: 'bg-violet-100 text-violet-700',
+  },
 }
 
 export function getNotificationMeta(type) {
@@ -67,6 +73,10 @@ export function getNotificationMeta(type) {
 export function getNotificationLink(notification) {
   const groupId = notification.groupId ?? notification.data?.groupId
   if (!groupId) return null
+
+  if (notification.type === 'message.new') {
+    return `${buildWorkspacePath(groupId)}/chat`
+  }
 
   if (notification.data?.taskId) {
     return `${buildWorkspacePath(groupId)}/board`

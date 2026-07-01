@@ -1,8 +1,11 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { CalendarDays, Folder, LayoutGrid, MessageSquare } from 'lucide-react'
+import { NavBadge } from '@/components/common/NavBadge'
+import { useWorkspaceChatActivity } from '@/context/WorkspaceChatActivityContext'
 import { cn } from '@/utils/cn'
 
 export function WorkspaceBottomNav({ groupId }) {
+  const { unreadCount: chatUnreadCount } = useWorkspaceChatActivity()
   const location = useLocation()
   const base = `/workspace/${groupId}`
 
@@ -60,11 +63,14 @@ export function WorkspaceBottomNav({ groupId }) {
             >
               <span
                 className={cn(
-                  'flex h-8 w-8 items-center justify-center rounded-2xl transition',
+                  'relative flex h-8 w-8 items-center justify-center rounded-2xl transition',
                   active && 'bg-violet-100 text-violet-700',
                 )}
               >
                 <Icon className="h-5 w-5" strokeWidth={active ? 2.25 : 2} />
+                {item.id === 'chat' ? (
+                  <NavBadge count={chatUnreadCount} className="-right-1 -top-1" />
+                ) : null}
               </span>
               <span className="truncate">{item.label}</span>
             </NavLink>

@@ -134,6 +134,36 @@ export async function markNotificationRead(notificationId) {
   return data
 }
 
+export async function pushDevChatNotification({ groupId, message, preview, podTitle }) {
+  if (!DEV_BYPASS_AUTH) return null
+
+  const items = readDevNotifications()
+  const actorName =
+    message.senderName ??
+    message.sender?.name ??
+    'Someone'
+  const notification = {
+    id: `dev-chat-${message.id ?? Date.now()}`,
+    type: 'message.new',
+    title: 'New pod message',
+    body: `${actorName}: ${preview}`,
+    groupId,
+    readAt: null,
+    createdAt: new Date().toISOString(),
+    data: {
+      groupId,
+      messageId: message.id,
+      senderId: message.senderId,
+      actorName,
+      podTitle,
+    },
+  }
+
+  items.unshift(notification)
+  writeDevNotifications(items)
+  return notification
+}
+
 export async function markAllNotificationsRead(groupId) {
   if (DEV_BYPASS_AUTH) {
     const readAt = new Date().toISOString()

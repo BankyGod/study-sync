@@ -49,6 +49,7 @@ export const STORAGE_KEYS = {
   GROUP_FILES: 'studysync_group_files',
   PENDING_REGISTRATION: 'studysync_pending_registration',
   NOTIFICATIONS: 'studysync_notifications',
+  CHAT_UNREAD: 'studysync_chat_unread',
 }
 
 export const DAYS_OF_WEEK = [

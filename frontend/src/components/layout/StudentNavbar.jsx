@@ -64,7 +64,7 @@ export function StudentNavbar({ className }) {
           <Link
             to={ROUTES.NOTIFICATIONS}
             className={cn(
-              'relative flex h-9 w-9 items-center justify-center rounded-full transition lg:hidden',
+              'relative flex h-9 w-9 items-center justify-center rounded-full transition',
               location.pathname === ROUTES.NOTIFICATIONS
                 ? 'bg-violet-50 text-violet-700'
                 : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700',
