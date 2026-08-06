@@ -16,19 +16,18 @@ export function TaskCard({
   return (
     <article
       className={cn(
-        'rounded-xl border p-3 shadow-sm transition',
-        variant === 'highlight' && 'border-amber-200 bg-amber-50/80',
-        variant === 'completed' && 'border-emerald-200 bg-emerald-50/70',
-        variant === 'default' && 'border-slate-200/80 bg-white',
-        isDragging && 'shadow-md ring-2 ring-violet-200',
+        'rounded-lg border border-border bg-surface p-3 transition',
+        variant === 'highlight' && 'border-ochre/40 bg-ochre-soft/50',
+        variant === 'completed' && 'border-brand-200 bg-brand-50/60',
+        isDragging && 'ring-2 ring-brand-200',
       )}
     >
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-1.5">
         {dragHandleProps ? (
           <button
             type="button"
             className={cn(
-              'mt-0.5 flex h-7 w-6 shrink-0 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-600',
+              'mt-0.5 flex h-10 w-9 shrink-0 touch-none items-center justify-center rounded-md text-muted transition hover:bg-page hover:text-ink',
               isDragging ? 'cursor-grabbing' : 'cursor-grab',
             )}
             aria-label="Drag task"
@@ -40,17 +39,17 @@ export function TaskCard({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <p className="text-sm font-medium leading-snug text-slate-900">{title}</p>
+            <p className="break-words text-sm font-medium leading-snug text-ink">{title}</p>
             {canManage ? <TaskCardActionsMenu onEdit={onEdit} onDelete={onDelete} /> : null}
           </div>
 
           <div className="mt-3 flex items-center justify-between gap-2">
-            <span className="text-xs text-slate-500">{footer}</span>
+            <span className="min-w-0 truncate text-xs text-muted">{footer}</span>
             {assignee ? (
               <div
                 className={cn(
-                  'flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold text-white',
-                  assignee.color,
+                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-surface',
+                  assignee.color || 'bg-brand-600',
                 )}
                 title={assignee.name}
               >

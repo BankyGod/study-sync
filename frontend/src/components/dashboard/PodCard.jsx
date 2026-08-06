@@ -1,84 +1,78 @@
 import { Link } from 'react-router-dom'
-import { BookOpen } from 'lucide-react'
+import { ArrowUpRight, BookOpen } from 'lucide-react'
 import { MemberAvatar } from '@/components/workspace/MemberAvatar'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/utils/cn'
 
-const accentStyles = {
-  blue: {
-    icon: 'bg-sky-50 text-sky-600',
-    bar: 'bg-sky-500',
-  },
-  green: {
-    icon: 'bg-emerald-50 text-emerald-600',
-    bar: 'bg-emerald-500',
-  },
-  purple: {
-    icon: 'bg-violet-50 text-violet-600',
-    bar: 'bg-violet-500',
-  },
-}
-
-export function PodCard({ title, members, progress, accent = 'blue', to }) {
+export function PodCard({ title, members = [], progress = 0, to, compact = false }) {
   const { avatarVersion } = useAuth()
-  const styles = accentStyles[accent]
+  const safeProgress = Math.max(0, Math.min(100, Number(progress) || 0))
 
-  const content = (
+  const body = (
     <>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl', styles.icon)}>
-            <BookOpen className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-slate-900">{title}</h3>
-            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-emerald-600">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              Active
-            </p>
-          </div>
+      <div className="flex min-w-0 flex-1 items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
+          <BookOpen className="h-5 w-5" />
         </div>
-      </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="truncate font-display text-base font-semibold text-ink">{title}</h3>
+              <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-brand-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-brand-600" />
+                Active · {members.length} member{members.length === 1 ? '' : 's'}
+              </p>
+            </div>
+            {to ? <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-muted" /> : null}
+          </div>
 
-      <div className="mt-4 flex -space-x-2">
-        {members.map((member) => (
-          <MemberAvatar
-            key={member.id ?? member.initials}
-            member={member}
-            size="sm"
-            bordered
-            refreshKey={avatarVersion}
-          />
-        ))}
-      </div>
+          <div className="mt-4 flex items-center justify-between gap-4">
+            <div className="flex -space-x-2">
+              {members.slice(0, 4).map((member) => (
+                <MemberAvatar
+                  key={member.id ?? member.initials}
+                  member={member}
+                  size="sm"
+                  bordered
+                  refreshKey={avatarVersion}
+                />
+              ))}
+              {members.length > 4 ? (
+                <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-surface bg-page text-xs font-semibold text-muted">
+                  +{members.length - 4}
+                </div>
+              ) : null}
+            </div>
+            <div className="min-w-[5.5rem] text-right">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted">Progress</p>
+              <p className="mt-0.5 text-sm font-semibold text-ink">{safeProgress}%</p>
+            </div>
+          </div>
 
-      <div className="mt-4">
-        <div className="mb-1.5 flex items-center justify-between text-xs">
-          <span className="text-slate-500">Progress</span>
-          <span className="font-semibold text-slate-700">{progress}%</span>
-        </div>
-        <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-          <div
-            className={cn('h-full rounded-full transition-all', styles.bar)}
-            style={{ width: `${progress}%` }}
-          />
+          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-border/70">
+            <div
+              className="h-full rounded-full bg-brand-600 transition-[width] duration-300"
+              style={{ width: `${safeProgress}%` }}
+            />
+          </div>
         </div>
       </div>
     </>
   )
 
-  const cardClassName = cn(
-    'rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:shadow-md',
-    to && 'hover:border-violet-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500',
+  const className = cn(
+    'block border-b border-border bg-surface px-4 py-4 transition last:border-b-0',
+    to && 'hover:bg-page/80',
+    compact && 'px-3 py-3',
   )
 
   if (to) {
     return (
-      <Link to={to} className={cn('block', cardClassName)}>
-        {content}
+      <Link to={to} className={className}>
+        {body}
       </Link>
     )
   }
 
-  return <article className={cardClassName}>{content}</article>
+  return <article className={className}>{body}</article>
 }

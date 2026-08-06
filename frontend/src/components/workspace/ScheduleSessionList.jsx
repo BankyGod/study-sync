@@ -18,7 +18,7 @@ export function ScheduleSessionList({ heading, items, showJoin = false, emptyMes
           className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200/70 bg-slate-50/50 px-5 py-4"
         >
           <div className="flex min-w-0 items-start gap-3">
-            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
               <CalendarDays className="h-4 w-4" />
             </div>
             <div className="min-w-0">
@@ -29,7 +29,7 @@ export function ScheduleSessionList({ heading, items, showJoin = false, emptyMes
           {showJoin && (
             <button
               type="button"
-              className="shrink-0 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-700"
+              className="shrink-0 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
             >
               Join
             </button>

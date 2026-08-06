@@ -20,31 +20,13 @@ const groupSizeIcons = {
   large: UsersRound,
 }
 
-const accentStyles = {
-  purple: {
-    selected: 'border-violet-500 bg-violet-50 ring-1 ring-violet-500',
-    icon: 'bg-violet-100 text-violet-600',
-  },
-  green: {
-    selected: 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500',
-    icon: 'bg-emerald-100 text-emerald-600',
-  },
-  amber: {
-    selected: 'border-amber-500 bg-amber-50 ring-1 ring-amber-500',
-    icon: 'bg-amber-100 text-amber-600',
-  },
-}
-
-function PreferenceSection({ title, options, value, onChange, accent, icons }) {
-  const styles = accentStyles[accent]
-  const defaultIcon = accent === 'green' ? Clock : accent === 'amber' ? Lightbulb : User
-
+function PreferenceSection({ title, options, value, onChange, icons }) {
   return (
     <section>
-      <h2 className="text-sm font-bold text-slate-900">{title}</h2>
+      <h2 className="text-sm font-semibold text-ink">{title}</h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
         {options.map((option) => {
-          const Icon = icons?.[option.id] ?? defaultIcon
+          const Icon = icons?.[option.id] ?? User
           const isSelected = value === option.id
 
           return (
@@ -53,20 +35,22 @@ function PreferenceSection({ title, options, value, onChange, accent, icons }) {
               type="button"
               onClick={() => onChange(option.id)}
               className={cn(
-                'rounded-xl border p-4 text-center transition',
-                isSelected ? styles.selected : 'border-slate-200 bg-white hover:border-slate-300',
+                'rounded-lg border p-4 text-left transition sm:text-center',
+                isSelected
+                  ? 'border-brand-600 bg-brand-50'
+                  : 'border-border bg-surface hover:border-brand-300',
               )}
             >
               <div
                 className={cn(
-                  'mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg',
-                  isSelected ? styles.icon : 'bg-slate-100 text-slate-500',
+                  'mb-3 flex h-9 w-9 items-center justify-center rounded-lg sm:mx-auto',
+                  isSelected ? 'bg-brand-100 text-brand-700' : 'bg-page text-muted',
                 )}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className="h-4 w-4" />
               </div>
-              <p className="text-sm font-semibold text-slate-900">{option.label}</p>
-              <p className="mt-1 text-xs text-slate-500">{option.description}</p>
+              <p className="text-sm font-semibold text-ink">{option.label}</p>
+              <p className="mt-1 text-xs text-muted">{option.description}</p>
             </button>
           )
         })}
@@ -87,39 +71,38 @@ export function PreferencesStep({ value, onChange }) {
   }
 
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white px-6 py-8 shadow-sm sm:px-10 sm:py-10">
-      <h1 className="text-center text-2xl font-bold text-slate-900 sm:text-3xl">
-        Set Your Preferences
-      </h1>
-      <p className="mx-auto mt-3 max-w-lg text-center text-sm text-slate-500 sm:text-base">
-        Tell us how you like to study so we can match you with the right group.
-      </p>
+    <article>
+      <header className="border-b border-border pb-6">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">
+          Set your preferences
+        </h1>
+        <p className="mt-2 text-sm text-muted">
+          Tell us how you like to study so we can match you with the right group.
+        </p>
+      </header>
 
       <div className="mt-8 space-y-8">
         <PreferenceSection
-          title="Preferred Group Size"
+          title="Preferred group size"
           options={GROUP_SIZE_OPTIONS}
           value={value.groupSize}
           onChange={(groupSize) => update('groupSize', groupSize)}
-          accent="purple"
           icons={groupSizeIcons}
         />
 
         <PreferenceSection
-          title="Weekly Time Commitment"
+          title="Weekly time commitment"
           options={TIME_COMMITMENT_OPTIONS}
           value={value.timeCommitment}
           onChange={(timeCommitment) => update('timeCommitment', timeCommitment)}
-          accent="green"
           icons={{ low: Clock, medium: Clock, high: Clock }}
         />
 
         <PreferenceSection
-          title="Subject Matter Difficulty"
+          title="Subject matter difficulty"
           options={DIFFICULTY_OPTIONS}
           value={value.difficulty}
           onChange={(difficulty) => update('difficulty', difficulty)}
-          accent="amber"
           icons={difficultyIcons}
         />
       </div>

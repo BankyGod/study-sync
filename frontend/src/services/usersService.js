@@ -119,10 +119,10 @@ const DEV_MOCK_GROUPS = [
     groupId: 'demo',
     title: 'Demo Study Group',
     progress: 64,
-    accent: 'purple',
+    accent: 'blue',
     members: [
       { id: 'dev-user-1', name: 'Alex Opoku', initials: 'AO', color: 'bg-sky-500' },
-      { id: 'dev-user-2', name: 'Sarah Mensah', initials: 'SM', color: 'bg-violet-500' },
+      { id: 'dev-user-2', name: 'Sarah Mensah', initials: 'SM', color: 'bg-brand-500' },
       { id: 'dev-user-3', name: 'Mike Park', initials: 'MP', color: 'bg-emerald-500' },
     ],
   },

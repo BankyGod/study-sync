@@ -48,7 +48,7 @@ function buildDevCreator() {
     id: user.id,
     name: user.name,
     initials: getProfileInitials(user.name),
-    color: 'bg-violet-500',
+    color: 'bg-brand-500',
   }
 }
 

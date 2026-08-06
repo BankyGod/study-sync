@@ -39,43 +39,43 @@ export function MemberProfileModal({
               size="md"
             />
             <div className="min-w-0">
-              <h3 className="text-lg font-bold text-slate-900">{displayName}</h3>
-              <p className="mt-1 text-sm text-slate-600">{role}</p>
-              {universities && (
-                <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-500">
+              <h3 className="font-display text-lg font-semibold text-ink">{displayName}</h3>
+              <p className="mt-1 text-sm text-muted">{role}</p>
+              {universities ? (
+                <p className="mt-2 flex items-center gap-1.5 text-sm text-muted">
                   <GraduationCap className="h-4 w-4 shrink-0" />
                   {universities}
                 </p>
-              )}
-              {(location || email) && (
-                <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
+              ) : null}
+              {location || email ? (
+                <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
                   <MapPin className="h-4 w-4 shrink-0" />
                   {[location, email].filter(Boolean).join(' · ') || 'No location set'}
                 </p>
-              )}
+              ) : null}
             </div>
           </div>
 
-          {!profile && member && (
-            <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          {!profile && member ? (
+            <p className="border-y border-border py-3 text-sm text-muted">
               This member has limited profile details visible to the pod. More information may appear
               once they update their profile.
             </p>
-          )}
+          ) : null}
 
           {reliability ? (
             <ReliabilityPanel reliability={reliability} scopeLabel="In this pod" />
           ) : null}
 
-          {isOwnProfile && (
+          {isOwnProfile ? (
             <Link
               to={ROUTES.PROFILE}
               onClick={onClose}
-              className="inline-flex w-full items-center justify-center rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700"
+              className="inline-flex w-full items-center justify-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-surface transition hover:bg-brand-700"
             >
               Edit your profile
             </Link>
-          )}
+          ) : null}
         </div>
       )}
     </Modal>

@@ -41,11 +41,11 @@ export function StudentBottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200/90 bg-white/95 backdrop-blur-lg lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface/95 backdrop-blur-lg lg:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       aria-label="Main navigation"
     >
-      <div className="mx-auto flex h-16 max-w-lg items-stretch justify-around px-1">
+      <div className="mx-auto flex h-14 max-w-lg items-stretch justify-around px-1">
         {tabs.map(({ to, label, icon: Icon, match, badge }) => {
           const isActive = match(location.pathname)
 
@@ -54,19 +54,14 @@ export function StudentBottomNav() {
               key={to}
               to={to}
               className={cn(
-                'relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-2 text-[10px] font-semibold transition',
-                isActive ? 'text-violet-600' : 'text-slate-500 active:text-violet-600',
+                'relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-[11px] font-semibold transition',
+                isActive ? 'text-brand-700' : 'text-muted',
               )}
             >
-              <span
-                className={cn(
-                  'relative flex h-8 w-8 items-center justify-center rounded-2xl transition',
-                  isActive && 'bg-violet-100 text-violet-700',
-                )}
-              >
-                <Icon className="h-5 w-5" strokeWidth={isActive ? 2.25 : 2} />
+              <span className="relative flex h-7 w-7 items-center justify-center">
+                <Icon className="h-5 w-5" strokeWidth={isActive ? 2.25 : 1.75} />
                 {badge && unreadCount > 0 ? (
-                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-violet-600 px-1 text-[9px] font-bold text-white">
+                  <span className="absolute -right-1.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-600 px-1 text-[9px] font-bold text-surface">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 ) : null}

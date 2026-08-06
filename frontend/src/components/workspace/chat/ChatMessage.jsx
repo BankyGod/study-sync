@@ -57,7 +57,7 @@ export function ChatMessage({
         'inline-block max-w-full px-2.5 py-1.5 text-[13px] leading-snug shadow-sm lg:px-4 lg:py-2.5 lg:text-sm lg:leading-relaxed',
         bubbleRadius,
         isOwnMessage
-          ? 'bg-violet-600 text-white'
+          ? 'bg-brand-600 text-white'
           : 'border border-slate-200/60 bg-white text-slate-800',
       )}
     >
@@ -65,7 +65,7 @@ export function ChatMessage({
       <p
         className={cn(
           'mt-0.5 text-right text-[9px] leading-none lg:hidden',
-          isOwnMessage ? 'text-violet-200' : 'text-slate-400',
+          isOwnMessage ? 'text-brand-200' : 'text-slate-400',
         )}
       >
         {timeLabel}
@@ -79,7 +79,7 @@ export function ChatMessage({
         'inline-flex max-w-full items-center gap-2 px-2.5 py-2 text-xs italic opacity-80 lg:px-4 lg:py-3 lg:text-sm',
         bubbleRadius,
         isOwnMessage
-          ? 'bg-violet-600 text-white'
+          ? 'bg-brand-600 text-white'
           : 'border border-slate-200/60 bg-white text-slate-500',
       )}
     >
@@ -95,7 +95,7 @@ export function ChatMessage({
         bubbleRadius,
         message.attachment?.downloadUrl && 'hover:brightness-95',
         isOwnMessage
-          ? 'bg-violet-600 text-white'
+          ? 'bg-brand-600 text-white'
           : 'border border-slate-200/60 bg-white text-slate-800',
       )}
       aria-label={`Download ${message.attachment?.fileName ?? 'attachment'}`}
@@ -103,14 +103,14 @@ export function ChatMessage({
       <div
         className={cn(
           'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg lg:h-9 lg:w-9',
-          isOwnMessage ? 'bg-white/20' : 'bg-violet-50 text-violet-600',
+          isOwnMessage ? 'bg-white/20' : 'bg-brand-50 text-brand-600',
         )}
       >
         <Paperclip className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
       </div>
       <div className="min-w-0 text-left">
         <p className="truncate font-medium">{message.attachment?.fileName}</p>
-        <p className={cn('text-xs', isOwnMessage ? 'text-violet-100' : 'text-slate-500')}>
+        <p className={cn('text-xs', isOwnMessage ? 'text-brand-100' : 'text-slate-500')}>
           {formatFileSize(message.attachment?.fileSize ?? 0)}
           {message.attachment?.downloadUrl ? ' · Tap to download' : ''}
         </p>
@@ -171,7 +171,7 @@ export function ChatMessage({
           <button
             type="button"
             onClick={() => openMemberProfile(message.senderId)}
-            className="mb-0.5 px-0.5 text-[11px] font-semibold text-slate-600 transition hover:text-violet-700 lg:mb-1 lg:text-xs"
+            className="mb-0.5 px-0.5 text-[11px] font-semibold text-slate-600 transition hover:text-brand-700 lg:mb-1 lg:text-xs"
           >
             {member.name}
           </button>

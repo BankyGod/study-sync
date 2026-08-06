@@ -19,15 +19,15 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ErrorBoundary>
+    <BrowserRouter>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AuthProvider>
-            <SpaPathRecovery />
+        <AuthProvider>
+          <SpaPathRecovery />
+          <ErrorBoundary>
             <App />
-          </AuthProvider>
-        </BrowserRouter>
+          </ErrorBoundary>
+        </AuthProvider>
       </QueryClientProvider>
-    </ErrorBoundary>
+    </BrowserRouter>
   </StrictMode>,
 )

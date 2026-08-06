@@ -12,7 +12,7 @@ export function StudentLayout() {
   const isMobileChat = isWorkspaceChatRoute(location.pathname)
 
   return (
-    <div className="flex min-h-dvh min-w-0 flex-col overflow-x-clip bg-slate-50">
+    <div className="flex min-h-dvh min-w-0 flex-col overflow-x-clip bg-page">
       <StudentNavbar className={cn(isMobileChat && 'max-lg:hidden')} />
       <main
         className={cn(

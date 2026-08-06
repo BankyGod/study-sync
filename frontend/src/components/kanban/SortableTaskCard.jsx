@@ -21,7 +21,7 @@ export function SortableTaskCard({ task }) {
   const canManage = canManageTask(task, user?.id)
 
   return (
-    <div ref={setNodeRef} style={style} className={cn('touch-none', isDragging && 'z-10 opacity-40')}>
+    <div ref={setNodeRef} style={style} className={cn(isDragging && 'z-10 opacity-40')}>
       <TaskCard
         title={task.title}
         footer={task.footer}

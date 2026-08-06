@@ -12,29 +12,27 @@ export function CompleteStudyPreferencesBanner({
   return (
     <div
       className={cn(
-        'rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 sm:px-5 sm:py-5',
+        'flex flex-col gap-4 rounded-lg border border-ochre/30 bg-ochre-soft/60 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5',
         className,
       )}
       role="status"
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
-            <GraduationCap className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-amber-950">{title}</p>
-            <p className="mt-1 text-sm leading-relaxed text-amber-900/80">{description}</p>
-          </div>
+      <div className="flex gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface text-ochre">
+          <GraduationCap className="h-5 w-5" />
         </div>
-        <Link
-          to={ROUTES.ONBOARDING}
-          state={{ returnTo }}
-          className="inline-flex shrink-0 items-center justify-center rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700"
-        >
-          Complete setup
-        </Link>
+        <div>
+          <p className="text-sm font-semibold text-ink">{title}</p>
+          <p className="mt-1 text-sm leading-relaxed text-muted">{description}</p>
+        </div>
       </div>
+      <Link
+        to={ROUTES.ONBOARDING}
+        state={{ returnTo }}
+        className="inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-surface transition hover:bg-brand-700 sm:w-auto"
+      >
+        Complete setup
+      </Link>
     </div>
   )
 }

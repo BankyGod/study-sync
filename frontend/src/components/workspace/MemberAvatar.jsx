@@ -50,7 +50,7 @@ export function MemberAvatar({
         SIZE_CLASSES[size],
         showInitials && color,
         bordered && 'border-2 border-white',
-        onClick && 'cursor-pointer transition hover:ring-2 hover:ring-violet-300 hover:ring-offset-2',
+        onClick && 'cursor-pointer transition hover:ring-2 hover:ring-brand-300 hover:ring-offset-2',
         className,
       )}
     >
@@ -69,7 +69,7 @@ export function MemberAvatar({
     <button
       type="button"
       onClick={() => onClick(member)}
-      className="rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+      className="rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
       aria-label={`View ${member?.name ?? 'member'} profile`}
     >
       {avatar}

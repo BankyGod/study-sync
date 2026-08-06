@@ -33,11 +33,11 @@ function ChatMessageToast({ toast, onDismiss }) {
   return (
     <div
       className={cn(
-        'pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl border border-violet-200 bg-white p-4 shadow-lg shadow-violet-100/60',
+        'pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl border border-brand-200 bg-white p-4 shadow-lg shadow-brand-100/60',
       )}
       role="status"
     >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-600">
         <MessageSquare className="h-5 w-5" />
       </div>
       <div className="min-w-0 flex-1">
@@ -48,7 +48,7 @@ function ChatMessageToast({ toast, onDismiss }) {
         <Link
           to={toast.chatPath}
           onClick={onDismiss}
-          className="mt-2 inline-block text-sm font-semibold text-violet-600 hover:text-violet-700"
+          className="mt-2 inline-block text-sm font-semibold text-brand-600 hover:text-brand-700"
         >
           Open chat
         </Link>

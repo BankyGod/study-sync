@@ -1,4 +1,4 @@
-import { Calendar, Check, Sparkles, Star, Users } from 'lucide-react'
+import { Calendar, Check, Star, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { cn } from '@/utils/cn'
 import { buildWorkspacePath } from '@/utils/workspace'
@@ -7,12 +7,6 @@ const METRIC_ICONS = {
   'Schedule Match': Calendar,
   'Learning Style': Users,
   'Avg. Grades': Star,
-}
-
-const METRIC_ACCENTS = {
-  'Schedule Match': 'bg-violet-50 text-violet-700',
-  'Learning Style': 'bg-emerald-50 text-emerald-700',
-  'Avg. Grades': 'bg-amber-50 text-amber-700',
 }
 
 export function MatchFoundView({ match, courseLabel, groupTitle, onFindAnother }) {
@@ -28,88 +22,81 @@ export function MatchFoundView({ match, courseLabel, groupTitle, onFindAnother }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
-      <div className="text-center">
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-teal-500 shadow-lg shadow-teal-500/30">
-          <Check className="h-10 w-10 text-white" strokeWidth={3} />
+      <header className="border-b border-border pb-6">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-600 text-surface">
+          <Check className="h-6 w-6" strokeWidth={3} />
         </div>
-        <h1 className="mt-6 text-3xl font-bold text-slate-900 sm:text-4xl">Match Found!</h1>
-        <p className="mt-3 text-slate-500">
+        <h1 className="mt-4 font-display text-3xl font-semibold tracking-tight text-ink">
+          Match found
+        </h1>
+        <p className="mt-2 text-sm text-muted">
           {courseLabel
-            ? `You've been matched with a ${courseLabel} study pod.`
-            : "You've been matched with a study group."}
+            ? `You were matched with a ${courseLabel} study pod.`
+            : 'You were matched with a study group.'}
         </p>
-      </div>
+      </header>
 
-      <article className="relative mt-10 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-md sm:p-8">
-        <div className="absolute right-6 top-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 via-pink-500 to-amber-400">
-            <Sparkles className="h-4 w-4 text-white" />
-          </div>
-        </div>
-
-        <header className="pr-12">
-          <h2 className="text-xl font-bold text-slate-900">{groupTitle}</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            {courseLabel ? `Course-based pod · ${courseLabel}` : 'Your new study pod'}
-          </p>
-        </header>
+      <section className="mt-8">
+        <h2 className="font-display text-xl font-semibold text-ink">{groupTitle}</h2>
+        <p className="mt-1 text-sm text-muted">
+          {courseLabel ? `Course-based pod · ${courseLabel}` : 'Your new study pod'}
+        </p>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
           {metrics.map((metric) => {
             const Icon = METRIC_ICONS[metric.label] ?? Star
             return (
-              <div
-                key={metric.label}
-                className={cn('rounded-xl px-4 py-3', METRIC_ACCENTS[metric.label])}
-              >
-                <div className="mb-2 flex items-center gap-1.5 opacity-80">
+              <div key={metric.label} className="rounded-lg border border-border bg-surface px-4 py-3">
+                <div className="mb-2 flex items-center gap-1.5 text-muted">
                   <Icon className="h-3.5 w-3.5" />
                   <span className="text-xs font-medium">{metric.label}</span>
                 </div>
-                <p className="text-2xl font-bold">{metric.value}</p>
+                <p className="font-display text-2xl font-semibold text-ink">{metric.value}</p>
               </div>
             )
           })}
         </div>
 
-        {teamMembers.length > 0 && (
+        {teamMembers.length > 0 ? (
           <div className="mt-8">
-            <p className="text-sm font-semibold text-slate-800">Your team:</p>
+            <p className="text-sm font-semibold text-ink">Your team</p>
             <div className="mt-4 grid gap-4 sm:grid-cols-3">
               {teamMembers.map((member) => (
-                <div key={member.id} className="flex flex-col items-center text-center">
+                <div key={member.id} className="flex items-center gap-3">
                   <div
                     className={cn(
-                      'flex h-14 w-14 items-center justify-center rounded-full text-sm font-bold text-white',
-                      member.color,
+                      'flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold text-surface',
+                      member.color || 'bg-brand-600',
                     )}
                   >
                     {member.initials}
                   </div>
-                  <p className="mt-2 text-sm font-semibold text-slate-900">{member.name}</p>
-                  <p className="text-xs text-slate-500">{member.major}</p>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-ink">{member.name}</p>
+                    <p className="truncate text-xs text-muted">{member.major}</p>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
-        )}
+        ) : null}
 
-        <div className="mt-8 flex flex-wrap items-center gap-3">
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Link
             to={workspacePath}
-            className="session-start-btn inline-flex flex-1 items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-surface transition hover:bg-brand-700 sm:w-auto sm:flex-1"
           >
-            Join Study Group
+            Open workspace
           </Link>
           <button
             type="button"
             onClick={onFindAnother}
-            className="rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            className="min-h-11 w-full rounded-lg border border-border bg-surface px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-page sm:w-auto"
           >
-            Find Another
+            Find another
           </button>
         </div>
-      </article>
+      </section>
     </div>
   )
 }

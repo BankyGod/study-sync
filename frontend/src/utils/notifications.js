@@ -16,47 +16,47 @@ const TYPE_META = {
   'task.assigned': {
     label: 'Assignment',
     icon: UserPlus,
-    accent: 'bg-sky-100 text-sky-700',
+    accent: 'bg-brand-50 text-brand-700',
   },
   'task.unassigned': {
     label: 'Unassigned',
     icon: UserMinus,
-    accent: 'bg-slate-100 text-slate-600',
+    accent: 'bg-page text-muted',
   },
   'task.progress_started': {
     label: 'Started',
     icon: Play,
-    accent: 'bg-amber-100 text-amber-700',
+    accent: 'bg-ochre-soft text-ochre',
   },
   'task.completed': {
     label: 'Completed',
     icon: CheckCircle2,
-    accent: 'bg-emerald-100 text-emerald-700',
+    accent: 'bg-brand-100 text-brand-800',
   },
   'task.regress_requested': {
     label: 'Move-back request',
     icon: ArrowLeft,
-    accent: 'bg-orange-100 text-orange-700',
+    accent: 'bg-ochre-soft text-ochre',
   },
   'task.regress_approved': {
     label: 'Pod update',
     icon: Users,
-    accent: 'bg-violet-100 text-violet-700',
+    accent: 'bg-brand-50 text-brand-700',
   },
   'task.regress_rejected': {
     label: 'Request declined',
     icon: XCircle,
-    accent: 'bg-rose-100 text-rose-700',
+    accent: 'bg-red-50 text-red-800',
   },
   'task.deleted': {
     label: 'Task deleted',
     icon: Trash2,
-    accent: 'bg-slate-100 text-slate-600',
+    accent: 'bg-page text-muted',
   },
   'message.new': {
     label: 'Pod chat',
     icon: MessageSquare,
-    accent: 'bg-violet-100 text-violet-700',
+    accent: 'bg-brand-50 text-brand-700',
   },
 }
 
@@ -65,7 +65,7 @@ export function getNotificationMeta(type) {
     TYPE_META[type] ?? {
       label: 'Update',
       icon: Bell,
-      accent: 'bg-violet-100 text-violet-700',
+      accent: 'bg-brand-100 text-brand-700',
     }
   )
 }

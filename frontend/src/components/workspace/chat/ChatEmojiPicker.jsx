@@ -42,7 +42,7 @@ export function ChatEmojiPicker({ open, onClose, onSelect }) {
             type="button"
             onClick={() => onSelect(emoji)}
             className={cn(
-              'flex h-8 w-8 items-center justify-center rounded-lg text-lg transition hover:bg-violet-50',
+              'flex h-8 w-8 items-center justify-center rounded-lg text-lg transition hover:bg-brand-50',
             )}
             aria-label={`Insert ${emoji}`}
           >

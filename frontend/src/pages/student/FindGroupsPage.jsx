@@ -238,34 +238,32 @@ export function FindGroupsPage() {
   const totalOpenSlots = courseGroups.reduce((sum, group) => sum + (group.openSlots ?? 0), 0)
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-      <header className="mb-10 text-center">
-        {courseLabel && (
-          <p className="mb-3 inline-flex rounded-full bg-violet-50 px-4 py-1.5 text-sm font-semibold text-violet-700">
-            Searching pods for {courseLabel}
-          </p>
-        )}
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-          Finding Your Perfect Study Group
-        </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-500">
-          {courseLabel
-            ? `We're scanning students enrolled in ${courseLabel} to build a pod that fits your schedule, learning style, and study preferences.`
-            : 'Our smart algorithm is searching for the perfect match for your learning style and goals.'}
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+      <header className="border-b border-border pb-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+          {courseLabel ? `Searching · ${courseLabel}` : 'Searching'}
         </p>
-        {courseGroups.length > 0 && (
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-500">
+        <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+          Finding your study group
+        </h1>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
+          {courseLabel
+            ? `Scanning students in ${courseLabel} for schedule, learning style, and preference fit.`
+            : 'Matching classmates by course and study preferences.'}
+        </p>
+        {courseGroups.length > 0 ? (
+          <p className="mt-2 text-sm text-muted">
             {openGroupCount > 0
-              ? `${openGroupCount} group${openGroupCount === 1 ? '' : 's'} with ${totalOpenSlots} open slot${totalOpenSlots === 1 ? '' : 's'} in ${courseLabel}.`
-              : `${courseGroups.length} existing group${courseGroups.length === 1 ? '' : 's'} in ${courseLabel} — we're looking for the best fit.`}
+              ? `${openGroupCount} open group${openGroupCount === 1 ? '' : 's'} · ${totalOpenSlots} slot${totalOpenSlots === 1 ? '' : 's'}`
+              : `${courseGroups.length} existing group${courseGroups.length === 1 ? '' : 's'} found`}
           </p>
-        )}
+        ) : null}
       </header>
 
       {statusMessage && (
         <div
           className={cn(
-            'mb-6 rounded-xl border px-4 py-3 text-center text-sm',
+            'mb-6 rounded-xl border px-4 py-3 text-left text-sm',
             isWaitingForPeers
               ? 'border-amber-200 bg-amber-50 text-amber-800'
               : 'border-red-100 bg-red-50 text-red-600',
@@ -286,18 +284,20 @@ export function FindGroupsPage() {
         </div>
       ) : null}
 
-      <OrbitAnimation paused={Boolean(statusMessage)} />
+      <div className="mt-6 overflow-x-clip">
+        <OrbitAnimation paused={Boolean(statusMessage)} />
+      </div>
 
-      <div className="mt-10">
+      <div className="mt-8 sm:mt-10">
         <MatchingProgress progress={progress} steps={steps} />
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+      <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         {isWaitingForPeers && (
           <button
             type="button"
             onClick={handleCheckAgain}
-            className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            className="min-h-11 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-page"
           >
             Check again
           </button>
@@ -305,7 +305,7 @@ export function FindGroupsPage() {
         <button
           type="button"
           onClick={handleChangeCourse}
-          className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          className="min-h-11 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-page"
         >
           Change course
         </button>

@@ -1,4 +1,4 @@
-import { BookOpen, Eye, Hand, Lightbulb, Volume2 } from 'lucide-react'
+import { BookOpen, Eye, Hand, Volume2 } from 'lucide-react'
 import { LEARNING_STYLE_OPTIONS } from '@/utils/onboarding'
 import { cn } from '@/utils/cn'
 
@@ -11,19 +11,17 @@ const styleIcons = {
 
 export function LearningStyleStep({ value, onChange }) {
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white px-6 py-8 shadow-sm sm:px-10 sm:py-10">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-violet-100 text-violet-600">
-        <Lightbulb className="h-7 w-7" />
-      </div>
+    <article>
+      <header className="border-b border-border pb-6">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">
+          What&apos;s your learning style?
+        </h1>
+        <p className="mt-2 text-sm text-muted">
+          This helps us match you with pods that study the way you do.
+        </p>
+      </header>
 
-      <h1 className="mt-6 text-center text-2xl font-bold text-slate-900 sm:text-3xl">
-        What&apos;s Your Learning Style?
-      </h1>
-      <p className="mx-auto mt-3 max-w-md text-center text-sm text-slate-500 sm:text-base">
-        This helps us match you with the right study groups and resources.
-      </p>
-
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
         {LEARNING_STYLE_OPTIONS.map((style) => {
           const Icon = styleIcons[style.id]
           const isSelected = value === style.id
@@ -34,22 +32,22 @@ export function LearningStyleStep({ value, onChange }) {
               type="button"
               onClick={() => onChange(style.id)}
               className={cn(
-                'rounded-xl border p-4 text-left transition',
+                'rounded-lg border p-4 text-left transition',
                 isSelected
-                  ? 'border-violet-500 bg-violet-50/40 ring-1 ring-violet-500'
-                  : 'border-slate-200 bg-white hover:border-slate-300',
+                  ? 'border-brand-600 bg-brand-50'
+                  : 'border-border bg-surface hover:border-brand-300',
               )}
             >
               <div
                 className={cn(
-                  'mb-3 flex h-10 w-10 items-center justify-center rounded-lg',
-                  isSelected ? 'bg-violet-100 text-violet-600' : 'bg-slate-100 text-slate-500',
+                  'mb-3 flex h-9 w-9 items-center justify-center rounded-lg',
+                  isSelected ? 'bg-brand-100 text-brand-700' : 'bg-page text-muted',
                 )}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className="h-4 w-4" />
               </div>
-              <p className="font-semibold text-slate-900">{style.label}</p>
-              <p className="mt-1 text-sm leading-relaxed text-slate-500">{style.description}</p>
+              <p className="font-semibold text-ink">{style.label}</p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">{style.description}</p>
             </button>
           )
         })}

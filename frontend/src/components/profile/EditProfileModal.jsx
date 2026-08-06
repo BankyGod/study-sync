@@ -91,11 +91,11 @@ export function EditProfileModal({ open, profile, onClose, onSave }) {
           {...register('location')}
         />
 
-        <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
-          <Button type="button" variant="secondary" onClick={onClose}>
+        <div className="flex flex-col-reverse gap-2 border-t border-border pt-5 sm:flex-row sm:justify-end sm:gap-3">
+          <Button type="button" variant="secondary" onClick={onClose} className="min-h-11 w-full sm:w-auto">
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} className="min-h-11 w-full sm:w-auto">
             {isSubmitting ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>

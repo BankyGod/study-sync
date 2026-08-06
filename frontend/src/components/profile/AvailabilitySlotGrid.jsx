@@ -20,10 +20,10 @@ function SlotButton({ day, time, isAvailable, isDisabled, onToggle, size = 'md' 
       aria-pressed={isAvailable}
       className={cn(
         'flex items-center justify-center rounded-lg border font-medium transition',
-        size === 'sm' ? 'min-h-11 px-3 py-2.5 text-xs' : 'h-11 w-full text-sm',
+        size === 'sm' ? 'min-h-11 px-2 py-2.5 text-xs' : 'h-11 w-full text-sm',
         isAvailable
-          ? 'border-teal-500 bg-teal-500 text-white'
-          : 'border-slate-200 bg-white hover:border-slate-300',
+          ? 'border-brand-600 bg-brand-600 text-surface'
+          : 'border-border bg-surface text-ink hover:border-brand-300',
         isDisabled && !isAvailable && 'cursor-not-allowed opacity-60',
       )}
     >
@@ -58,14 +58,10 @@ export function AvailabilitySlotGrid({ value = [], onChange, readOnly = false })
 
   return (
     <>
-      {/* Mobile: one day at a time, full-width time chips — no horizontal scroll */}
-      <div className="space-y-4 lg:hidden">
+      <div className="space-y-3 lg:hidden">
         {AVAILABILITY_DAYS.map((day) => (
-          <div
-            key={day}
-            className="rounded-xl border border-slate-100 bg-slate-50/80 p-3"
-          >
-            <p className="mb-3 text-sm font-semibold text-slate-800">{day}</p>
+          <div key={day} className="rounded-lg border border-border bg-surface p-3">
+            <p className="mb-2.5 text-sm font-semibold text-ink">{day}</p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {AVAILABILITY_TIMES.map((time) => {
                 const { isAvailable, isDisabled } = getSlotState(day, time)
@@ -86,14 +82,13 @@ export function AvailabilitySlotGrid({ value = [], onChange, readOnly = false })
         ))}
       </div>
 
-      {/* Desktop: compact week grid */}
       <div className="hidden lg:block">
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th className="pb-3 pr-3 text-left text-xs font-medium text-slate-400" />
+              <th className="pb-3 pr-3 text-left text-xs font-medium text-muted" />
               {AVAILABILITY_DAYS.map((day) => (
-                <th key={day} className="pb-3 text-center text-xs font-semibold text-slate-700">
+                <th key={day} className="pb-3 text-center text-xs font-semibold text-ink">
                   {day}
                 </th>
               ))}
@@ -102,7 +97,7 @@ export function AvailabilitySlotGrid({ value = [], onChange, readOnly = false })
           <tbody>
             {AVAILABILITY_TIMES.map((time) => (
               <tr key={time}>
-                <td className="py-2 pr-3 text-xs font-medium text-slate-500">{time}</td>
+                <td className="py-2 pr-3 text-xs font-medium text-muted">{time}</td>
                 {AVAILABILITY_DAYS.map((day) => {
                   const { isAvailable, isDisabled } = getSlotState(day, time)
                   return (
@@ -128,13 +123,13 @@ export function AvailabilitySlotGrid({ value = [], onChange, readOnly = false })
 
 export function AvailabilityLegend() {
   return (
-    <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-slate-500">
+    <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted">
       <span className="flex items-center gap-2">
-        <span className="h-4 w-4 rounded bg-teal-500" />
+        <span className="h-4 w-4 rounded bg-brand-600" />
         Available
       </span>
       <span className="flex items-center gap-2">
-        <span className="h-4 w-4 rounded border border-slate-200 bg-white" />
+        <span className="h-4 w-4 rounded border border-border bg-surface" />
         Unavailable
       </span>
     </div>

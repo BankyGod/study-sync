@@ -17,38 +17,38 @@ export function NotificationListItem({ notification, onMarkRead }) {
     <>
       <div
         className={cn(
-          'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+          'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
           meta.accent,
         )}
       >
-        <Icon className="h-5 w-5" aria-hidden="true" />
+        <Icon className="h-4 w-4" aria-hidden="true" />
       </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className={cn('text-sm font-semibold text-slate-900', unread && 'text-violet-900')}>
+            <p className={cn('line-clamp-2 text-sm font-semibold text-ink', unread && 'text-brand-800')}>
               {notification.title}
             </p>
             {notification.body ? (
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">{notification.body}</p>
+              <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-muted">
+                {notification.body}
+              </p>
             ) : null}
-            <p className="mt-2 text-xs text-slate-400">
+            <p className="mt-2 text-xs text-muted">
               {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
               {meta.label ? ` · ${meta.label}` : ''}
             </p>
           </div>
-          {unread ? <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-violet-500" /> : null}
+          {unread ? <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-brand-600" /> : null}
         </div>
       </div>
     </>
   )
 
   const className = cn(
-    'flex w-full gap-4 rounded-2xl border px-4 py-4 text-left transition',
-    unread
-      ? 'border-violet-200 bg-violet-50/70 hover:bg-violet-50'
-      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50',
+    'flex w-full gap-3 border-b border-border px-4 py-4 text-left transition last:border-b-0',
+    unread ? 'bg-brand-50/40 hover:bg-brand-50/70' : 'bg-surface hover:bg-page',
   )
 
   const handleClick = () => {

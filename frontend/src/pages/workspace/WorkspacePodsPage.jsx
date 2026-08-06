@@ -43,67 +43,67 @@ export function WorkspacePodsPage() {
   }, [])
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-violet-600">Workspace</p>
-          <h1 className="mt-2 text-3xl font-bold text-slate-900">Your Study Pods</h1>
-          <p className="mt-2 max-w-2xl text-slate-500">
-            Choose a pod to open its board, chat, shared files, and group schedule.
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Workspace</p>
+          <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+            Your study pods
+          </h1>
+          <p className="mt-2 max-w-xl text-sm text-muted">
+            Open a pod for its board, chat, files, and schedule.
           </p>
         </div>
 
         <Link
           to={ROUTES.FIND_GROUPS}
-          className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-surface transition hover:bg-brand-700 sm:w-auto"
         >
           <Plus className="h-4 w-4" />
-          Join New Pod
+          Join pod
         </Link>
       </header>
 
-      {error && (
-        <p className="mb-6 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+      {error ? (
+        <p className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
         </p>
-      )}
+      ) : null}
 
-      {isLoading ? (
-        <div className="flex min-h-[280px] items-center justify-center">
-          <Spinner size="lg" />
-        </div>
-      ) : groups.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-violet-50 text-violet-600">
-            <Users className="h-7 w-7" />
+      <div className="mt-8">
+        {isLoading ? (
+          <div className="flex min-h-[220px] items-center justify-center">
+            <Spinner size="lg" />
           </div>
-          <p className="mt-4 text-base font-semibold text-slate-800">No pods yet</p>
-          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-            Once you are matched into a study group, it will show up here. You can then open the
-            full workspace for that pod.
-          </p>
-          <Link
-            to={ROUTES.FIND_GROUPS}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white"
-          >
-            Find a Study Group
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {groups.map((pod) => (
-            <PodCard
-              key={pod.id ?? pod.groupId}
-              to={buildWorkspacePath(pod.groupId)}
-              title={pod.title}
-              members={pod.members ?? []}
-              progress={pod.progress ?? 0}
-              accent={pod.accent ?? 'blue'}
-            />
-          ))}
-        </div>
-      )}
+        ) : groups.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-border bg-surface px-6 py-12">
+            <Users className="h-6 w-6 text-brand-600" />
+            <p className="mt-4 font-display text-lg font-semibold text-ink">No pods yet</p>
+            <p className="mt-1 max-w-md text-sm text-muted">
+              Once you are matched into a study group, it will show up here.
+            </p>
+            <Link
+              to={ROUTES.FIND_GROUPS}
+              className="mt-5 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-surface"
+            >
+              Find a study group
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-border bg-surface">
+            {groups.map((pod) => (
+              <PodCard
+                key={pod.id ?? pod.groupId}
+                to={buildWorkspacePath(pod.groupId)}
+                title={pod.title}
+                members={pod.members ?? []}
+                progress={pod.progress ?? 0}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

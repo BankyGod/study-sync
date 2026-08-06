@@ -12,42 +12,40 @@ export const MATCHING_STEPS = [
 function StepIcon({ status }) {
   if (status === 'completed') {
     return (
-      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white">
+      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-600 text-surface">
         <Check className="h-3.5 w-3.5" strokeWidth={3} />
       </span>
     )
   }
 
   if (status === 'active') {
-    return <Loader2 className="h-6 w-6 animate-spin text-violet-600" />
+    return <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
   }
 
-  return <span className="h-6 w-6 rounded-full border-2 border-slate-200" />
+  return <span className="h-6 w-6 rounded-full border-2 border-border" />
 }
 
 export function MatchingProgress({ progress, steps }) {
   return (
-    <div className="mx-auto w-full max-w-xl space-y-6">
+    <div className="w-full max-w-xl space-y-6">
       <div>
-        <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+        <div className="h-2 overflow-hidden rounded-full bg-border">
           <div
             className="matching-progress-bar h-full rounded-full transition-all duration-500 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
-        <p className="mt-3 text-center text-sm font-medium text-slate-600">
-          {Math.round(progress)}% Complete
-        </p>
+        <p className="mt-3 text-sm font-medium text-muted">{Math.round(progress)}% complete</p>
       </div>
 
-      <ul className="space-y-3">
+      <ul className="space-y-1">
         {steps.map((step) => (
           <li
             key={step.id}
             className={cn(
-              'flex items-center gap-3 rounded-xl px-4 py-3.5 transition-colors',
-              step.status === 'completed' && 'bg-emerald-50/80',
-              step.status === 'active' && 'bg-violet-50',
+              'flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors',
+              step.status === 'completed' && 'bg-brand-50',
+              step.status === 'active' && 'bg-brand-50',
               step.status === 'pending' && 'bg-transparent',
             )}
           >
@@ -55,9 +53,9 @@ export function MatchingProgress({ progress, steps }) {
             <span
               className={cn(
                 'text-sm font-medium',
-                step.status === 'completed' && 'text-emerald-800',
-                step.status === 'active' && 'text-violet-800',
-                step.status === 'pending' && 'text-slate-400',
+                step.status === 'completed' && 'text-brand-800',
+                step.status === 'active' && 'text-ink',
+                step.status === 'pending' && 'text-muted',
               )}
             >
               {step.label}

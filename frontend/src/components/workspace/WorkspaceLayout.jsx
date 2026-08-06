@@ -1,4 +1,3 @@
-import { Link, Outlet, useLocation, useParams } from 'react-router-dom'
 import { SessionTimerProvider } from '@/context/SessionTimerContext'
 import { WorkspaceProvider, useWorkspace } from '@/context/WorkspaceContext'
 import { WorkspaceChatActivityProvider } from '@/context/WorkspaceChatActivityContext'
@@ -11,6 +10,7 @@ import {
   WorkspaceTasksProvider,
   useWorkspaceTasks,
 } from '@/context/WorkspaceTasksContext'
+import { Outlet, useLocation, useParams } from 'react-router-dom'
 import { WorkspaceSidebar } from '@/components/workspace/WorkspaceSidebar'
 import { WorkspaceBottomNav } from '@/components/workspace/WorkspaceBottomNav'
 import { WorkspaceRightPanel } from '@/components/workspace/WorkspaceRightPanel'
@@ -76,8 +76,8 @@ function WorkspaceShell() {
         className={cn(
           'flex items-center justify-center',
           isChatView
-            ? 'h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))] lg:h-[calc(100vh-4rem)]'
-            : 'h-[calc(100dvh-3.5rem-4rem-env(safe-area-inset-bottom,0px))] lg:h-[calc(100vh-4rem)]',
+            ? 'h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))] lg:h-[calc(100dvh-3.5rem)]'
+            : 'h-[calc(100dvh-3.5rem-4rem-env(safe-area-inset-bottom,0px))] lg:h-[calc(100dvh-3.5rem)]',
         )}
       >
         <Spinner size="lg" />
@@ -90,10 +90,10 @@ function WorkspaceShell() {
       <WorkspaceTasksProvider groupId={groupId} members={members}>
         <div
           className={cn(
-            'flex min-h-0 min-w-0 flex-col overflow-hidden',
+            'flex min-h-0 min-w-0 flex-col overflow-hidden bg-page',
             isChatView
-              ? 'h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))] lg:h-[calc(100vh-4rem)]'
-              : 'h-[calc(100dvh-3.5rem-4rem-env(safe-area-inset-bottom,0px))] lg:h-[calc(100vh-4rem)]',
+              ? 'h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))] lg:h-[calc(100dvh-3.5rem)]'
+              : 'h-[calc(100dvh-3.5rem-4rem-env(safe-area-inset-bottom,0px))] lg:h-[calc(100dvh-3.5rem)]',
           )}
         >
           <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -102,12 +102,14 @@ function WorkspaceShell() {
             <div
               className={cn(
                 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden',
-                isChatView ? 'p-0' : 'p-4 sm:p-5 lg:flex-row lg:gap-6 lg:p-6',
+                isChatView ? 'p-0' : 'px-3 py-3 sm:px-5 sm:py-4 lg:flex-row lg:gap-0 lg:px-6 lg:py-5',
               )}
             >
               <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-                <div className={cn(isChatView && 'hidden lg:block')}>
-                  <WorkspaceHeader title={title} courseLabel={courseLabel} />
+                <div className={cn(isChatView && 'hidden lg:block', !isChatView && 'px-0')}>
+                  <div className={cn(isChatView && 'px-4 pt-4 lg:px-0 lg:pt-0')}>
+                    <WorkspaceHeader title={title} courseLabel={courseLabel} />
+                  </div>
                 </div>
                 <div
                   className={cn(

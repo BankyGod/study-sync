@@ -50,48 +50,45 @@ export function CourseSelectPanel({
     Boolean(course.subject?.trim() && course.courseNumber?.trim())
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <header className="mb-8 text-center">
-        <p className="mb-3 inline-flex rounded-full bg-violet-50 px-4 py-1.5 text-sm font-semibold text-violet-700">
-          Step 1 · Choose your course
-        </p>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-          Join a Study Pod
+    <div className="mx-auto max-w-3xl">
+      <header className="border-b border-border pb-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Find groups</p>
+        <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight text-ink sm:text-4xl">
+          Join a study pod
         </h1>
-        <p className="mx-auto mt-4 max-w-xl text-base text-slate-500">
-          Select a course you are enrolled in, or add one below. We will search for pods on that
-          course.
+        <p className="mt-2 max-w-xl text-sm text-muted sm:text-base">
+          Select a course you are enrolled in. We will search for pods on that course.
         </p>
       </header>
 
-      {error && (
-        <p className="mb-6 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-center text-sm text-red-600">
+      {error ? (
+        <p className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
         </p>
-      )}
+      ) : null}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="mb-4 flex items-center justify-between gap-3">
+      <section className="mt-8">
+        <div className="mb-4 flex items-end justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">Your courses</h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <h2 className="font-display text-lg font-semibold text-ink">Your courses</h2>
+            <p className="mt-1 text-sm text-muted">
               {validCourses.length > 0
-                ? 'Select a course, or edit and add more below.'
-                : 'Add at least one course to search for a pod.'}
+                ? 'Select one course to search.'
+                : 'Add at least one course with subject and number.'}
             </p>
           </div>
           <button
             type="button"
             onClick={addCourse}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-violet-700 transition hover:bg-violet-50"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold text-ink transition hover:bg-page"
           >
             <Plus className="h-4 w-4" />
-            Add course
+            Add
           </button>
         </div>
 
-        <ul className="space-y-3">
-          {courses.map((course) => {
+        <ul className="overflow-hidden rounded-lg border border-border bg-surface">
+          {courses.map((course, index) => {
             const key = courseKey(course)
             const valid = isCourseValid(course)
             const isSelected = selectedCourseId === key
@@ -100,10 +97,8 @@ export function CourseSelectPanel({
               <li
                 key={course.id}
                 className={cn(
-                  'rounded-xl border p-3 transition',
-                  isSelected && valid
-                    ? 'border-violet-300 bg-violet-50/60 ring-2 ring-violet-200'
-                    : 'border-slate-100 bg-slate-50/80',
+                  'border-b border-border p-3 last:border-b-0',
+                  isSelected && valid && 'bg-brand-50/50',
                 )}
               >
                 <div className="grid gap-3 sm:grid-cols-[auto_1fr_1fr_auto] sm:items-center">
@@ -112,12 +107,12 @@ export function CourseSelectPanel({
                     disabled={!valid}
                     onClick={() => onSelectCourse(key)}
                     className={cn(
-                      'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition',
+                      'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition',
                       valid
                         ? isSelected
-                          ? 'bg-violet-600 text-white'
-                          : 'bg-sky-50 text-sky-600 hover:bg-violet-100 hover:text-violet-700'
-                        : 'cursor-not-allowed bg-slate-100 text-slate-300',
+                          ? 'bg-brand-600 text-surface'
+                          : 'bg-page text-brand-700 hover:bg-brand-100'
+                        : 'cursor-not-allowed bg-page text-border',
                     )}
                     aria-label={
                       valid
@@ -138,7 +133,7 @@ export function CourseSelectPanel({
                     value={course.subject}
                     onChange={(event) => updateCourse(course.id, 'subject', event.target.value)}
                     placeholder="Subject"
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                    className="rounded-lg border border-border bg-page px-3 py-2 text-sm text-ink outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
                   />
                   <input
                     type="text"
@@ -147,25 +142,18 @@ export function CourseSelectPanel({
                       updateCourse(course.id, 'courseNumber', event.target.value)
                     }
                     placeholder="Course number"
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                    className="rounded-lg border border-border bg-page px-3 py-2 text-sm text-ink outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
                   />
                   <button
                     type="button"
                     onClick={() => removeCourse(course.id)}
                     disabled={courses.length <= 1}
-                    className="flex h-10 w-10 items-center justify-center self-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
-                    aria-label="Remove course"
+                    className="flex h-10 w-10 items-center justify-center self-center rounded-lg text-muted transition hover:bg-red-50 hover:text-red-700 disabled:opacity-40"
+                    aria-label={`Remove course ${index + 1}`}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-
-                {valid && (
-                  <p className="mt-2 pl-[3.25rem] text-xs text-slate-500 sm:pl-14">
-                    {formatCourseName(course)}
-                    {isSelected ? ' · selected for pod search' : ' · click the icon to select'}
-                  </p>
-                )}
               </li>
             )
           })}
@@ -178,32 +166,29 @@ export function CourseSelectPanel({
         </datalist>
       </section>
 
-      <div className="mt-8 flex justify-center">
+      <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
         <button
           type="button"
           onClick={onSearch}
           disabled={!canSubmitSearch}
           className={cn(
-            'session-start-btn inline-flex items-center gap-2 rounded-xl px-8 py-3 text-sm font-semibold text-white shadow-sm transition',
-            canSubmitSearch ? 'hover:opacity-90' : 'cursor-not-allowed opacity-50',
+            'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-surface transition sm:w-auto',
+            canSubmitSearch ? 'hover:bg-brand-700' : 'cursor-not-allowed opacity-50',
           )}
         >
           <Search className="h-4 w-4" />
           {isSaving ? 'Saving...' : 'Search for a pod'}
         </button>
+        {selectedCourse ? (
+          <p className="text-sm text-muted">
+            Searching pods for{' '}
+            <span className="font-semibold text-ink">{formatCourseName(selectedCourse)}</span>
+          </p>
+        ) : null}
       </div>
 
       {!canSearch && selectedCourse ? (
-        <p className="mt-4 text-center text-sm text-amber-700">
-          Complete your study preferences above before searching.
-        </p>
-      ) : null}
-
-      {canSearch && selectedCourse ? (
-        <p className="mt-4 text-center text-sm text-slate-500">
-          Searching will look for study pods enrolled in{' '}
-          <span className="font-semibold text-slate-700">{formatCourseName(selectedCourse)}</span>.
-        </p>
+        <p className="mt-3 text-sm text-ochre">Complete your study preferences before searching.</p>
       ) : null}
     </div>
   )

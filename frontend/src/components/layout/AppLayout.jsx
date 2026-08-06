@@ -1,14 +1,15 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { GraduationCap, LayoutDashboard, LogOut, Users, Workflow } from 'lucide-react'
 import { Button } from '@/components/common/Button'
+import { StudySyncLogo } from '@/components/layout/StudySyncLogo'
 import { useAuth } from '@/hooks/useAuth'
 import { ROUTES } from '@/utils/constants'
 import { cn } from '@/utils/cn'
 
 const studentLinks = [
   { to: ROUTES.STUDENT_DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
-  { to: ROUTES.WORKSPACE_LIST, label: 'Workspace', icon: Workflow },
-  { to: ROUTES.ONBOARDING, label: 'Profile Setup', icon: GraduationCap },
+  { to: ROUTES.WORKSPACE_LIST, label: 'Workspaces', icon: Workflow },
+  { to: ROUTES.ONBOARDING, label: 'Profile', icon: GraduationCap },
 ]
 
 const adminLinks = [
@@ -22,16 +23,14 @@ export function AppLayout({ variant = 'student' }) {
   const links = variant === 'admin' ? adminLinks : studentLinks
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <aside className="flex w-64 flex-col border-r border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-5 py-6">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
-              SS
-            </div>
+    <div className="flex min-h-screen bg-brand-50">
+      <aside className="flex w-64 flex-shrink-0 flex-col border-r border-border">
+        <div className="border-b border-border px-5 py-6">
+          <div className="flex items-center gap-3">
+            <StudySyncLogo className="h-10 w-auto" />
             <div>
               <p className="font-semibold text-slate-900">StudySync</p>
-              <p className="text-xs text-slate-500">GCTU</p>
+              <p className="text-xs text-slate-500">Learning Platform</p>
             </div>
           </div>
         </div>
@@ -41,25 +40,32 @@ export function AppLayout({ variant = 'student' }) {
             <NavLink
               key={to}
               to={to}
-              className={({ isActive }) =>
+              className={({ isActive, isPending }) =>
                 cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
+                  'flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200',
                   isActive
-                    ? 'bg-brand-50 text-brand-700'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+                    ? 'bg-white/50 text-brand-600 shadow-sm'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
                 )
               }
             >
-              <Icon className="h-4 w-4" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-50">
+                <Icon className="h-4 w-4" />
+              </div>
               {label}
             </NavLink>
           ))}
         </nav>
 
-        <div className="border-t border-slate-200 p-4">
+        <div className="border-t border-border p-4">
           <p className="truncate text-sm font-medium text-slate-900">{user?.name}</p>
           <p className="truncate text-xs capitalize text-slate-500">{user?.role}</p>
-          <Button variant="ghost" size="sm" className="mt-3 w-full justify-start" onClick={logout}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-3 w-full justify-start"
+            onClick={logout}
+          >
             <LogOut className="h-4 w-4" />
             Sign out
           </Button>
@@ -67,7 +73,9 @@ export function AppLayout({ variant = 'student' }) {
       </aside>
 
       <main className="flex-1 overflow-auto">
-        <Outlet />
+        <div className="p-6">
+          <Outlet />
+        </div>
       </main>
     </div>
   )

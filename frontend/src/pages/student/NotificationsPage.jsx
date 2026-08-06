@@ -81,11 +81,14 @@ export function NotificationsPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Notifications</h1>
-          <p className="mt-2 text-slate-500">
-            Task updates, assignments, and pod activity from your study groups.
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Alerts</p>
+          <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+            Notifications
+          </h1>
+          <p className="mt-2 text-sm text-muted">
+            Task updates and pod activity from your study groups.
           </p>
         </div>
 
@@ -94,79 +97,80 @@ export function NotificationsPage() {
             type="button"
             onClick={() => markAllReadMutation.mutate()}
             disabled={markAllReadMutation.isPending}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-page disabled:opacity-60 sm:w-auto"
           >
             <CheckCheck className="h-4 w-4" />
             Mark all read
           </button>
         ) : null}
-      </div>
+      </header>
 
-      <div className="mb-6 flex items-center gap-2">
+      <div className="mt-6 flex items-center gap-4 border-b border-border">
         {FILTERS.map((item) => (
           <button
             key={item.id}
             type="button"
             onClick={() => handleFilterChange(item.id)}
             className={cn(
-              'rounded-full px-4 py-2 text-sm font-medium transition',
-              filter === item.id
-                ? 'bg-violet-600 text-white'
-                : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50',
+              'relative pb-3 text-sm font-medium transition',
+              filter === item.id ? 'text-ink' : 'text-muted hover:text-ink',
             )}
           >
             {item.label}
             {item.id === 'unread' && unreadCount > 0 ? ` (${unreadCount})` : ''}
+            {filter === item.id ? (
+              <span className="absolute inset-x-0 bottom-0 h-0.5 bg-brand-600" />
+            ) : null}
           </button>
         ))}
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center py-16">
-          <Spinner />
-        </div>
-      ) : error ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {getNotificationsErrorMessage(error)}
-        </div>
-      ) : notifications.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
-            <Bell className="h-7 w-7" />
+      <div className="mt-6">
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <Spinner />
           </div>
-          <h2 className="mt-4 text-lg font-semibold text-slate-900">
-            {unreadOnly ? 'No unread notifications' : 'Nothing here yet'}
-          </h2>
-          <p className="mt-2 text-sm text-slate-500">
-            {unreadOnly
-              ? 'You are all caught up.'
-              : 'When teammates assign tasks or update progress, you will see alerts here.'}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {notifications.map((notification) => (
-            <NotificationListItem
-              key={notification.id}
-              notification={notification}
-              onMarkRead={handleMarkRead}
-            />
-          ))}
+        ) : error ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {getNotificationsErrorMessage(error)}
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-border bg-surface px-6 py-12">
+            <Bell className="h-6 w-6 text-muted" />
+            <h2 className="mt-4 font-display text-lg font-semibold text-ink">
+              {unreadOnly ? 'No unread notifications' : 'Nothing here yet'}
+            </h2>
+            <p className="mt-1 text-sm text-muted">
+              {unreadOnly
+                ? 'You are all caught up.'
+                : 'When teammates assign tasks or update progress, alerts appear here.'}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-border bg-surface">
+            {notifications.map((notification) => (
+              <NotificationListItem
+                key={notification.id}
+                notification={notification}
+                onMarkRead={handleMarkRead}
+              />
+            ))}
 
-          {nextCursor ? (
-            <div className="flex justify-center pt-4">
-              <button
-                type="button"
-                onClick={handleLoadMore}
-                disabled={isLoadingMore}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-              >
-                {isLoadingMore ? 'Loading…' : 'Load more'}
-              </button>
-            </div>
-          ) : null}
-        </div>
-      )}
+            {nextCursor ? (
+              <div className="border-t border-border px-4 py-3">
+                <button
+                  type="button"
+                  onClick={handleLoadMore}
+                  disabled={isLoadingMore}
+                  className="text-sm font-semibold text-brand-700 transition hover:text-brand-800 disabled:opacity-60"
+                >
+                  {isLoadingMore ? 'Loading…' : 'Load more'}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

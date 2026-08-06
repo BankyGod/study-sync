@@ -114,8 +114,7 @@ export function ChatComposer({
   return (
     <form
       onSubmit={handleSubmit}
-      className="shrink-0 border-t border-slate-200/80 bg-white px-2 py-2 lg:border-slate-100 lg:px-5 lg:py-4"
-      style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))' }}
+      className="shrink-0 border-t border-border bg-surface px-2 py-2 lg:px-5 lg:py-4"
     >
       {isRecording && (
         <div className="mb-2 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 lg:mb-3 lg:px-4 lg:py-3">
@@ -164,7 +163,7 @@ export function ChatComposer({
           onChange={handleFileSelect}
         />
 
-        <div className="relative flex min-w-0 flex-1 items-end gap-1 rounded-3xl border border-slate-200 bg-slate-50 px-2 py-1 focus-within:border-violet-300 focus-within:bg-white focus-within:ring-2 focus-within:ring-violet-100 lg:gap-2 lg:rounded-2xl lg:px-3 lg:py-1.5">
+        <div className="relative flex min-w-0 flex-1 items-end gap-1 rounded-3xl border border-slate-200 bg-slate-50 px-2 py-1 focus-within:border-brand-300 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-100 lg:gap-2 lg:rounded-2xl lg:px-3 lg:py-1.5">
           <textarea
             ref={textareaRef}
             value={draft}
@@ -188,7 +187,7 @@ export function ChatComposer({
               disabled={disabled || isRecording}
               className={cn(
                 'flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50',
-                emojiOpen && 'bg-violet-50 text-violet-600',
+                emojiOpen && 'bg-brand-50 text-brand-600',
               )}
               aria-label="Add emoji"
               aria-expanded={emojiOpen}
@@ -252,7 +251,7 @@ export function ChatComposer({
             onClick={handleMicClick}
             disabled={disabled}
             className={cn(
-              'mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-violet-600 transition active:scale-95 active:bg-violet-50 lg:hidden',
+              'mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-brand-600 transition active:scale-95 active:bg-brand-50 lg:hidden',
               isRecording && 'bg-red-100 text-red-600',
               disabled && 'cursor-not-allowed opacity-50',
             )}

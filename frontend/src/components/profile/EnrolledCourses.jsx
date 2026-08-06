@@ -1,4 +1,4 @@
-import { BookOpen, Building2, MoreVertical, Plus, Trash2 } from 'lucide-react'
+import { BookOpen, Building2, Plus, Trash2 } from 'lucide-react'
 import { COURSE_SUBJECTS, formatCourseName } from '@/utils/onboarding'
 
 function createCourseEntry(subject = '', courseNumber = '') {
@@ -26,77 +26,86 @@ export function EnrolledCourses({ value = [], onChange, readOnly = false }) {
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
-      <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
+    <section>
+      <header className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-base font-bold text-slate-900">Enrolled Courses</h2>
-          <p className="mt-1 text-sm text-slate-500">Manage your current enrolled courses.</p>
+          <h2 className="font-display text-lg font-semibold text-ink">Enrolled courses</h2>
+          <p className="mt-1 text-sm text-muted">Manage the courses you want to study with others.</p>
         </div>
-        {!readOnly && (
+        {!readOnly ? (
           <button
             type="button"
             onClick={addEntry}
-            className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-700"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-surface transition hover:bg-brand-700 sm:w-auto"
           >
             <Plus className="h-4 w-4" />
-            Add Course
+            Add course
           </button>
-        )}
+        ) : null}
       </header>
 
       {value.length === 0 ? (
-        <p className="py-6 text-center text-sm text-slate-500">
-          No courses added yet. Complete onboarding or add a course below.
-        </p>
+        <p className="py-4 text-sm text-muted">No courses yet. Add one below or finish onboarding.</p>
       ) : (
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-border border-y border-border">
           {value.map((course) => {
             const hasDetails = course.subject?.trim() && course.courseNumber?.trim()
             const label = hasDetails ? formatCourseName(course) : 'New course'
 
             return (
-              <li key={course.id} className="flex flex-wrap items-center gap-4 py-4 first:pt-0 last:pb-0">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
-                  <BookOpen className="h-5 w-5" />
-                </div>
-
+              <li key={course.id} className="py-4">
                 {readOnly || !onChange ? (
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-slate-900">{label}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
+                      <BookOpen className="h-4 w-4" />
+                    </div>
+                    <p className="min-w-0 flex-1 font-semibold text-ink">{label}</p>
                   </div>
                 ) : (
-                  <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
-                    <div className="relative">
-                      <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
+                          <BookOpen className="h-4 w-4" />
+                        </div>
+                        <p className="truncate text-sm font-medium text-muted">
+                          {hasDetails ? label : `Course ${value.indexOf(course) + 1}`}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeEntry(course.id)}
+                        disabled={value.length <= 1}
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted transition hover:bg-red-50 hover:text-red-700 disabled:opacity-40"
+                        aria-label="Remove course"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="relative">
+                        <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                        <input
+                          list="profile-course-subjects"
+                          type="text"
+                          value={course.subject}
+                          onChange={(event) => updateEntry(course.id, 'subject', event.target.value)}
+                          placeholder="Subject"
+                          className="min-h-11 w-full rounded-lg border border-border bg-surface py-2 pl-9 pr-3 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                        />
+                      </div>
                       <input
-                        list="profile-course-subjects"
                         type="text"
-                        value={course.subject}
-                        onChange={(event) => updateEntry(course.id, 'subject', event.target.value)}
-                        placeholder="Subject"
-                        className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                        value={course.courseNumber}
+                        onChange={(event) =>
+                          updateEntry(course.id, 'courseNumber', event.target.value)
+                        }
+                        placeholder="Course number"
+                        className="min-h-11 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
                       />
                     </div>
-                    <input
-                      type="text"
-                      value={course.courseNumber}
-                      onChange={(event) => updateEntry(course.id, 'courseNumber', event.target.value)}
-                      placeholder="Course number"
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-                    />
                   </div>
-                )}
-
-                {!readOnly && onChange && (
-                  <button
-                    type="button"
-                    onClick={() => removeEntry(course.id)}
-                    disabled={value.length <= 1}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
-                    aria-label="Remove course"
-                  >
-                    {value.length > 1 ? <Trash2 className="h-4 w-4" /> : <MoreVertical className="h-4 w-4" />}
-                  </button>
                 )}
               </li>
             )

@@ -43,11 +43,11 @@ export function WorkspaceBottomNav({ groupId }) {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200/90 bg-white/95 backdrop-blur-lg lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface/95 backdrop-blur-lg lg:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       aria-label="Workspace navigation"
     >
-      <div className="mx-auto flex h-16 max-w-lg items-stretch justify-around px-2">
+      <div className="mx-auto flex h-14 max-w-lg items-stretch justify-around px-1">
         {items.map((item) => {
           const Icon = item.icon
           const active = item.isActive()
@@ -57,19 +57,14 @@ export function WorkspaceBottomNav({ groupId }) {
               key={item.id}
               to={item.to}
               className={cn(
-                'flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-2 text-[10px] font-semibold transition',
-                active ? 'text-violet-600' : 'text-slate-500 active:text-violet-600',
+                'relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-[11px] font-semibold transition',
+                active ? 'text-brand-700' : 'text-muted',
               )}
             >
-              <span
-                className={cn(
-                  'relative flex h-8 w-8 items-center justify-center rounded-2xl transition',
-                  active && 'bg-violet-100 text-violet-700',
-                )}
-              >
-                <Icon className="h-5 w-5" strokeWidth={active ? 2.25 : 2} />
+              <span className="relative flex h-7 w-7 items-center justify-center">
+                <Icon className="h-5 w-5" strokeWidth={active ? 2.25 : 1.75} />
                 {item.id === 'chat' ? (
-                  <NavBadge count={chatUnreadCount} className="-right-1 -top-1" />
+                  <NavBadge count={chatUnreadCount} className="-right-1.5 -top-1" />
                 ) : null}
               </span>
               <span className="truncate">{item.label}</span>

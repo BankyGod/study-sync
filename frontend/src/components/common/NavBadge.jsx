@@ -6,7 +6,7 @@ export function NavBadge({ count, className }) {
   return (
     <span
       className={cn(
-        'absolute flex h-4 min-w-4 items-center justify-center rounded-full bg-violet-600 px-1 text-[9px] font-bold leading-none text-white',
+        'absolute flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-600 px-1 text-[9px] font-bold leading-none text-white',
         className,
       )}
     >

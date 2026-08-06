@@ -28,16 +28,11 @@ export function StudentNavbar({ className }) {
   const unreadCount = unreadData?.unreadCount ?? 0
 
   return (
-    <header
-      className={cn(
-        'sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur',
-        className,
-      )}
-    >
-      <div className="mx-auto flex h-14 items-center justify-between gap-4 px-4 sm:h-16 sm:px-6 lg:max-w-[1600px] lg:px-8">
-        <StudySyncLogo className="[&_span]:text-base sm:[&_span]:text-lg" />
+    <header className={cn('sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur', className)}>
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 sm:gap-6 sm:px-6">
+        <StudySyncLogo className="min-w-0 [&_span]:truncate [&_span]:text-base sm:[&_span]:text-lg" />
 
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav className="hidden items-center gap-6 lg:flex">
           {navLinks.map(({ to, label, isWorkspace }) => {
             const isActive = isWorkspace
               ? isWorkspaceRoute(location.pathname)
@@ -48,26 +43,27 @@ export function StudentNavbar({ className }) {
                 key={to}
                 to={to}
                 className={cn(
-                  'rounded-lg px-4 py-2 text-sm font-medium transition',
-                  isActive
-                    ? 'bg-violet-50 text-violet-700'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+                  'relative pb-0.5 text-sm font-medium transition',
+                  isActive ? 'text-ink' : 'text-muted hover:text-ink',
                 )}
               >
                 {label}
+                {isActive ? (
+                  <span className="absolute inset-x-0 -bottom-1 h-0.5 rounded-full bg-brand-600" />
+                ) : null}
               </NavLink>
             )
           })}
         </nav>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2">
           <Link
             to={ROUTES.NOTIFICATIONS}
             className={cn(
-              'relative flex h-9 w-9 items-center justify-center rounded-full transition',
+              'relative flex h-9 w-9 items-center justify-center rounded-lg transition',
               location.pathname === ROUTES.NOTIFICATIONS
-                ? 'bg-violet-50 text-violet-700'
-                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700',
+                ? 'bg-brand-50 text-brand-700'
+                : 'text-muted hover:bg-page hover:text-ink',
             )}
             aria-label={
               unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'
@@ -75,7 +71,7 @@ export function StudentNavbar({ className }) {
           >
             <Bell className="h-5 w-5" />
             {unreadCount > 0 ? (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-violet-600 px-1 text-[10px] font-bold text-white">
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-surface">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             ) : null}

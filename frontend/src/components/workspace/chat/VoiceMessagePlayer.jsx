@@ -102,7 +102,7 @@ export function VoiceMessagePlayer({ src, durationSec, isOwnMessage }) {
       className={cn(
         'inline-flex min-w-[220px] max-w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm shadow-sm',
         isOwnMessage
-          ? 'rounded-br-md bg-violet-600 text-white'
+          ? 'rounded-br-md bg-brand-600 text-white'
           : 'rounded-bl-md border border-slate-200/80 bg-slate-50 text-slate-800',
       )}
     >
@@ -114,7 +114,7 @@ export function VoiceMessagePlayer({ src, durationSec, isOwnMessage }) {
           'flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition',
           isOwnMessage
             ? 'bg-white/20 text-white hover:bg-white/30'
-            : 'bg-violet-100 text-violet-600 hover:bg-violet-200',
+            : 'bg-brand-100 text-brand-600 hover:bg-brand-200',
         )}
         aria-label={isPlaying ? 'Pause voice message' : 'Play voice message'}
       >
@@ -131,12 +131,12 @@ export function VoiceMessagePlayer({ src, durationSec, isOwnMessage }) {
           <div
             className={cn(
               'h-full rounded-full transition-all',
-              isOwnMessage ? 'bg-white' : 'bg-violet-500',
+              isOwnMessage ? 'bg-white' : 'bg-brand-500',
             )}
             style={{ width: `${progress}%` }}
           />
         </div>
-        <p className={cn('mt-1 text-xs', isOwnMessage ? 'text-violet-100' : 'text-slate-500')}>
+        <p className={cn('mt-1 text-xs', isOwnMessage ? 'text-brand-100' : 'text-slate-500')}>
           Voice message · {formatVoiceDuration(durationSec)}
         </p>
       </div>

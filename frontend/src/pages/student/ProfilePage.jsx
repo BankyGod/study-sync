@@ -189,20 +189,25 @@ export function ProfilePage() {
 
   return (
     <>
-      <div className="mx-auto max-w-4xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-        <header>
-          <h1 className="text-3xl font-bold text-slate-900">Profile Setup</h1>
-          <p className="mt-2 text-slate-500">Personalize your profile with the details below.</p>
+      <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 pb-24 sm:space-y-8 sm:px-6 sm:py-8 lg:px-8 lg:pb-8">
+        <header className="border-b border-border pb-5 sm:pb-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Account</p>
+          <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+            Your profile
+          </h1>
+          <p className="mt-2 text-sm text-muted">
+            Update how classmates see you and how StudySync matches you into pods.
+          </p>
         </header>
 
         {error && (
-          <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+          <p className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
             {error}
           </p>
         )}
 
         {success && (
-          <p className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <p className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
             {success}
           </p>
         )}
@@ -241,11 +246,13 @@ export function ProfilePage() {
           value={onboarding.courses}
           onChange={(courses) => setOnboarding((prev) => ({ ...prev, courses }))}
         />
+      </div>
 
-        <footer className="flex justify-end gap-4 pt-2">
+      <footer className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-40 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur lg:static lg:bottom-auto lg:z-auto lg:mx-auto lg:max-w-4xl lg:border-0 lg:bg-transparent lg:px-8 lg:py-0 lg:pb-8 lg:backdrop-blur-none">
+        <div className="mx-auto flex max-w-4xl flex-col-reverse gap-2 border-border sm:flex-row sm:justify-end sm:gap-3 lg:border-t lg:pt-6">
           <Link
             to={ROUTES.STUDENT_DASHBOARD}
-            className="rounded-lg px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:text-slate-900"
+            className="inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-muted transition hover:text-ink"
           >
             Cancel
           </Link>
@@ -253,12 +260,12 @@ export function ProfilePage() {
             type="button"
             disabled={isSaving}
             onClick={handleSaveAll}
-            className="rounded-xl bg-teal-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:opacity-60"
+            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-surface transition hover:bg-brand-700 disabled:opacity-60"
           >
-            {isSaving ? 'Saving...' : 'Save Changes'}
+            {isSaving ? 'Saving...' : 'Save changes'}
           </button>
-        </footer>
-      </div>
+        </div>
+      </footer>
 
       <EditProfileModal
         open={isEditOpen}

@@ -13,21 +13,18 @@ export function WorkspaceSidebar({ groupId }) {
     { id: 'board', icon: LayoutGrid, label: 'Board', to: base },
     { id: 'chat', icon: MessageSquare, label: 'Chat', to: `${base}/chat` },
     { id: 'files', icon: Folder, label: 'Files', to: `${base}/files` },
-    { id: 'calendar', icon: CalendarDays, label: 'Scheduler', to: `${base}/calendar` },
+    { id: 'calendar', icon: CalendarDays, label: 'Schedule', to: `${base}/calendar` },
   ]
 
   const isActive = (item) => {
     if (item.id === 'board') {
-      return (
-        location.pathname === base ||
-        location.pathname === `${base}/board`
-      )
+      return location.pathname === base || location.pathname === `${base}/board`
     }
     return location.pathname.startsWith(item.to)
   }
 
   return (
-    <aside className="hidden w-16 shrink-0 flex-col items-center gap-2 border-r border-slate-200 bg-white py-4 lg:flex">
+    <aside className="hidden w-[4.25rem] shrink-0 flex-col items-center gap-1 border-r border-border bg-surface py-4 lg:flex">
       {items.map((item) => {
         const Icon = item.icon
         const active = isActive(item)
@@ -38,13 +35,11 @@ export function WorkspaceSidebar({ groupId }) {
             to={item.to}
             title={item.label}
             className={cn(
-              'relative flex h-11 w-11 items-center justify-center rounded-xl transition',
-              active
-                ? 'bg-violet-50 text-violet-600'
-                : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600',
+              'relative flex h-11 w-11 flex-col items-center justify-center rounded-lg transition',
+              active ? 'bg-brand-50 text-brand-700' : 'text-muted hover:bg-page hover:text-ink',
             )}
           >
-            <Icon className="h-5 w-5" />
+            <Icon className="h-5 w-5" strokeWidth={active ? 2.15 : 1.75} />
             {item.id === 'chat' ? (
               <NavBadge count={chatUnreadCount} className="-right-0.5 -top-0.5" />
             ) : null}

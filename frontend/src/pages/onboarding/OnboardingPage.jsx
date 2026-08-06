@@ -185,7 +185,7 @@ export function OnboardingPage() {
       skipLabel={isResumeFlow ? 'Not now' : 'Skip for now'}
     >
       {isResumeFlow && stepIndex === 0 && !error && (
-        <p className="mb-4 rounded-xl border border-violet-100 bg-violet-50 px-4 py-3 text-sm text-violet-800">
+        <p className="mb-4 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-800">
           Pick up where you left off. Your answers help us match you with the right study pod.
         </p>
       )}

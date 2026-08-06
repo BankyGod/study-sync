@@ -2,9 +2,9 @@ import { cn } from '@/utils/cn'
 
 function getStrokeColor(value) {
   if (value == null) return '#cbd5e1'
-  if (value >= 80) return '#059669'
-  if (value >= 50) return '#d97706'
-  return '#dc2626'
+  if (value >= 80) return '#059669' // emerald-600
+  if (value >= 50) return '#d97706' // amber-600
+  return '#dc2626' // red-600
 }
 
 export function CircularProgress({
@@ -13,6 +13,7 @@ export function CircularProgress({
   size = 88,
   strokeWidth = 8,
   className,
+  showLabel = true,
 }) {
   const hasValue = value != null && !Number.isNaN(value)
   const normalized = hasValue ? Math.max(0, Math.min(100, Math.round(value))) : 0
@@ -22,7 +23,7 @@ export function CircularProgress({
   const strokeColor = getStrokeColor(hasValue ? normalized : null)
 
   return (
-    <div className={cn('flex flex-col items-center gap-1.5', className)}>
+    <div className={cn('flex flex-col items-center gap-2', className)}>
       <div
         className="relative inline-flex items-center justify-center"
         style={{ width: size, height: size }}
@@ -54,7 +55,7 @@ export function CircularProgress({
           {hasValue ? `${normalized}%` : '—'}
         </span>
       </div>
-      {label ? <span className="text-xs font-medium text-slate-500">{label}</span> : null}
+      {showLabel && label ? <span className="text-sm font-medium text-slate-500">{label}</span> : null}
     </div>
   )
 }
