@@ -58,6 +58,11 @@ const TYPE_META = {
     icon: MessageSquare,
     accent: 'bg-brand-50 text-brand-700',
   },
+  'call.started': {
+    label: 'Video call',
+    icon: MessageSquare,
+    accent: 'bg-brand-50 text-brand-700',
+  },
 }
 
 export function getNotificationMeta(type) {
@@ -74,7 +79,7 @@ export function getNotificationLink(notification) {
   const groupId = notification.groupId ?? notification.data?.groupId
   if (!groupId) return null
 
-  if (notification.type === 'message.new') {
+  if (notification.type === 'message.new' || notification.type === 'call.started') {
     return `${buildWorkspacePath(groupId)}/chat`
   }
 

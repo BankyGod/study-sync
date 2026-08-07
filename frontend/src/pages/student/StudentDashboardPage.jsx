@@ -67,35 +67,35 @@ export function StudentDashboardPage() {
       : `Reliability building · ${reliability?.tasksScored ?? 0}/3 tasks`
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       {!hasSavedProfile ? (
         <CompleteStudyPreferencesBanner
           returnTo={ROUTES.FIND_GROUPS}
-          className="mb-8"
+          className="mb-6 sm:mb-8"
           description="Finish learning style, availability, courses, and preferences before searching for a pod."
         />
       ) : null}
 
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div className="min-w-0 max-w-2xl">
+      <header className="border-b border-border pb-5 sm:pb-6">
+        <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Dashboard</p>
           <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl lg:text-4xl">
             Hello, {firstName}
           </h1>
-          <p className="mt-2 text-sm text-muted sm:text-base">
+          <p className="mt-2 text-sm text-muted">
             {groups.length > 0
               ? `${groups.length} active study pod${groups.length === 1 ? '' : 's'} ready when you are.`
               : 'Find classmates in your courses and start a study pod.'}
           </p>
         </div>
 
-        <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
-          <p className="rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-muted">
+        <div className="mt-4 flex min-w-0 flex-col gap-2 sm:mt-5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+          <p className="rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-muted sm:shrink-0">
             {reliabilityText}
           </p>
           <Link
             to={ROUTES.FIND_GROUPS}
-            className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-surface transition hover:bg-brand-700 sm:flex-none"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-surface transition hover:bg-brand-700 sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             Join pod
@@ -103,10 +103,10 @@ export function StudentDashboardPage() {
         </div>
       </header>
 
-      <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1fr)_16rem]">
-        <section>
+      <div className="mt-6 grid min-w-0 gap-8 sm:mt-8 lg:grid-cols-[minmax(0,1fr)_15rem] lg:gap-10">
+        <section className="min-w-0">
           <div className="mb-3 flex items-baseline justify-between gap-3">
-            <h2 className="font-display text-xl font-semibold text-ink">Your pods</h2>
+            <h2 className="font-display text-lg font-semibold text-ink sm:text-xl">Your pods</h2>
             <span className="text-xs text-muted">{groups.length} total</span>
           </div>
 
@@ -117,22 +117,22 @@ export function StudentDashboardPage() {
           ) : null}
 
           {isLoading ? (
-            <div className="flex min-h-[180px] items-center justify-center rounded-lg border border-border bg-surface">
+            <div className="flex min-h-[140px] items-center justify-center border-y border-border bg-surface">
               <Spinner size="lg" />
             </div>
           ) : groups.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border bg-surface px-6 py-10">
-              <Users className="h-6 w-6 text-brand-600" />
-              <p className="mt-4 font-display text-lg font-semibold text-ink">No pods yet</p>
+            <div className="border-y border-border py-8">
+              <Users className="h-5 w-5 text-brand-600" />
+              <p className="mt-3 font-display text-base font-semibold text-ink">No pods yet</p>
               <p className="mt-1 max-w-md text-sm text-muted">
                 Complete study preferences, then search for classmates enrolled in your courses.
               </p>
-              <div className="mt-5 flex flex-wrap gap-3">
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
                 {!hasSavedProfile ? (
                   <Link
                     to={ROUTES.ONBOARDING}
                     state={{ returnTo: ROUTES.FIND_GROUPS }}
-                    className="inline-flex rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-surface"
+                    className="inline-flex min-h-11 items-center justify-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-surface"
                   >
                     Complete setup
                   </Link>
@@ -140,7 +140,7 @@ export function StudentDashboardPage() {
                 <Link
                   to={ROUTES.FIND_GROUPS}
                   className={cn(
-                    'inline-flex rounded-lg px-4 py-2.5 text-sm font-semibold',
+                    'inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold',
                     hasSavedProfile
                       ? 'bg-brand-600 text-surface'
                       : 'border border-border bg-page text-ink',
@@ -151,7 +151,7 @@ export function StudentDashboardPage() {
               </div>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-lg border border-border bg-surface">
+            <div className="min-w-0 overflow-hidden border-y border-border bg-surface">
               {groups.map((pod) => (
                 <PodCard
                   key={pod.id ?? pod.groupId}
@@ -165,7 +165,7 @@ export function StudentDashboardPage() {
           )}
         </section>
 
-        <aside className="space-y-8 lg:border-l lg:border-border lg:pl-8">
+        <aside className="min-w-0 lg:border-l lg:border-border lg:pl-8">
           <UpcomingDeadlines deadlines={[]} />
         </aside>
       </div>

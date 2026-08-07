@@ -1,15 +1,26 @@
 import { CalendarDays, Clock, Plus, Users, Video } from 'lucide-react'
 import { ScheduleSessionList } from '@/components/workspace/ScheduleSessionList'
+import { ActiveCallBanner } from '@/components/workspace/ActiveCallBanner'
 import { useWorkspaceSchedule } from '@/context/WorkspaceScheduleContext'
+import { useWorkspaceCall } from '@/context/WorkspaceCallContext'
 import { formatSessionMeta } from '@/services/scheduleSessionService'
 
 export function GroupSchedulePanel() {
   const { sessions, listItems, openScheduleModal } = useWorkspaceSchedule()
+  const { startOrJoinCall, isBusy } = useWorkspaceCall()
   const nextSession = sessions[0]
   const nextMeta = nextSession ? formatSessionMeta(nextSession).split(' | ') : []
 
+  const handleJoinCall = () => {
+    startOrJoinCall({
+      title: nextSession?.title ? `${nextSession.title} call` : 'Pod study call',
+    }).catch(() => {})
+  }
+
   return (
     <div className="space-y-8">
+      <ActiveCallBanner />
+
       {nextSession ? (
         <section className="border-b border-border pb-6">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-700">
@@ -42,9 +53,11 @@ export function GroupSchedulePanel() {
 
             <button
               type="button"
-              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-surface transition hover:bg-brand-700"
+              disabled={isBusy}
+              onClick={handleJoinCall}
+              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-surface transition hover:bg-brand-700 disabled:opacity-60"
             >
-              Join session
+              Join session call
             </button>
           </div>
         </section>
@@ -68,7 +81,12 @@ export function GroupSchedulePanel() {
           </button>
         </div>
 
-        <ScheduleSessionList heading="" items={listItems} showJoin />
+        <ScheduleSessionList
+          heading=""
+          items={listItems}
+          showJoin
+          onJoin={handleJoinCall}
+        />
 
         {listItems.length > 0 ? (
           <p className="mt-4 flex items-center gap-2 text-xs text-muted">

@@ -10,24 +10,28 @@ export function PodCard({ title, members = [], progress = 0, to, compact = false
 
   const body = (
     <>
-      <div className="flex min-w-0 flex-1 items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
-          <BookOpen className="h-5 w-5" />
+      <div className="flex min-w-0 items-start gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
+          <BookOpen className="h-4 w-4" />
         </div>
+
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h3 className="truncate font-display text-base font-semibold text-ink">{title}</h3>
-              <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-brand-700">
-                <span className="h-1.5 w-1.5 rounded-full bg-brand-600" />
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <h3 className="line-clamp-2 font-display text-[15px] font-semibold leading-snug text-ink sm:truncate sm:text-base">
+                {title}
+              </h3>
+              <p className="mt-1 text-xs font-medium text-brand-700">
                 Active · {members.length} member{members.length === 1 ? '' : 's'}
               </p>
             </div>
-            {to ? <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-muted" /> : null}
+            {to ? (
+              <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+            ) : null}
           </div>
 
-          <div className="mt-4 flex items-center justify-between gap-4">
-            <div className="flex -space-x-2">
+          <div className="mt-3 flex min-w-0 items-center gap-3">
+            <div className="flex min-w-0 flex-1 -space-x-2 overflow-hidden">
               {members.slice(0, 4).map((member) => (
                 <MemberAvatar
                   key={member.id ?? member.initials}
@@ -43,13 +47,14 @@ export function PodCard({ title, members = [], progress = 0, to, compact = false
                 </div>
               ) : null}
             </div>
-            <div className="min-w-[5.5rem] text-right">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted">Progress</p>
-              <p className="mt-0.5 text-sm font-semibold text-ink">{safeProgress}%</p>
-            </div>
+
+            <p className="shrink-0 text-xs font-semibold tabular-nums text-ink">
+              {safeProgress}%
+              <span className="ml-1 font-medium text-muted">done</span>
+            </p>
           </div>
 
-          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-border/70">
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-border/70">
             <div
               className="h-full rounded-full bg-brand-600 transition-[width] duration-300"
               style={{ width: `${safeProgress}%` }}
@@ -61,7 +66,7 @@ export function PodCard({ title, members = [], progress = 0, to, compact = false
   )
 
   const className = cn(
-    'block border-b border-border bg-surface px-4 py-4 transition last:border-b-0',
+    'block min-w-0 border-b border-border bg-surface px-3 py-3.5 transition last:border-b-0 sm:px-4 sm:py-4',
     to && 'hover:bg-page/80',
     compact && 'px-3 py-3',
   )

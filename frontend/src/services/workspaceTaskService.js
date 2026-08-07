@@ -3,14 +3,24 @@ import { getStoredUser } from '@/services/authService'
 import { getProfileInitials } from '@/services/usersService'
 import { DEV_BYPASS_AUTH, DEV_MOCK_USER, STORAGE_KEYS } from '@/utils/constants'
 import {
+  approveTaskRegress,
   createWorkspaceTask,
   deleteWorkspaceTask,
   fetchWorkspaceTasks,
+  markTaskProgress,
+  rejectTaskRegress,
   reorderWorkspaceTasks,
+  requestTaskRegress,
   updateWorkspaceTask,
 } from '@/services/workspaceService'
 
 export const COLUMN_IDS = ['todo', 'in_progress', 'completed']
+
+const COLUMN_ORDER = {
+  todo: 0,
+  in_progress: 1,
+  completed: 2,
+}
 
 const EMPTY_COLUMNS = {
   todo: [],
@@ -34,12 +44,31 @@ export function toKanbanTask(task) {
     footer: formatTaskFooter(task),
     assignee: task.assignee ?? null,
     createdBy: task.createdBy ?? null,
+    pendingRegressRequest: task.pendingRegressRequest ?? null,
+    status: task.status ?? undefined,
   }
 }
 
 export function canManageTask(task, userId) {
   if (!userId) return false
   return task?.createdBy?.id === userId
+}
+
+export function canProgressTask(task, userId) {
+  if (!userId || !task?.assignee?.id) return false
+  return task.assignee.id === userId
+}
+
+export function getTaskColumnId(task, columns = EMPTY_COLUMNS) {
+  if (task?.status && COLUMN_IDS.includes(task.status)) return task.status
+  return (
+    COLUMN_IDS.find((columnId) => columns[columnId]?.some((item) => item.id === task?.id)) ??
+    'todo'
+  )
+}
+
+export function isBackwardMove(fromStatus, toStatus) {
+  return (COLUMN_ORDER[toStatus] ?? 0) < (COLUMN_ORDER[fromStatus] ?? 0)
 }
 
 function buildDevCreator() {
@@ -75,6 +104,7 @@ export function normalizeTaskForColumn(task, columnId) {
   if (columnId === 'completed') {
     return {
       ...base,
+      status: 'completed',
       variant: 'completed',
       completedAt: base.completedAt ?? new Date().toISOString().slice(0, 10),
     }
@@ -82,6 +112,7 @@ export function normalizeTaskForColumn(task, columnId) {
 
   return {
     ...base,
+    status: columnId,
     variant: base.variant === 'completed' ? 'default' : base.variant,
     completedAt: undefined,
   }
@@ -103,9 +134,11 @@ export function findTaskContainer(columns, id) {
 
 function mapBoardResponse(data) {
   return {
-    todo: (data.todo ?? []).map(toKanbanTask),
-    in_progress: (data.in_progress ?? []).map(toKanbanTask),
-    completed: (data.completed ?? []).map(toKanbanTask),
+    todo: (data.todo ?? []).map((task) => toKanbanTask({ ...task, status: 'todo' })),
+    in_progress: (data.in_progress ?? []).map((task) =>
+      toKanbanTask({ ...task, status: 'in_progress' }),
+    ),
+    completed: (data.completed ?? []).map((task) => toKanbanTask({ ...task, status: 'completed' })),
   }
 }
 
@@ -162,10 +195,12 @@ export async function addGroupTask(groupId, { title, dueDate, assigneeId }, memb
       id: crypto.randomUUID(),
       title: title.trim(),
       dueDate: dueDate || null,
+      status: 'todo',
       variant: 'default',
       assignee: resolveDevAssignee(assigneeId, members),
       createdBy: buildDevCreator(),
       createdAt: new Date().toISOString(),
+      pendingRegressRequest: null,
     }
     columns.todo = [...columns.todo, toKanbanTask(task)]
     writeLocalTasks(groupId, columns)
@@ -216,15 +251,22 @@ export async function updateGroupTask(
 export async function removeGroupTask(groupId, taskId) {
   if (DEV_BYPASS_AUTH) {
     const columns = readLocalTasks(groupId)
-    const task = COLUMN_IDS.flatMap((columnId) => columns[columnId]).find((item) => item.id === taskId)
+    const task = COLUMN_IDS.flatMap((columnId) => columns[columnId]).find(
+      (item) => item.id === taskId,
+    )
     const user = getStoredUser() ?? DEV_MOCK_USER
 
     if (!task?.createdBy?.id) {
-      throw Object.assign(new Error('This task cannot be deleted because it has no creator record.'), {
-        response: {
-          data: { error: { message: 'This task cannot be deleted because it has no creator record.' } },
+      throw Object.assign(
+        new Error('This task cannot be deleted because it has no creator record.'),
+        {
+          response: {
+            data: {
+              error: { message: 'This task cannot be deleted because it has no creator record.' },
+            },
+          },
         },
-      })
+      )
     }
 
     if (task.createdBy.id !== user.id) {
@@ -234,7 +276,7 @@ export async function removeGroupTask(groupId, taskId) {
     }
 
     const nextColumns = COLUMN_IDS.reduce((acc, columnId) => {
-      acc[columnId] = columns[columnId].filter((task) => task.id !== taskId)
+      acc[columnId] = columns[columnId].filter((item) => item.id !== taskId)
       return acc
     }, {})
     writeLocalTasks(groupId, nextColumns)
@@ -242,5 +284,127 @@ export async function removeGroupTask(groupId, taskId) {
   }
 
   await deleteWorkspaceTask(groupId, taskId)
+  return loadGroupTasks(groupId)
+}
+
+export async function progressGroupTask(groupId, taskId, action) {
+  if (DEV_BYPASS_AUTH) {
+    const columns = readLocalTasks(groupId)
+    const fromStatus = getTaskColumnId({ id: taskId }, columns)
+    const task = columns[fromStatus].find((item) => item.id === taskId)
+    if (!task) throw new Error('Task not found.')
+
+    const nextStatus = action === 'complete' ? 'completed' : 'in_progress'
+    const nextColumns = COLUMN_IDS.reduce(
+      (acc, columnId) => {
+        acc[columnId] = columns[columnId].filter((item) => item.id !== taskId)
+        return acc
+      },
+      { ...EMPTY_COLUMNS },
+    )
+
+    nextColumns[nextStatus] = [
+      ...nextColumns[nextStatus],
+      toKanbanTask(
+        normalizeTaskForColumn(
+          {
+            ...stripKanbanFields(task),
+            startedAt:
+              action === 'start'
+                ? new Date().toISOString()
+                : (task.startedAt ?? new Date().toISOString()),
+          },
+          nextStatus,
+        ),
+      ),
+    ]
+    writeLocalTasks(groupId, nextColumns)
+    return readLocalTasks(groupId)
+  }
+
+  await markTaskProgress(groupId, taskId, action)
+  return loadGroupTasks(groupId)
+}
+
+export async function requestGroupTaskRegress(groupId, taskId, targetStatus, reason) {
+  if (DEV_BYPASS_AUTH) {
+    const columns = readLocalTasks(groupId)
+    const fromStatus = getTaskColumnId({ id: taskId }, columns)
+    const user = getStoredUser() ?? DEV_MOCK_USER
+    const nextColumns = COLUMN_IDS.reduce((acc, columnId) => {
+      acc[columnId] = columns[columnId].map((task) => {
+        if (task.id !== taskId) return task
+        return toKanbanTask({
+          ...stripKanbanFields(task),
+          pendingRegressRequest: {
+            id: crypto.randomUUID(),
+            fromStatus,
+            targetStatus,
+            reason: reason || '',
+            requestedAt: new Date().toISOString(),
+            requestedBy: {
+              id: user.id,
+              name: user.name,
+              initials: getProfileInitials(user.name),
+              color: 'bg-brand-500',
+            },
+          },
+        })
+      })
+      return acc
+    }, {})
+    writeLocalTasks(groupId, nextColumns)
+    return readLocalTasks(groupId)
+  }
+
+  await requestTaskRegress(groupId, taskId, { targetStatus, reason })
+  return loadGroupTasks(groupId)
+}
+
+export async function approveGroupTaskRegress(groupId, taskId, requestId) {
+  if (DEV_BYPASS_AUTH) {
+    const columns = readLocalTasks(groupId)
+    const fromStatus = getTaskColumnId({ id: taskId }, columns)
+    const task = columns[fromStatus].find((item) => item.id === taskId)
+    const targetStatus = task?.pendingRegressRequest?.targetStatus ?? 'todo'
+    const nextColumns = COLUMN_IDS.reduce(
+      (acc, columnId) => {
+        acc[columnId] = columns[columnId].filter((item) => item.id !== taskId)
+        return acc
+      },
+      { ...EMPTY_COLUMNS },
+    )
+    nextColumns[targetStatus] = [
+      ...nextColumns[targetStatus],
+      toKanbanTask(
+        normalizeTaskForColumn(
+          { ...stripKanbanFields(task), pendingRegressRequest: null },
+          targetStatus,
+        ),
+      ),
+    ]
+    writeLocalTasks(groupId, nextColumns)
+    return readLocalTasks(groupId)
+  }
+
+  await approveTaskRegress(groupId, taskId, requestId)
+  return loadGroupTasks(groupId)
+}
+
+export async function rejectGroupTaskRegress(groupId, taskId, requestId, message) {
+  if (DEV_BYPASS_AUTH) {
+    const columns = readLocalTasks(groupId)
+    const nextColumns = COLUMN_IDS.reduce((acc, columnId) => {
+      acc[columnId] = columns[columnId].map((task) => {
+        if (task.id !== taskId) return task
+        return toKanbanTask({ ...stripKanbanFields(task), pendingRegressRequest: null })
+      })
+      return acc
+    }, {})
+    writeLocalTasks(groupId, nextColumns)
+    return readLocalTasks(groupId)
+  }
+
+  await rejectTaskRegress(groupId, taskId, requestId, message)
   return loadGroupTasks(groupId)
 }

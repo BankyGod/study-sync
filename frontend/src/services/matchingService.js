@@ -81,3 +81,13 @@ export function isMatchingRunning(response) {
 export function isMatchingFailed(response) {
   return response?.status === 'failed'
 }
+
+export async function joinStudyGroup(groupId) {
+  const { data } = await apiClient.post(endpoints.matching.joinGroup(groupId))
+  return data
+}
+
+export async function leaveStudyGroup(groupId) {
+  const { data } = await apiClient.delete(endpoints.matching.leaveGroup(groupId))
+  return data
+}

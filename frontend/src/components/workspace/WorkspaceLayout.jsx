@@ -10,6 +10,7 @@ import {
   WorkspaceTasksProvider,
   useWorkspaceTasks,
 } from '@/context/WorkspaceTasksContext'
+import { WorkspaceCallProvider } from '@/context/WorkspaceCallContext'
 import { Outlet, useLocation, useParams } from 'react-router-dom'
 import { WorkspaceSidebar } from '@/components/workspace/WorkspaceSidebar'
 import { WorkspaceBottomNav } from '@/components/workspace/WorkspaceBottomNav'
@@ -88,6 +89,7 @@ function WorkspaceShell() {
   return (
     <WorkspaceScheduleProvider groupId={groupId}>
       <WorkspaceTasksProvider groupId={groupId} members={members}>
+        <WorkspaceCallProvider groupId={groupId}>
         <div
           className={cn(
             'flex min-h-0 min-w-0 flex-col overflow-hidden bg-page',
@@ -106,10 +108,8 @@ function WorkspaceShell() {
               )}
             >
               <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-                <div className={cn(isChatView && 'hidden lg:block', !isChatView && 'px-0')}>
-                  <div className={cn(isChatView && 'px-4 pt-4 lg:px-0 lg:pt-0')}>
-                    <WorkspaceHeader title={title} courseLabel={courseLabel} />
-                  </div>
+                <div className={cn(isChatView ? 'hidden' : 'px-0')}>
+                  <WorkspaceHeader title={title} courseLabel={courseLabel} />
                 </div>
                 <div
                   className={cn(
@@ -131,6 +131,7 @@ function WorkspaceShell() {
         <WorkspaceScheduleModal />
         <WorkspaceAddTaskModal />
         <WorkspaceEditTaskModal />
+        </WorkspaceCallProvider>
       </WorkspaceTasksProvider>
     </WorkspaceScheduleProvider>
   )

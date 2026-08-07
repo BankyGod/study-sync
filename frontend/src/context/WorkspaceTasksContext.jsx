@@ -1,8 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import {
   addGroupTask,
+  approveGroupTaskRegress,
   loadGroupTasks,
+  progressGroupTask,
+  rejectGroupTaskRegress,
   removeGroupTask,
+  requestGroupTaskRegress,
   saveGroupTasks,
   updateGroupTask,
 } from '@/services/workspaceTaskService'
@@ -13,6 +17,10 @@ import { DEV_BYPASS_AUTH } from '@/utils/constants'
 const WorkspaceTasksContext = createContext(null)
 
 const EMPTY_COLUMNS = { todo: [], in_progress: [], completed: [] }
+
+function getErrorCode(error) {
+  return error?.response?.data?.error?.code ?? error?.code ?? null
+}
 
 export function WorkspaceTasksProvider({ groupId, members = [], children }) {
   const [columns, setColumns] = useState(EMPTY_COLUMNS)
@@ -135,20 +143,129 @@ export function WorkspaceTasksProvider({ groupId, members = [], children }) {
     [groupId],
   )
 
+  const markProgress = useCallback(
+    async (taskId, action) => {
+      try {
+        const nextColumns = await progressGroupTask(groupId, taskId, action)
+        setColumns(nextColumns)
+        setTaskActionError('')
+        return nextColumns
+      } catch (error) {
+        const message = getWorkspaceErrorMessage(error, 'Unable to update task progress.')
+        setTaskActionError(message)
+        window.alert(message)
+      }
+    },
+    [groupId],
+  )
+
+  const requestRegress = useCallback(
+    async (taskId, targetStatus, reason) => {
+      try {
+        const nextColumns = await requestGroupTaskRegress(groupId, taskId, targetStatus, reason)
+        setColumns(nextColumns)
+        setTaskActionError('')
+        return nextColumns
+      } catch (error) {
+        const message = getWorkspaceErrorMessage(error, 'Unable to request move-back approval.')
+        setTaskActionError(message)
+        window.alert(message)
+        await reloadColumns()
+      }
+    },
+    [groupId, reloadColumns],
+  )
+
+  const approveRegress = useCallback(
+    async (taskId, requestId) => {
+      try {
+        const nextColumns = await approveGroupTaskRegress(groupId, taskId, requestId)
+        setColumns(nextColumns)
+        setTaskActionError('')
+        return nextColumns
+      } catch (error) {
+        const message = getWorkspaceErrorMessage(error, 'Unable to approve move-back request.')
+        setTaskActionError(message)
+        window.alert(message)
+      }
+    },
+    [groupId],
+  )
+
+  const rejectRegress = useCallback(
+    async (taskId, requestId) => {
+      try {
+        const nextColumns = await rejectGroupTaskRegress(groupId, taskId, requestId)
+        setColumns(nextColumns)
+        setTaskActionError('')
+        return nextColumns
+      } catch (error) {
+        const message = getWorkspaceErrorMessage(error, 'Unable to reject move-back request.')
+        setTaskActionError(message)
+        window.alert(message)
+      }
+    },
+    [groupId],
+  )
+
   const commitColumns = useCallback(
     async (getNextColumns) => {
+      let previousColumns = null
       let nextColumns = null
       setColumns((prev) => {
+        previousColumns = prev
         nextColumns = getNextColumns(prev)
         return nextColumns
       })
 
-      if (nextColumns) {
+      if (!nextColumns) return
+
+      try {
         const saved = await saveGroupTasks(groupId, nextColumns)
         setColumns(saved)
+        setTaskActionError('')
+      } catch (error) {
+        const code = getErrorCode(error)
+        if (code === 'REGRESS_REQUIRES_APPROVAL' && previousColumns) {
+          setColumns(previousColumns)
+          const details = error?.response?.data?.error?.details
+          let taskId = details?.taskId
+          let targetStatus = details?.targetStatus
+
+          if (!taskId || !targetStatus) {
+            for (const status of ['todo', 'in_progress', 'completed']) {
+              for (const task of nextColumns[status] ?? []) {
+                const from = ['todo', 'in_progress', 'completed'].find((columnId) =>
+                  previousColumns[columnId]?.some((item) => item.id === task.id),
+                )
+                const order = { todo: 0, in_progress: 1, completed: 2 }
+                if (from && (order[status] ?? 0) < (order[from] ?? 0)) {
+                  taskId = task.id
+                  targetStatus = status
+                  break
+                }
+              }
+              if (taskId) break
+            }
+          }
+
+          const confirmed = window.confirm(
+            'Moving this task backward needs creator approval. Send a move-back request?',
+          )
+          if (confirmed && taskId && targetStatus) {
+            await requestRegress(taskId, targetStatus)
+          } else {
+            await reloadColumns()
+          }
+          return
+        }
+
+        const message = getWorkspaceErrorMessage(error, 'Unable to save board changes.')
+        setTaskActionError(message)
+        await reloadColumns()
       }
     },
-    [groupId],
+    [groupId, reloadColumns, requestRegress],
   )
 
   const value = {
@@ -166,6 +283,10 @@ export function WorkspaceTasksProvider({ groupId, members = [], children }) {
     createTask,
     updateTask,
     deleteTask,
+    markProgress,
+    requestRegress,
+    approveRegress,
+    rejectRegress,
     taskActionError,
     clearTaskActionError: () => setTaskActionError(''),
   }

@@ -1,0 +1,160 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import {
+  createPodCall,
+  endPodCall,
+  joinPodCall,
+  leavePodCall,
+  loadActiveCall,
+  openCallInNewTab,
+} from '@/services/workspaceCallService'
+import { getWorkspaceErrorMessage } from '@/utils/workspaceErrors'
+import { useWebSocket } from '@/hooks/useWebSocket'
+import { DEV_BYPASS_AUTH } from '@/utils/constants'
+
+const WorkspaceCallContext = createContext(null)
+
+export function WorkspaceCallProvider({ groupId, children }) {
+  const [activeCall, setActiveCall] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [isBusy, setIsBusy] = useState(false)
+
+  const refreshActiveCall = useCallback(async () => {
+    if (DEV_BYPASS_AUTH) {
+      setActiveCall(null)
+      setIsLoading(false)
+      return null
+    }
+
+    try {
+      const call = await loadActiveCall(groupId)
+      setActiveCall(call)
+      setError('')
+      return call
+    } catch (loadError) {
+      setError(getWorkspaceErrorMessage(loadError, 'Unable to load active call.'))
+      return null
+    } finally {
+      setIsLoading(false)
+    }
+  }, [groupId])
+
+  useEffect(() => {
+    setIsLoading(true)
+    refreshActiveCall()
+  }, [refreshActiveCall])
+
+  const socketHandlers = useMemo(
+    () => ({
+      onMessageNew: (payload) => {
+        const type = payload?.message?.type
+        if (type === 'call' || type === 'call.started' || payload?.call) {
+          refreshActiveCall()
+        }
+      },
+      onCallStarted: () => refreshActiveCall(),
+      onCallEnded: () => {
+        setActiveCall(null)
+      },
+      onCallUpdated: () => refreshActiveCall(),
+    }),
+    [refreshActiveCall],
+  )
+
+  useWebSocket(DEV_BYPASS_AUTH ? null : groupId, socketHandlers)
+
+  const startOrJoinCall = useCallback(
+    async ({ title } = {}) => {
+      setIsBusy(true)
+      setError('')
+      try {
+        let call = activeCall
+        if (!call) {
+          try {
+            call = await createPodCall(groupId, { title })
+          } catch (startError) {
+            if (startError?.response?.status === 409) {
+              call = await loadActiveCall(groupId)
+            } else {
+              throw startError
+            }
+          }
+        }
+
+        if (!call?.id) {
+          throw new Error('No active call available.')
+        }
+
+        const joined = await joinPodCall(groupId, call.id)
+        const nextCall = joined ?? call
+        setActiveCall(nextCall)
+
+        try {
+          openCallInNewTab(nextCall)
+        } catch (openError) {
+          setError(openError.message)
+        }
+
+        return nextCall
+      } catch (callError) {
+        const message = getWorkspaceErrorMessage(callError, 'Unable to start or join the call.')
+        setError(message)
+        throw callError
+      } finally {
+        setIsBusy(false)
+      }
+    },
+    [activeCall, groupId],
+  )
+
+  const leaveCall = useCallback(async () => {
+    if (!activeCall?.id) return
+    setIsBusy(true)
+    try {
+      await leavePodCall(groupId, activeCall.id)
+      await refreshActiveCall()
+    } catch (leaveError) {
+      setError(getWorkspaceErrorMessage(leaveError, 'Unable to leave the call.'))
+    } finally {
+      setIsBusy(false)
+    }
+  }, [activeCall, groupId, refreshActiveCall])
+
+  const endCall = useCallback(async () => {
+    if (!activeCall?.id) return
+    if (!window.confirm('End the video call for everyone in this pod?')) return
+
+    setIsBusy(true)
+    try {
+      await endPodCall(groupId, activeCall.id)
+      setActiveCall(null)
+    } catch (endError) {
+      setError(getWorkspaceErrorMessage(endError, 'Unable to end the call.'))
+    } finally {
+      setIsBusy(false)
+    }
+  }, [activeCall, groupId])
+
+  const value = {
+    activeCall,
+    isLoading,
+    isBusy,
+    error,
+    refreshActiveCall,
+    startOrJoinCall,
+    leaveCall,
+    endCall,
+  }
+
+  return (
+    <WorkspaceCallContext.Provider value={value}>{children}</WorkspaceCallContext.Provider>
+  )
+}
+
+export function useWorkspaceCall() {
+  const context = useContext(WorkspaceCallContext)
+  if (!context) {
+    throw new Error('useWorkspaceCall must be used within WorkspaceCallProvider')
+  }
+  return context
+}

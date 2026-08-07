@@ -163,3 +163,65 @@ export async function deleteWorkspaceSession(groupId, sessionId) {
     throw error
   }
 }
+
+export async function markTaskProgress(groupId, taskId, action) {
+  const { data } = await apiClient.post(endpoints.workspace.taskProgress(groupId, taskId), {
+    action,
+  })
+  return data
+}
+
+export async function requestTaskRegress(groupId, taskId, { targetStatus, reason } = {}) {
+  const { data } = await apiClient.post(endpoints.workspace.taskRegressRequests(groupId, taskId), {
+    targetStatus,
+    reason: reason || undefined,
+  })
+  return data
+}
+
+export async function approveTaskRegress(groupId, taskId, requestId) {
+  const { data } = await apiClient.post(
+    endpoints.workspace.taskRegressApprove(groupId, taskId, requestId),
+  )
+  return data
+}
+
+export async function rejectTaskRegress(groupId, taskId, requestId, message) {
+  const { data } = await apiClient.post(
+    endpoints.workspace.taskRegressReject(groupId, taskId, requestId),
+    message ? { message } : undefined,
+  )
+  return data
+}
+
+export async function fetchActiveWorkspaceCall(groupId) {
+  const { data } = await apiClient.get(endpoints.workspace.activeCall(groupId))
+  return data ?? null
+}
+
+export async function startWorkspaceCall(groupId, { title } = {}) {
+  const { data } = await apiClient.post(endpoints.workspace.calls(groupId), {
+    title: title || undefined,
+  })
+  return data
+}
+
+export async function fetchWorkspaceCall(groupId, callId) {
+  const { data } = await apiClient.get(endpoints.workspace.call(groupId, callId))
+  return data
+}
+
+export async function joinWorkspaceCall(groupId, callId) {
+  const { data } = await apiClient.post(endpoints.workspace.callJoin(groupId, callId))
+  return data
+}
+
+export async function leaveWorkspaceCall(groupId, callId) {
+  const { data } = await apiClient.post(endpoints.workspace.callLeave(groupId, callId))
+  return data
+}
+
+export async function endWorkspaceCall(groupId, callId) {
+  const { data } = await apiClient.post(endpoints.workspace.callEnd(groupId, callId))
+  return data
+}

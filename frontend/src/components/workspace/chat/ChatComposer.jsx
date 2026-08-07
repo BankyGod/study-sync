@@ -114,7 +114,7 @@ export function ChatComposer({
   return (
     <form
       onSubmit={handleSubmit}
-      className="shrink-0 border-t border-border bg-surface px-2 py-2 lg:px-5 lg:py-4"
+      className="shrink-0 border-t border-border bg-surface px-4 py-3 sm:px-5 sm:py-3.5 lg:px-6 lg:py-4"
     >
       {isRecording && (
         <div className="mb-2 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 lg:mb-3 lg:px-4 lg:py-3">

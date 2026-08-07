@@ -42,6 +42,9 @@ export function subscribeToWorkspaceEvents(groupId, handlers = {}) {
     ['file:uploaded', handlers.onFileUploaded],
     ['file:deleted', handlers.onFileDeleted],
     ['reliability:updated', handlers.onReliabilityUpdated],
+    ['call:started', handlers.onCallStarted],
+    ['call:ended', handlers.onCallEnded],
+    ['call:updated', handlers.onCallUpdated],
   ]
 
   events.forEach(([event, handler]) => {
