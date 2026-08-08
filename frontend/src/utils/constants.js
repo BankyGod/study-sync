@@ -1,6 +1,17 @@
 export const ROLES = {
   STUDENT: 'student',
   INSTRUCTOR: 'instructor',
+  ADMIN: 'admin',
+}
+
+export const STAFF_ROLES = [ROLES.INSTRUCTOR, ROLES.ADMIN]
+
+export function normalizeRole(role) {
+  return typeof role === 'string' ? role.trim().toLowerCase() : ''
+}
+
+export function isStaffRole(role) {
+  return STAFF_ROLES.includes(normalizeRole(role))
 }
 
 /** Set VITE_DEV_BYPASS_AUTH=true in .env to skip login during local UI work. */
@@ -23,6 +34,8 @@ export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
   REGISTER: '/register',
+  ADMIN_LOGIN: '/admin/login',
+  ADMIN_REGISTER: '/admin/register',
   ONBOARDING: '/onboarding',
   PROFILE: '/profile',
   NOTIFICATIONS: '/notifications',
@@ -34,6 +47,11 @@ export const ROUTES = {
   ADMIN_DASHBOARD: '/admin',
   ADMIN_COHORTS: '/admin/cohorts',
   ADMIN_GROUPS: '/admin/groups',
+  ADMIN_STUDENTS: '/admin/students',
+}
+
+export function getHomeRouteForRole(role) {
+  return isStaffRole(role) ? ROUTES.ADMIN_DASHBOARD : ROUTES.STUDENT_DASHBOARD
 }
 
 export const STORAGE_KEYS = {

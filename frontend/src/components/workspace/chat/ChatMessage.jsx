@@ -10,7 +10,7 @@ import {
   formatFileSize,
   formatMessageTime,
 } from '@/services/workspaceChatService'
-import { normalizeCall, openCallInNewTab } from '@/services/workspaceCallService'
+import { normalizeCall } from '@/services/workspaceCallService'
 import { cn } from '@/utils/cn'
 
 export function ChatMessage({
@@ -57,14 +57,6 @@ export function ChatMessage({
 
   const handleJoinCallMessage = async () => {
     const call = normalizeCall(message.call ?? message.data ?? message)
-    if (call?.roomUrl) {
-      try {
-        openCallInNewTab(call)
-        return
-      } catch {
-        // fall through to start/join flow
-      }
-    }
     await startOrJoinCall({ title: call?.title || message.content || 'Pod study call' })
   }
 

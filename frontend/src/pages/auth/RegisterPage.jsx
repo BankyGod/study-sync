@@ -23,7 +23,7 @@ const registerSchema = z
     university: z.string().min(2, 'Select your university'),
     program: z.string().min(2, 'Select your program'),
     level: z.enum(['100', '200', '300', '400']),
-    role: z.enum([ROLES.STUDENT, ROLES.INSTRUCTOR]),
+    role: z.literal(ROLES.STUDENT),
     password: z.string().min(8, 'Password must be at least 8 characters'),
     confirmPassword: z.string(),
     agreeToTerms: z.boolean().refine((value) => value === true, {
@@ -80,11 +80,18 @@ export function RegisterPage() {
       subtitle="Register with your academic details to join course-based study pods at GCTU."
       formClassName="w-full max-w-2xl"
       footer={
-        <AuthFooterLink
-          prompt="Already have an account?"
-          linkText="Sign in"
-          to={ROUTES.LOGIN}
-        />
+        <div className="space-y-2 text-center">
+          <AuthFooterLink
+            prompt="Already have an account?"
+            linkText="Sign in"
+            to={ROUTES.LOGIN}
+          />
+          <AuthFooterLink
+            prompt="Instructor?"
+            linkText="Create instructor account"
+            to={ROUTES.ADMIN_REGISTER}
+          />
+        </div>
       }
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
@@ -157,11 +164,6 @@ export function RegisterPage() {
               ))}
             </AuthSelect>
           </div>
-
-          <AuthSelect label="Account type" error={errors.role?.message} {...register('role')}>
-            <option value={ROLES.STUDENT}>Student</option>
-            <option value={ROLES.INSTRUCTOR}>Instructor / Supervisor</option>
-          </AuthSelect>
         </AuthSection>
 
         <AuthSection title="Account security">
@@ -182,6 +184,8 @@ export function RegisterPage() {
             />
           </div>
         </AuthSection>
+
+        <input type="hidden" value={ROLES.STUDENT} {...register('role')} />
 
         <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
           <input

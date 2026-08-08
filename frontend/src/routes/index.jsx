@@ -3,6 +3,8 @@ import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { StudentLayout } from '@/components/layout/StudentLayout'
 import { LoginPage } from '@/pages/auth/LoginPage'
+import { AdminLoginPage } from '@/pages/auth/AdminLoginPage'
+import { AdminRegisterPage } from '@/pages/auth/AdminRegisterPage'
 import { RegisterPage } from '@/pages/auth/RegisterPage'
 import { ProfilePage } from '@/pages/student/ProfilePage'
 import { OnboardingPage } from '@/pages/onboarding/OnboardingPage'
@@ -18,7 +20,8 @@ import { NotificationsPage } from '@/pages/student/NotificationsPage'
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage'
 import { CohortManagementPage } from '@/pages/admin/CohortManagementPage'
 import { GroupOverviewPage } from '@/pages/admin/GroupOverviewPage'
-import { DEV_BYPASS_AUTH, ROUTES, ROLES } from '@/utils/constants'
+import { AdminStudentsPage } from '@/pages/admin/AdminStudentsPage'
+import { DEV_BYPASS_AUTH, ROUTES, STAFF_ROLES, ROLES } from '@/utils/constants'
 
 const defaultRoute = DEV_BYPASS_AUTH ? ROUTES.STUDENT_DASHBOARD : ROUTES.LOGIN
 
@@ -27,6 +30,8 @@ export function AppRoutes() {
     <Routes>
       <Route path={ROUTES.HOME} element={<Navigate to={defaultRoute} replace />} />
       <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+      <Route path={ROUTES.ADMIN_LOGIN} element={<AdminLoginPage />} />
+      <Route path={ROUTES.ADMIN_REGISTER} element={<AdminRegisterPage />} />
       <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
 
       <Route
@@ -64,7 +69,7 @@ export function AppRoutes() {
 
       <Route
         element={
-          <ProtectedRoute allowedRoles={[ROLES.INSTRUCTOR]}>
+          <ProtectedRoute allowedRoles={STAFF_ROLES}>
             <AppLayout variant="admin" />
           </ProtectedRoute>
         }
@@ -72,6 +77,7 @@ export function AppRoutes() {
         <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
         <Route path={ROUTES.ADMIN_COHORTS} element={<CohortManagementPage />} />
         <Route path={ROUTES.ADMIN_GROUPS} element={<GroupOverviewPage />} />
+        <Route path={ROUTES.ADMIN_STUDENTS} element={<AdminStudentsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to={defaultRoute} replace />} />

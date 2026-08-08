@@ -5,7 +5,7 @@ import {
   joinPodCall,
   leavePodCall,
   loadActiveCall,
-  openCallInNewTab,
+  mergeCallState,
 } from '@/services/workspaceCallService'
 import { getWorkspaceErrorMessage } from '@/utils/workspaceErrors'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -15,6 +15,8 @@ const WorkspaceCallContext = createContext(null)
 
 export function WorkspaceCallProvider({ groupId, children }) {
   const [activeCall, setActiveCall] = useState(null)
+  const [isCallOpen, setIsCallOpen] = useState(false)
+  const [isJoined, setIsJoined] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [isBusy, setIsBusy] = useState(false)
@@ -28,7 +30,11 @@ export function WorkspaceCallProvider({ groupId, children }) {
 
     try {
       const call = await loadActiveCall(groupId)
-      setActiveCall(call)
+      setActiveCall((previous) => mergeCallState(previous, call))
+      if (!call) {
+        setIsCallOpen(false)
+        setIsJoined(false)
+      }
       setError('')
       return call
     } catch (loadError) {
@@ -41,6 +47,8 @@ export function WorkspaceCallProvider({ groupId, children }) {
 
   useEffect(() => {
     setIsLoading(true)
+    setIsCallOpen(false)
+    setIsJoined(false)
     refreshActiveCall()
   }, [refreshActiveCall])
 
@@ -55,6 +63,8 @@ export function WorkspaceCallProvider({ groupId, children }) {
       onCallStarted: () => refreshActiveCall(),
       onCallEnded: () => {
         setActiveCall(null)
+        setIsCallOpen(false)
+        setIsJoined(false)
       },
       onCallUpdated: () => refreshActiveCall(),
     }),
@@ -71,7 +81,7 @@ export function WorkspaceCallProvider({ groupId, children }) {
         let call = activeCall
         if (!call) {
           try {
-            call = await createPodCall(groupId, { title })
+            call = await createPodCall(groupId, { title, provider: 'jitsi' })
           } catch (startError) {
             if (startError?.response?.status === 409) {
               call = await loadActiveCall(groupId)
@@ -86,15 +96,21 @@ export function WorkspaceCallProvider({ groupId, children }) {
         }
 
         const joined = await joinPodCall(groupId, call.id)
-        const nextCall = joined ?? call
-        setActiveCall(nextCall)
+        const nextCall = mergeCallState(call, joined, {
+          roomUrl:
+            joined?.roomUrl ||
+            call.roomUrl ||
+            (call.id ? `https://meet.jit.si/studysync-${call.id}` : null),
+          provider: joined?.provider || call.provider || 'jitsi',
+        })
 
-        try {
-          openCallInNewTab(nextCall)
-        } catch (openError) {
-          setError(openError.message)
+        if (!nextCall.roomUrl) {
+          throw new Error('Call started, but no meeting room URL was returned.')
         }
 
+        setActiveCall(nextCall)
+        setIsJoined(true)
+        setIsCallOpen(true)
         return nextCall
       } catch (callError) {
         const message = getWorkspaceErrorMessage(callError, 'Unable to start or join the call.')
@@ -108,10 +124,16 @@ export function WorkspaceCallProvider({ groupId, children }) {
   )
 
   const leaveCall = useCallback(async () => {
-    if (!activeCall?.id) return
+    if (!activeCall?.id) {
+      setIsCallOpen(false)
+      setIsJoined(false)
+      return
+    }
     setIsBusy(true)
     try {
       await leavePodCall(groupId, activeCall.id)
+      setIsCallOpen(false)
+      setIsJoined(false)
       await refreshActiveCall()
     } catch (leaveError) {
       setError(getWorkspaceErrorMessage(leaveError, 'Unable to leave the call.'))
@@ -128,6 +150,8 @@ export function WorkspaceCallProvider({ groupId, children }) {
     try {
       await endPodCall(groupId, activeCall.id)
       setActiveCall(null)
+      setIsCallOpen(false)
+      setIsJoined(false)
     } catch (endError) {
       setError(getWorkspaceErrorMessage(endError, 'Unable to end the call.'))
     } finally {
@@ -135,8 +159,22 @@ export function WorkspaceCallProvider({ groupId, children }) {
     }
   }, [activeCall, groupId])
 
+  const openCallPanel = useCallback(() => {
+    if (activeCall?.roomUrl) {
+      setIsCallOpen(true)
+      return
+    }
+    return startOrJoinCall()
+  }, [activeCall, startOrJoinCall])
+
+  const closeCallPanel = useCallback(() => {
+    setIsCallOpen(false)
+  }, [])
+
   const value = {
     activeCall,
+    isCallOpen,
+    isJoined,
     isLoading,
     isBusy,
     error,
@@ -144,6 +182,8 @@ export function WorkspaceCallProvider({ groupId, children }) {
     startOrJoinCall,
     leaveCall,
     endCall,
+    openCallPanel,
+    closeCallPanel,
   }
 
   return (

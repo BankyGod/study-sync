@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { LogOut } from 'lucide-react'
 import { ProfileSummaryCard } from '@/components/profile/ProfileSummaryCard'
 import { EditProfileModal } from '@/components/profile/EditProfileModal'
 import { CompleteStudyPreferencesBanner } from '@/components/onboarding/CompleteStudyPreferencesBanner'
@@ -29,7 +30,8 @@ import {
 } from '@/services/onboardingProfileService'
 
 export function ProfilePage() {
-  const { user, refreshAvatar, avatarVersion, updateUser } = useAuth()
+  const navigate = useNavigate()
+  const { user, refreshAvatar, avatarVersion, updateUser, logout } = useAuth()
   const [profile, setProfile] = useState(null)
   const [groupCount, setGroupCount] = useState(0)
   const [reliability, setReliability] = useState(null)
@@ -246,6 +248,20 @@ export function ProfilePage() {
           value={onboarding.courses}
           onChange={(courses) => setOnboarding((prev) => ({ ...prev, courses }))}
         />
+
+        <section className="border-t border-border pt-6">
+          <button
+            type="button"
+            onClick={() => {
+              logout()
+              navigate(ROUTES.LOGIN, { replace: true })
+            }}
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-page sm:w-auto"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </button>
+        </section>
       </div>
 
       <footer className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-40 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur lg:static lg:bottom-auto lg:z-auto lg:mx-auto lg:max-w-4xl lg:border-0 lg:bg-transparent lg:px-8 lg:py-0 lg:pb-8 lg:backdrop-blur-none">

@@ -6,6 +6,7 @@ import {
   login as loginRequest,
   logout as logoutRequest,
   register as registerRequest,
+  registerInstructor as registerInstructorRequest,
   updateStoredUser,
 } from '@/services/authService'
 import { disconnectSocket } from '@/services/websocketService'
@@ -94,6 +95,19 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  const registerInstructor = useCallback(async (payload) => {
+    setIsLoading(true)
+    try {
+      const data = await registerInstructorRequest(payload)
+      setUser(data.user)
+      setToken(data.token)
+      setAvatarVersion((version) => version + 1)
+      return data
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
   const logout = useCallback(() => {
     logoutRequest()
     disconnectSocket()
@@ -142,12 +156,13 @@ export function AuthProvider({ children }) {
       avatarVersion,
       login,
       register,
+      registerInstructor,
       logout,
       refreshUser,
       refreshAvatar,
       updateUser,
     }),
-    [user, token, isLoading, avatarVersion, login, register, logout, refreshUser, refreshAvatar, updateUser],
+    [user, token, isLoading, avatarVersion, login, register, registerInstructor, logout, refreshUser, refreshAvatar, updateUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

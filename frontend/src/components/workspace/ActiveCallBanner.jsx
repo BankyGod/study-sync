@@ -3,7 +3,17 @@ import { useWorkspaceCall } from '@/context/WorkspaceCallContext'
 import { cn } from '@/utils/cn'
 
 export function ActiveCallBanner({ className }) {
-  const { activeCall, isBusy, error, startOrJoinCall, endCall } = useWorkspaceCall()
+  const {
+    activeCall,
+    isBusy,
+    error,
+    isCallOpen,
+    isJoined,
+    startOrJoinCall,
+    openCallPanel,
+    leaveCall,
+    endCall,
+  } = useWorkspaceCall()
 
   if (!activeCall && !error) return null
 
@@ -21,20 +31,39 @@ export function ActiveCallBanner({ className }) {
             {activeCall ? 'Live pod call' : 'Call update'}
           </p>
           <p className="mt-0.5 truncate text-xs text-brand-700">
-            {activeCall?.title || error || 'A video call is available for this pod.'}
+            {error ||
+              activeCall?.title ||
+              'A video call is available for this pod.'}
+            {isJoined && !isCallOpen ? ' · Joined (minimized)' : ''}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {activeCall ? (
             <>
-              <button
-                type="button"
-                disabled={isBusy}
-                onClick={() => startOrJoinCall()}
-                className="min-h-10 rounded-lg bg-brand-600 px-3 text-sm font-semibold text-surface transition hover:bg-brand-700 disabled:opacity-60"
-              >
-                Join call
-              </button>
+              {isCallOpen ? null : (
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={() =>
+                    isJoined && activeCall.roomUrl
+                      ? openCallPanel()
+                      : startOrJoinCall()
+                  }
+                  className="min-h-10 rounded-lg bg-brand-600 px-3 text-sm font-semibold text-surface transition hover:bg-brand-700 disabled:opacity-60"
+                >
+                  {isJoined ? 'Return to call' : 'Join call'}
+                </button>
+              )}
+              {isJoined ? (
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={leaveCall}
+                  className="min-h-10 rounded-lg border border-border bg-surface px-3 text-sm font-semibold text-ink transition hover:bg-page disabled:opacity-60"
+                >
+                  Leave
+                </button>
+              ) : null}
               <button
                 type="button"
                 disabled={isBusy}

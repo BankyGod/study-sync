@@ -3,9 +3,12 @@ import { Link } from 'react-router-dom'
 import { Card } from '@/components/common/Card'
 import { Button } from '@/components/common/Button'
 import { Spinner } from '@/components/common/Spinner'
-import apiClient from '@/api/client'
-import { endpoints } from '@/api/endpoints'
-import { getApiErrorMessage } from '@/utils/apiErrors'
+import {
+  fetchAdminDashboard,
+  getAdminErrorMessage,
+  getDashboardStats,
+  runAdminMatching,
+} from '@/services/adminService'
 import { ROUTES } from '@/utils/constants'
 
 export function AdminDashboardPage() {
@@ -13,6 +16,7 @@ export function AdminDashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [isMatching, setIsMatching] = useState(false)
+  const [matchMessage, setMatchMessage] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -21,11 +25,11 @@ export function AdminDashboardPage() {
       setIsLoading(true)
       setError('')
       try {
-        const { data } = await apiClient.get(endpoints.admin.dashboard)
+        const data = await fetchAdminDashboard()
         if (!cancelled) setDashboard(data)
       } catch (loadError) {
         if (!cancelled) {
-          setError(getApiErrorMessage(loadError, 'Unable to load admin dashboard.'))
+          setError(getAdminErrorMessage(loadError, 'Unable to load admin dashboard.'))
         }
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -40,25 +44,27 @@ export function AdminDashboardPage() {
 
   const handleRunMatching = async () => {
     setIsMatching(true)
+    setMatchMessage('')
     try {
-      await apiClient.post(endpoints.admin.runMatching)
-      window.alert('Matching run started.')
+      const result = await runAdminMatching()
+      setMatchMessage(
+        result?.jobId
+          ? `Matching job ${result.jobId} started (${result.status ?? 'running'}).`
+          : 'Matching run started.',
+      )
+      const refreshed = await fetchAdminDashboard()
+      setDashboard(refreshed)
     } catch (runError) {
-      window.alert(getApiErrorMessage(runError, 'Unable to run matching.'))
+      setMatchMessage(getAdminErrorMessage(runError, 'Unable to run matching.'))
     } finally {
       setIsMatching(false)
     }
   }
 
-  const overview = dashboard?.overview ?? dashboard?.totals ?? dashboard ?? {}
-  const stats = [
-    { label: 'Students', value: overview.students ?? overview.studentCount ?? '—' },
-    { label: 'Pods', value: overview.groups ?? overview.pods ?? overview.groupCount ?? '—' },
-    { label: 'Active sessions', value: overview.activeSessions ?? overview.sessions ?? '—' },
-  ]
+  const stats = getDashboardStats(dashboard)
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       <header>
         <h1 className="font-display text-2xl font-semibold text-ink">Instructor overview</h1>
         <p className="mt-1 text-sm text-muted">
@@ -75,7 +81,7 @@ export function AdminDashboardPage() {
           {error}
         </p>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
             <div key={stat.label} className="rounded-lg border border-border bg-surface px-4 py-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted">{stat.label}</p>
@@ -85,8 +91,14 @@ export function AdminDashboardPage() {
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card title="Cohorts" description="Configure and seed student data.">
+      {matchMessage && (
+        <p className="rounded-lg border border-border bg-surface px-4 py-3 text-sm text-ink">
+          {matchMessage}
+        </p>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Card title="Cohorts" description="Create cohorts and seed student data.">
           <Link to={ROUTES.ADMIN_COHORTS} className="mt-2 inline-block">
             <Button variant="secondary">Manage cohorts</Button>
           </Link>
@@ -96,9 +108,14 @@ export function AdminDashboardPage() {
             {isMatching ? 'Running…' : 'Run matching'}
           </Button>
         </Card>
-        <Card title="Teams" description="View all clustered groups and reliability flags.">
+        <Card title="Teams" description="View clustered groups and member health.">
           <Link to={ROUTES.ADMIN_GROUPS} className="mt-2 inline-block">
             <Button variant="secondary">View teams</Button>
+          </Link>
+        </Card>
+        <Card title="Students" description="Browse onboarding status and assignments.">
+          <Link to={ROUTES.ADMIN_STUDENTS} className="mt-2 inline-block">
+            <Button variant="secondary">View students</Button>
           </Link>
         </Card>
       </div>

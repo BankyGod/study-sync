@@ -1,5 +1,6 @@
 import apiClient from '@/api/client'
 import { endpoints } from '@/api/endpoints'
+import { buildInstructorRegisterPayload } from '@/utils/auth'
 import { DEV_BYPASS_AUTH, STORAGE_KEYS } from '@/utils/constants'
 
 export async function register(payload) {
@@ -13,6 +14,10 @@ export async function register(payload) {
   const { data } = await apiClient.post(endpoints.auth.register, body)
   persistSession(data)
   return data
+}
+
+export async function registerInstructor({ email, password }) {
+  return register(buildInstructorRegisterPayload({ email, password }))
 }
 
 function buildDevAuthResponse(payload) {

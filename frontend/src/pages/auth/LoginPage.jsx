@@ -8,7 +8,7 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { useAuthContext } from '@/context/AuthContext'
 import { getWorkspaceErrorMessage } from '@/utils/workspaceErrors'
-import { ROUTES } from '@/utils/constants'
+import { getHomeRouteForRole, ROUTES } from '@/utils/constants'
 
 const loginSchema = z.object({
   email: z.email('Enter a valid email'),
@@ -32,8 +32,8 @@ export function LoginPage() {
   const onSubmit = async (values) => {
     try {
       setAuthError('')
-      await login(values)
-      navigate(ROUTES.STUDENT_DASHBOARD)
+      const data = await login(values)
+      navigate(getHomeRouteForRole(data?.user?.role))
     } catch (error) {
       setAuthError(getWorkspaceErrorMessage(error, 'Unable to sign in. Check your email and password.'))
     }
@@ -44,11 +44,18 @@ export function LoginPage() {
       title="Welcome back"
       subtitle="Sign in to continue to your study pods and workspaces."
       footer={
-        <AuthFooterLink
-          prompt="New to StudySync?"
-          linkText="Create an account"
-          to={ROUTES.REGISTER}
-        />
+        <div className="space-y-2 text-center">
+          <AuthFooterLink
+            prompt="New to StudySync?"
+            linkText="Create an account"
+            to={ROUTES.REGISTER}
+          />
+          <AuthFooterLink
+            prompt="Instructor?"
+            linkText="Admin sign in"
+            to={ROUTES.ADMIN_LOGIN}
+          />
+        </div>
       }
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

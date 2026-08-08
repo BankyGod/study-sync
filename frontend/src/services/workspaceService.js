@@ -199,9 +199,10 @@ export async function fetchActiveWorkspaceCall(groupId) {
   return data ?? null
 }
 
-export async function startWorkspaceCall(groupId, { title } = {}) {
+export async function startWorkspaceCall(groupId, { title, provider = 'jitsi' } = {}) {
   const { data } = await apiClient.post(endpoints.workspace.calls(groupId), {
     title: title || undefined,
+    provider,
   })
   return data
 }

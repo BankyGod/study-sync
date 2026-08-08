@@ -1,6 +1,6 @@
-import { Link, NavLink, useLocation } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Bell } from 'lucide-react'
+import { Bell, LogOut } from 'lucide-react'
 import { StudySyncLogo } from '@/components/layout/StudySyncLogo'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
 import { useAuth } from '@/hooks/useAuth'
@@ -18,14 +18,20 @@ const navLinks = [
 ]
 
 export function StudentNavbar({ className }) {
+  const navigate = useNavigate()
   const location = useLocation()
-  const { user, avatarVersion } = useAuth()
+  const { user, avatarVersion, logout } = useAuth()
   const { data: unreadData } = useQuery({
     queryKey: UNREAD_COUNT_QUERY_KEY,
     queryFn: fetchUnreadNotificationCount,
     refetchInterval: 60_000,
   })
   const unreadCount = unreadData?.unreadCount ?? 0
+
+  const handleLogout = () => {
+    logout()
+    navigate(ROUTES.LOGIN, { replace: true })
+  }
 
   return (
     <header className={cn('sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur', className)}>
@@ -56,7 +62,7 @@ export function StudentNavbar({ className }) {
           })}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <Link
             to={ROUTES.NOTIFICATIONS}
             className={cn(
@@ -89,6 +95,15 @@ export function StudentNavbar({ className }) {
               refreshKey={avatarVersion}
             />
           </Link>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-muted transition hover:bg-page hover:text-ink"
+            aria-label="Sign out"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline">Sign out</span>
+          </button>
         </div>
       </div>
     </header>

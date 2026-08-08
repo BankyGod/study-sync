@@ -16,6 +16,7 @@ import { WorkspaceSidebar } from '@/components/workspace/WorkspaceSidebar'
 import { WorkspaceBottomNav } from '@/components/workspace/WorkspaceBottomNav'
 import { WorkspaceRightPanel } from '@/components/workspace/WorkspaceRightPanel'
 import { WorkspaceHeader } from '@/components/workspace/WorkspaceHeader'
+import { VideoCallPanel } from '@/components/workspace/VideoCallPanel'
 import { ScheduleSessionModal } from '@/components/workspace/ScheduleSessionModal'
 import { AddTaskModal } from '@/components/kanban/AddTaskModal'
 import { Spinner } from '@/components/common/Spinner'
@@ -131,6 +132,7 @@ function WorkspaceShell() {
         <WorkspaceScheduleModal />
         <WorkspaceAddTaskModal />
         <WorkspaceEditTaskModal />
+        <VideoCallPanel />
         </WorkspaceCallProvider>
       </WorkspaceTasksProvider>
     </WorkspaceScheduleProvider>
