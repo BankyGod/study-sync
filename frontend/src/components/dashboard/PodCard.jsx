@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowUpRight, BookOpen } from 'lucide-react'
+import { ArrowRight, BookOpen } from 'lucide-react'
 import { MemberAvatar } from '@/components/workspace/MemberAvatar'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/utils/cn'
@@ -9,74 +9,75 @@ export function PodCard({ title, members = [], progress = 0, to, compact = false
   const safeProgress = Math.max(0, Math.min(100, Number(progress) || 0))
 
   const body = (
-    <>
-      <div className="flex min-w-0 items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
-          <BookOpen className="h-4 w-4" />
+    <div className="flex min-w-0 items-center gap-4">
+      <div
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white"
+        style={{ background: 'linear-gradient(135deg, #7c6af4, #6c4de8)' }}
+      >
+        <BookOpen className="h-5 w-5" />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className={cn(
+            'font-semibold text-ink',
+            compact ? 'text-sm' : 'text-[15px]',
+            to ? 'line-clamp-1' : 'line-clamp-2',
+          )}>
+            {title}
+          </h3>
+          {to ? <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" aria-hidden="true" /> : null}
         </div>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start gap-2">
-            <div className="min-w-0 flex-1">
-              <h3 className="line-clamp-2 font-display text-[15px] font-semibold leading-snug text-ink sm:truncate sm:text-base">
-                {title}
-              </h3>
-              <p className="mt-1 text-xs font-medium text-brand-700">
-                Active · {members.length} member{members.length === 1 ? '' : 's'}
-              </p>
-            </div>
-            {to ? (
-              <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+        <div className="mt-2 flex items-center gap-3">
+          <div className="flex -space-x-2">
+            {members.slice(0, 4).map((member) => (
+              <MemberAvatar
+                key={member.id ?? member.initials}
+                member={member}
+                size="sm"
+                bordered
+                refreshKey={avatarVersion}
+              />
+            ))}
+            {members.length > 4 ? (
+              <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-surface bg-page text-[10px] font-bold text-muted">
+                +{members.length - 4}
+              </div>
             ) : null}
           </div>
-
-          <div className="mt-3 flex min-w-0 items-center gap-3">
-            <div className="flex min-w-0 flex-1 -space-x-2 overflow-hidden">
-              {members.slice(0, 4).map((member) => (
-                <MemberAvatar
-                  key={member.id ?? member.initials}
-                  member={member}
-                  size="sm"
-                  bordered
-                  refreshKey={avatarVersion}
-                />
-              ))}
-              {members.length > 4 ? (
-                <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-surface bg-page text-xs font-semibold text-muted">
-                  +{members.length - 4}
-                </div>
-              ) : null}
-            </div>
-
-            <p className="shrink-0 text-xs font-semibold tabular-nums text-ink">
-              {safeProgress}%
-              <span className="ml-1 font-medium text-muted">done</span>
-            </p>
-          </div>
-
-          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-border/70">
-            <div
-              className="h-full rounded-full bg-brand-600 transition-[width] duration-300"
-              style={{ width: `${safeProgress}%` }}
-            />
-          </div>
+          <span className="text-xs text-muted">{members.length} member{members.length === 1 ? '' : 's'}</span>
         </div>
+
+        {!compact && (
+          <div className="mt-3">
+            <div className="flex items-center justify-between text-xs text-muted mb-1">
+              <span>Progress</span>
+              <span className="font-semibold text-ink">{safeProgress}%</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-page">
+              <div
+                className="h-full rounded-full transition-[width] duration-500"
+                style={{
+                  width: `${safeProgress}%`,
+                  background: 'linear-gradient(90deg, #7c6af4, #6c4de8)',
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
-    </>
+    </div>
   )
 
   const className = cn(
-    'block min-w-0 border-b border-border bg-surface px-3 py-3.5 transition last:border-b-0 sm:px-4 sm:py-4',
-    to && 'hover:bg-page/80',
-    compact && 'px-3 py-3',
+    'block min-w-0 border-b border-border px-5 py-4 transition last:border-b-0',
+    to && 'hover:bg-brand-50/40',
+    compact && 'px-4 py-3',
   )
 
   if (to) {
-    return (
-      <Link to={to} className={className}>
-        {body}
-      </Link>
-    )
+    return <Link to={to} className={className}>{body}</Link>
   }
 
   return <article className={className}>{body}</article>

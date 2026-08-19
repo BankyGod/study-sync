@@ -25,6 +25,50 @@ function buildJitsiUrl(roomName) {
   return `${JITSI_HOST}/${safeRoom}`
 }
 
+/**
+ * Jitsi reads config from the URL hash (not query string).
+ * Without disableDeepLinking, mobile shows "Join in app / Join in browser".
+ */
+export function buildJitsiEmbedUrl(roomUrl, displayName = 'StudySync') {
+  if (!roomUrl) return null
+
+  try {
+    const url = new URL(roomUrl)
+    const isJitsi =
+      url.hostname.includes('jit.si') ||
+      url.hostname.includes('jitsi') ||
+      url.hostname.includes('8x8.vc')
+
+    if (!isJitsi) return url.toString()
+
+    const params = [
+      'config.disableDeepLinking=true',
+      'config.deeplinking.disabled=true',
+      'config.prejoinPageEnabled=false',
+      'config.prejoinConfig.enabled=false',
+      'config.disableInviteFunctions=true',
+      'interfaceConfig.MOBILE_APP_PROMO=false',
+      'interfaceConfig.SHOW_CHROME_EXTENSION_BANNER=false',
+    ]
+
+    if (displayName) {
+      params.push(`userInfo.displayName=${encodeURIComponent(JSON.stringify(displayName))}`)
+    }
+
+    const existing = url.hash.replace(/^#/, '').split('&').filter(Boolean)
+    const keys = new Set(params.map((part) => part.split('=')[0]))
+    const kept = existing.filter((part) => !keys.has(part.split('=')[0]))
+    url.hash = [...kept, ...params].join('&')
+    // Drop ineffective query configs if any were stored on the room URL.
+    ;['userInfo.displayName', 'config.prejoinConfig.enabled', 'config.disableDeepLinking'].forEach(
+      (key) => url.searchParams.delete(key),
+    )
+    return url.toString()
+  } catch {
+    return roomUrl
+  }
+}
+
 export function normalizeCall(payload) {
   if (!payload) return null
 

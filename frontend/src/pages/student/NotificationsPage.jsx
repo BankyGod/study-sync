@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Bell, CheckCheck } from 'lucide-react'
 import { NotificationListItem } from '@/components/notifications/NotificationListItem'
+import { Button } from '@/components/common/Button'
 import { Spinner } from '@/components/common/Spinner'
+import { PageHeader, PageShell, SurfacePanel } from '@/components/layout/PageShell'
 import {
   NOTIFICATIONS_QUERY_KEY,
   UNREAD_COUNT_QUERY_KEY,
@@ -80,30 +82,24 @@ export function NotificationsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Alerts</p>
-          <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
-            Notifications
-          </h1>
-          <p className="mt-2 text-sm text-muted">
-            Task updates and pod activity from your study groups.
-          </p>
-        </div>
-
-        {unreadCount > 0 ? (
-          <button
-            type="button"
-            onClick={() => markAllReadMutation.mutate()}
-            disabled={markAllReadMutation.isPending}
-            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-page disabled:opacity-60 sm:w-auto"
-          >
-            <CheckCheck className="h-4 w-4" />
-            Mark all read
-          </button>
-        ) : null}
-      </header>
+    <PageShell width="5xl">
+      <PageHeader
+        eyebrow="Alerts"
+        title="Notifications"
+        description="Task updates and pod activity from your study groups."
+        actions={
+          unreadCount > 0 ? (
+            <Button
+              variant="secondary"
+              onClick={() => markAllReadMutation.mutate()}
+              disabled={markAllReadMutation.isPending}
+            >
+              <CheckCheck className="h-4 w-4" />
+              Mark all read
+            </Button>
+          ) : null
+        }
+      />
 
       <div className="mt-6 flex items-center gap-4 border-b border-border">
         {FILTERS.map((item) => (
@@ -135,19 +131,19 @@ export function NotificationsPage() {
             {getNotificationsErrorMessage(error)}
           </div>
         ) : notifications.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border bg-surface px-6 py-12">
-            <Bell className="h-6 w-6 text-muted" />
+          <div className="ui-empty">
+            <Bell className="mx-auto h-6 w-6 text-muted" />
             <h2 className="mt-4 font-display text-lg font-semibold text-ink">
               {unreadOnly ? 'No unread notifications' : 'Nothing here yet'}
             </h2>
-            <p className="mt-1 text-sm text-muted">
+            <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
               {unreadOnly
                 ? 'You are all caught up.'
                 : 'When teammates assign tasks or update progress, alerts appear here.'}
             </p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-border bg-surface">
+          <SurfacePanel>
             {notifications.map((notification) => (
               <NotificationListItem
                 key={notification.id}
@@ -168,9 +164,9 @@ export function NotificationsPage() {
                 </button>
               </div>
             ) : null}
-          </div>
+          </SurfacePanel>
         )}
       </div>
-    </div>
+    </PageShell>
   )
 }

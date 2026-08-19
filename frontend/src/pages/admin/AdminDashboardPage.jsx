@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Card } from '@/components/common/Card'
+import { ArrowRight, GraduationCap, Play, UserRound, Users } from 'lucide-react'
 import { Button } from '@/components/common/Button'
 import { Spinner } from '@/components/common/Spinner'
+import { PageHeader, PageShell, StatTile } from '@/components/layout/PageShell'
 import {
   fetchAdminDashboard,
   getAdminErrorMessage,
@@ -20,7 +21,6 @@ export function AdminDashboardPage() {
 
   useEffect(() => {
     let cancelled = false
-
     async function load() {
       setIsLoading(true)
       setError('')
@@ -28,18 +28,13 @@ export function AdminDashboardPage() {
         const data = await fetchAdminDashboard()
         if (!cancelled) setDashboard(data)
       } catch (loadError) {
-        if (!cancelled) {
-          setError(getAdminErrorMessage(loadError, 'Unable to load admin dashboard.'))
-        }
+        if (!cancelled) setError(getAdminErrorMessage(loadError, 'Unable to load admin dashboard.'))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
     }
-
     load()
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [])
 
   const handleRunMatching = async () => {
@@ -63,62 +58,106 @@ export function AdminDashboardPage() {
 
   const stats = getDashboardStats(dashboard)
 
-  return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <header>
-        <h1 className="font-display text-2xl font-semibold text-ink">Instructor overview</h1>
-        <p className="mt-1 text-sm text-muted">
-          Manage cohorts, run matching, and monitor pod health.
-        </p>
-      </header>
+  const quickActions = [
+    {
+      title: 'Cohorts',
+      description: 'Create cohorts and manage student data.',
+      icon: GraduationCap,
+      to: ROUTES.ADMIN_COHORTS,
+      label: 'Manage',
+    },
+    {
+      title: 'Group Matching',
+      description: 'Run the heuristic matching engine.',
+      icon: Play,
+      action: handleRunMatching,
+      loading: isMatching,
+      label: isMatching ? 'Running…' : 'Run Now',
+    },
+    {
+      title: 'Teams',
+      description: 'View clustered groups and member health.',
+      icon: Users,
+      to: ROUTES.ADMIN_GROUPS,
+      label: 'View Teams',
+    },
+    {
+      title: 'Students',
+      description: 'Browse onboarding status and assignments.',
+      icon: UserRound,
+      to: ROUTES.ADMIN_STUDENTS,
+      label: 'View Students',
+    },
+  ]
 
-      {isLoading ? (
-        <div className="flex min-h-[180px] items-center justify-center">
-          <Spinner size="lg" />
+  return (
+    <PageShell>
+      <PageHeader
+        eyebrow="Instructor Portal"
+        title="Overview"
+        description="Monitor pod health, manage cohorts, and run group matching."
+      />
+
+      {/* Stats */}
+      <div className="mt-8">
+        {isLoading ? (
+          <div className="flex min-h-[160px] items-center justify-center rounded-2xl border border-border bg-surface">
+            <Spinner size="lg" />
+          </div>
+        ) : error ? (
+          <div className="rounded-2xl border border-red-100 bg-red-50 px-5 py-4 text-sm text-red-700">
+            {error}
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {stats.map((stat) => (
+              <StatTile key={stat.label} label={stat.label} value={stat.value} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {matchMessage ? (
+        <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-50 px-5 py-3 text-sm font-medium text-brand-800">
+          {matchMessage}
         </div>
-      ) : error ? (
-        <p className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </p>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => (
-            <div key={stat.label} className="rounded-lg border border-border bg-surface px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">{stat.label}</p>
-              <p className="mt-2 font-display text-2xl font-semibold text-ink">{stat.value}</p>
+      ) : null}
+
+      {/* Quick actions */}
+      <div className="mt-8 space-y-3">
+        <h2 className="text-base font-bold text-ink">Quick Actions</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {quickActions.map(({ title, description, icon: Icon, to, label, action, loading }) => (
+            <div
+              key={title}
+              className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-5 shadow-xs transition hover:shadow-sm"
+            >
+              <div
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white"
+                style={{ background: 'linear-gradient(135deg, #7c6af4, #6c4de8)' }}
+              >
+                <Icon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-ink">{title}</p>
+                <p className="mt-0.5 text-sm text-muted">{description}</p>
+              </div>
+              {to ? (
+                <Link to={to}>
+                  <Button variant="outline" size="sm">
+                    {label}
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
+                </Link>
+              ) : (
+                <Button size="sm" onClick={action} disabled={loading}>
+                  {label}
+                </Button>
+              )}
             </div>
           ))}
         </div>
-      )}
-
-      {matchMessage && (
-        <p className="rounded-lg border border-border bg-surface px-4 py-3 text-sm text-ink">
-          {matchMessage}
-        </p>
-      )}
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card title="Cohorts" description="Create cohorts and seed student data.">
-          <Link to={ROUTES.ADMIN_COHORTS} className="mt-2 inline-block">
-            <Button variant="secondary">Manage cohorts</Button>
-          </Link>
-        </Card>
-        <Card title="Group matching" description="Run the heuristic matching engine.">
-          <Button className="mt-2" onClick={handleRunMatching} disabled={isMatching}>
-            {isMatching ? 'Running…' : 'Run matching'}
-          </Button>
-        </Card>
-        <Card title="Teams" description="View clustered groups and member health.">
-          <Link to={ROUTES.ADMIN_GROUPS} className="mt-2 inline-block">
-            <Button variant="secondary">View teams</Button>
-          </Link>
-        </Card>
-        <Card title="Students" description="Browse onboarding status and assignments.">
-          <Link to={ROUTES.ADMIN_STUDENTS} className="mt-2 inline-block">
-            <Button variant="secondary">View students</Button>
-          </Link>
-        </Card>
       </div>
-    </div>
+    </PageShell>
   )
 }

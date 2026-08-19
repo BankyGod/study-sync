@@ -78,7 +78,9 @@ export function WorkspaceCallProvider({ groupId, children }) {
       setIsBusy(true)
       setError('')
       try {
-        let call = activeCall
+        // Always re-fetch so joiners use the host's room URL, not a local fallback.
+        let call = await loadActiveCall(groupId)
+
         if (!call) {
           try {
             call = await createPodCall(groupId, { title, provider: 'jitsi' })
@@ -98,10 +100,13 @@ export function WorkspaceCallProvider({ groupId, children }) {
         const joined = await joinPodCall(groupId, call.id)
         const nextCall = mergeCallState(call, joined, {
           roomUrl:
-            joined?.roomUrl ||
             call.roomUrl ||
+            joined?.roomUrl ||
+            (call.roomName
+              ? `https://meet.jit.si/${encodeURIComponent(String(call.roomName).replace(/\s+/g, '-'))}`
+              : null) ||
             (call.id ? `https://meet.jit.si/studysync-${call.id}` : null),
-          provider: joined?.provider || call.provider || 'jitsi',
+          provider: call.provider || joined?.provider || 'jitsi',
         })
 
         if (!nextCall.roomUrl) {
@@ -120,7 +125,7 @@ export function WorkspaceCallProvider({ groupId, children }) {
         setIsBusy(false)
       }
     },
-    [activeCall, groupId],
+    [groupId],
   )
 
   const leaveCall = useCallback(async () => {

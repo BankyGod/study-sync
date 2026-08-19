@@ -2,22 +2,7 @@ import { PhoneOff, Video, X } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useWorkspaceCall } from '@/context/WorkspaceCallContext'
-
-function buildEmbedUrl(roomUrl, displayName) {
-  if (!roomUrl) return null
-
-  try {
-    const url = new URL(roomUrl)
-    if (url.hostname.includes('jit.si') || url.hostname.includes('jitsi')) {
-      url.searchParams.set('userInfo.displayName', displayName || 'StudySync')
-      url.searchParams.set('config.prejoinConfig.enabled', 'false')
-      url.searchParams.set('config.disableDeepLinking', 'true')
-    }
-    return url.toString()
-  } catch {
-    return roomUrl
-  }
-}
+import { buildJitsiEmbedUrl } from '@/services/workspaceCallService'
 
 export function VideoCallPanel() {
   const { user } = useAuth()
@@ -32,9 +17,14 @@ export function VideoCallPanel() {
   } = useWorkspaceCall()
 
   const embedUrl = useMemo(
-    () => buildEmbedUrl(activeCall?.roomUrl, user?.name),
+    () => buildJitsiEmbedUrl(activeCall?.roomUrl, user?.name || 'StudySync'),
     [activeCall?.roomUrl, user?.name],
   )
+
+  const canEndForAll =
+    !activeCall?.startedBy ||
+    String(activeCall.startedBy) === String(user?.id) ||
+    String(activeCall.startedBy?.id) === String(user?.id)
 
   useEffect(() => {
     if (!isCallOpen) return undefined
@@ -49,7 +39,7 @@ export function VideoCallPanel() {
   if (!isCallOpen || !activeCall) return null
 
   return (
-    <div className="fixed inset-0 z-[80] flex flex-col bg-ink/95 text-surface">
+    <div className="fixed inset-0 z-[100] flex flex-col bg-ink text-surface">
       <header className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-6">
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-sm font-semibold">
@@ -71,10 +61,12 @@ export function VideoCallPanel() {
       <div className="relative min-h-0 flex-1 bg-black">
         {embedUrl ? (
           <iframe
+            key={embedUrl}
             title={activeCall.title || 'Pod video call'}
             src={embedUrl}
-            allow="camera; microphone; display-capture; autoplay; clipboard-write"
+            allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen"
             allowFullScreen
+            referrerPolicy="no-referrer-when-downgrade"
             className="absolute inset-0 h-full w-full border-0"
           />
         ) : (
@@ -87,7 +79,7 @@ export function VideoCallPanel() {
         )}
       </div>
 
-      <footer className="flex flex-wrap items-center justify-center gap-3 border-t border-white/10 px-4 py-4 sm:px-6">
+      <footer className="flex flex-wrap items-center justify-center gap-3 border-t border-white/10 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
         <button
           type="button"
           disabled={isBusy}
@@ -97,14 +89,16 @@ export function VideoCallPanel() {
           <PhoneOff className="h-4 w-4" />
           Leave
         </button>
-        <button
-          type="button"
-          disabled={isBusy}
-          onClick={endCall}
-          className="inline-flex h-11 items-center gap-2 rounded-full bg-red-600 px-5 text-sm font-semibold transition hover:bg-red-500 disabled:opacity-60"
-        >
-          End for all
-        </button>
+        {canEndForAll ? (
+          <button
+            type="button"
+            disabled={isBusy}
+            onClick={endCall}
+            className="inline-flex h-11 items-center gap-2 rounded-full bg-red-600 px-5 text-sm font-semibold transition hover:bg-red-500 disabled:opacity-60"
+          >
+            End for all
+          </button>
+        ) : null}
       </footer>
     </div>
   )

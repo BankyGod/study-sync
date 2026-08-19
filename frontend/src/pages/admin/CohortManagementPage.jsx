@@ -3,6 +3,7 @@ import { Button } from '@/components/common/Button'
 import { Card } from '@/components/common/Card'
 import { Input } from '@/components/common/Input'
 import { Spinner } from '@/components/common/Spinner'
+import { PageHeader, PageShell } from '@/components/layout/PageShell'
 import {
   createAdminCohort,
   fetchAdminCohorts,
@@ -114,21 +115,21 @@ export function CohortManagementPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <header>
-        <h1 className="font-display text-2xl font-semibold text-ink">Cohort management</h1>
-        <p className="mt-1 text-sm text-muted">
-          Create cohorts, seed staging data, and run batch matching.
-        </p>
-      </header>
+    <PageShell>
+      <PageHeader
+        eyebrow="Instructor"
+        title="Cohort management"
+        description="Create cohorts, seed staging data, and run batch matching."
+      />
 
+      <div className="mt-8 space-y-6">
       {message && (
-        <p className="rounded-lg border border-border bg-surface px-4 py-3 text-sm text-ink">
+        <p className="rounded-xl border border-border bg-surface px-4 py-3 text-sm text-ink">
           {message}
         </p>
       )}
 
-      <Card title="Create cohort" description="Register a new cohort for matching.">
+      <Card variant="panel" title="Create cohort" description="Register a new cohort for matching.">
         <form onSubmit={handleCreate} className="grid gap-4 sm:grid-cols-[1fr_auto_auto] sm:items-end">
           <Input
             label="Cohort name"
@@ -150,7 +151,7 @@ export function CohortManagementPage() {
         </form>
       </Card>
 
-      <Card title="Seed & match" description="Generate demo students then run matching for a cohort.">
+      <Card variant="panel" title="Seed & match" description="Generate demo students then run matching for a cohort.">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="block text-sm">
             <span className="mb-1.5 block font-medium text-ink">Cohort</span>
@@ -196,7 +197,7 @@ export function CohortManagementPage() {
         </div>
       </Card>
 
-      <Card title="Active cohorts">
+      <Card variant="panel" title="Active cohorts">
         {isLoading ? (
           <div className="flex min-h-[120px] items-center justify-center">
             <Spinner />
@@ -232,6 +233,7 @@ export function CohortManagementPage() {
           </div>
         )}
       </Card>
-    </div>
+      </div>
+    </PageShell>
   )
 }

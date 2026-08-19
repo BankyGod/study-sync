@@ -1,16 +1,9 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { GraduationCap, LayoutDashboard, LogOut, UserRound, Users, Workflow } from 'lucide-react'
-import { Button } from '@/components/common/Button'
+import { GraduationCap, LayoutDashboard, LogOut, UserRound, Users } from 'lucide-react'
 import { StudySyncLogo } from '@/components/layout/StudySyncLogo'
 import { useAuth } from '@/hooks/useAuth'
 import { ROUTES } from '@/utils/constants'
 import { cn } from '@/utils/cn'
-
-const studentLinks = [
-  { to: ROUTES.STUDENT_DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
-  { to: ROUTES.WORKSPACE_LIST, label: 'Workspaces', icon: Workflow },
-  { to: ROUTES.ONBOARDING, label: 'Profile', icon: GraduationCap },
-]
 
 const adminLinks = [
   { to: ROUTES.ADMIN_DASHBOARD, label: 'Overview', icon: LayoutDashboard },
@@ -19,10 +12,9 @@ const adminLinks = [
   { to: ROUTES.ADMIN_STUDENTS, label: 'Students', icon: UserRound },
 ]
 
-export function AppLayout({ variant = 'student' }) {
+export function AppLayout({ variant = 'admin' }) {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
-  const links = variant === 'admin' ? adminLinks : studentLinks
   const isAdmin = variant === 'admin'
 
   const handleLogout = () => {
@@ -31,63 +23,88 @@ export function AppLayout({ variant = 'student' }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-page">
-      <aside className="flex w-64 flex-shrink-0 flex-col border-r border-border bg-surface">
-        <div className="border-b border-border px-5 py-6">
-          <div className="flex items-center gap-3">
-            <StudySyncLogo className="h-10 w-auto" />
-            <div>
-              <p className="font-semibold text-ink">StudySync</p>
-              <p className="text-xs text-muted">
-                {isAdmin ? 'Instructor portal' : 'Learning Platform'}
-              </p>
-            </div>
+    <div className="flex min-h-dvh bg-page">
+      {/* Dark sidebar */}
+      <aside
+        className="hidden w-60 shrink-0 flex-col lg:flex xl:w-64"
+        style={{ background: 'var(--color-sidebar)' }}
+      >
+        {/* Logo */}
+        <div className="px-5 py-6">
+          <StudySyncLogo light />
+          <div className="mt-4 rounded-xl bg-white/5 px-3 py-2">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+              {isAdmin ? 'Instructor Portal' : 'Student Workspace'}
+            </p>
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 p-3">
-          {links.map(({ to, label, icon: Icon }) => (
+        {/* Nav */}
+        <nav className="flex-1 space-y-1 px-3">
+          {adminLinks.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               end={to === ROUTES.ADMIN_DASHBOARD}
               className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200',
-                  isActive
-                    ? 'bg-brand-50 text-brand-700'
-                    : 'text-muted hover:bg-page hover:text-ink',
-                )
+                cn('sidebar-link', isActive && 'sidebar-link-active')
               }
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-page">
-                <Icon className="h-4 w-4" />
-              </div>
+              <Icon className="h-[18px] w-[18px] shrink-0 opacity-80" />
               {label}
             </NavLink>
           ))}
         </nav>
 
-        <div className="border-t border-border p-4">
-          <p className="truncate text-sm font-medium text-ink">{user?.name}</p>
-          <p className="truncate text-xs capitalize text-muted">{user?.role}</p>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mt-3 w-full justify-start"
+        {/* User footer */}
+        <div
+          className="mx-3 mb-4 rounded-2xl p-3"
+          style={{ background: 'var(--color-sidebar-hover)' }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-sm font-bold text-white">
+              {(user?.name ?? 'A').charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-white">{user?.name}</p>
+              <p className="truncate text-xs capitalize" style={{ color: 'var(--color-sidebar-text)' }}>
+                {user?.role}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
             onClick={handleLogout}
+            className="mt-3 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-colors hover:bg-white/10"
+            style={{ color: 'var(--color-sidebar-text)' }}
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-3.5 w-3.5" />
             Sign out
-          </Button>
+          </button>
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto">
-        <div className="p-6">
+      {/* Main */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Mobile topbar */}
+        <header
+          className="flex items-center justify-between px-4 py-3 lg:hidden"
+          style={{ background: 'var(--color-sidebar)' }}
+        >
+          <StudySyncLogo light size="sm" />
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-white/60 transition hover:bg-white/10 hover:text-white"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </header>
+
+        <main className="flex-1 overflow-auto">
           <Outlet />
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   )
 }

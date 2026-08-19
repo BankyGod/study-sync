@@ -7,7 +7,9 @@ import { CompleteStudyPreferencesBanner } from '@/components/onboarding/Complete
 import { LearningStyleSelector } from '@/components/profile/LearningStyleSelector'
 import { AvailabilityScheduler } from '@/components/profile/AvailabilityScheduler'
 import { EnrolledCourses } from '@/components/profile/EnrolledCourses'
+import { Button } from '@/components/common/Button'
 import { Spinner } from '@/components/common/Spinner'
+import { PageHeader, PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/hooks/useAuth'
 import { ROUTES } from '@/utils/constants'
 import {
@@ -191,29 +193,26 @@ export function ProfilePage() {
 
   return (
     <>
-      <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 pb-24 sm:space-y-8 sm:px-6 sm:py-8 lg:px-8 lg:pb-8">
-        <header className="border-b border-border pb-5 sm:pb-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Account</p>
-          <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
-            Your profile
-          </h1>
-          <p className="mt-2 text-sm text-muted">
-            Update how classmates see you and how StudySync matches you into pods.
-          </p>
-        </header>
+      <PageShell width="4xl" className="pb-28 lg:pb-9">
+        <PageHeader
+          eyebrow="Account"
+          title="Your profile"
+          description="Update how classmates see you and how StudySync matches you into pods."
+        />
 
         {error && (
-          <p className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+          <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
             {error}
           </p>
         )}
 
         {success && (
-          <p className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <p className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
             {success}
           </p>
         )}
 
+        <div className="mt-8 space-y-8">
         {!hasSavedProfile ? (
           <CompleteStudyPreferencesBanner
             returnTo={ROUTES.PROFILE}
@@ -250,36 +249,28 @@ export function ProfilePage() {
         />
 
         <section className="border-t border-border pt-6">
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             onClick={() => {
               logout()
               navigate(ROUTES.LOGIN, { replace: true })
             }}
-            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-page sm:w-auto"
           >
             <LogOut className="h-4 w-4" />
             Sign out
-          </button>
+          </Button>
         </section>
-      </div>
+        </div>
+      </PageShell>
 
-      <footer className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-40 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur lg:static lg:bottom-auto lg:z-auto lg:mx-auto lg:max-w-4xl lg:border-0 lg:bg-transparent lg:px-8 lg:py-0 lg:pb-8 lg:backdrop-blur-none">
-        <div className="mx-auto flex max-w-4xl flex-col-reverse gap-2 border-border sm:flex-row sm:justify-end sm:gap-3 lg:border-t lg:pt-6">
-          <Link
-            to={ROUTES.STUDENT_DASHBOARD}
-            className="inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-muted transition hover:text-ink"
-          >
-            Cancel
-          </Link>
-          <button
-            type="button"
-            disabled={isSaving}
-            onClick={handleSaveAll}
-            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-surface transition hover:bg-brand-700 disabled:opacity-60"
-          >
+      <footer className="fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] z-40 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur lg:static lg:bottom-auto lg:z-auto lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none">
+        <div className="mx-auto flex max-w-4xl flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3 lg:border-t lg:border-border lg:pt-6">
+          <Button variant="ghost" asChild>
+            <Link to={ROUTES.STUDENT_DASHBOARD}>Cancel</Link>
+          </Button>
+          <Button disabled={isSaving} onClick={handleSaveAll}>
             {isSaving ? 'Saving...' : 'Save changes'}
-          </button>
+          </Button>
         </div>
       </footer>
 

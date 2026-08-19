@@ -6,7 +6,9 @@ import { MatchFoundView } from '@/components/find-groups/MatchFoundView'
 import { CourseSelectPanel, courseKey } from '@/components/find-groups/CourseSelectPanel'
 import { CompleteStudyPreferencesBanner } from '@/components/onboarding/CompleteStudyPreferencesBanner'
 import { useMatchingProgress } from '@/hooks/useMatchingProgress'
+import { Button } from '@/components/common/Button'
 import { Spinner } from '@/components/common/Spinner'
+import { PageHeader, PageShell } from '@/components/layout/PageShell'
 import {
   getOnboardingErrorMessage,
   isOnboardingProfileSaved,
@@ -203,13 +205,18 @@ export function FindGroupsPage() {
       isOnboardingRequiredMessage(error)
 
     return (
-      <div className="px-4 py-10 sm:px-6 lg:px-8">
+      <PageShell width="5xl">
         {!isProfileReady && !profileError ? (
           <div className="flex min-h-[280px] items-center justify-center">
             <Spinner size="lg" />
           </div>
         ) : (
           <div className="space-y-6">
+            <PageHeader
+              eyebrow="Matching"
+              title="Find your study group"
+              description="Choose a course and we will match you with classmates by schedule, learning style, and preferences."
+            />
             {showOnboardingPrompt ? (
               <CompleteStudyPreferencesBanner returnTo={ROUTES.FIND_GROUPS} />
             ) : null}
@@ -229,7 +236,7 @@ export function FindGroupsPage() {
             />
           </div>
         )}
-      </div>
+      </PageShell>
     )
   }
 
@@ -238,27 +245,23 @@ export function FindGroupsPage() {
   const totalOpenSlots = courseGroups.reduce((sum, group) => sum + (group.openSlots ?? 0), 0)
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-      <header className="border-b border-border pb-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-          {courseLabel ? `Searching · ${courseLabel}` : 'Searching'}
-        </p>
-        <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
-          Finding your study group
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-          {courseLabel
+    <PageShell width="5xl">
+      <PageHeader
+        eyebrow={courseLabel ? `Searching · ${courseLabel}` : 'Searching'}
+        title="Finding your study group"
+        description={
+          courseLabel
             ? `Scanning students in ${courseLabel} for schedule, learning style, and preference fit.`
-            : 'Matching classmates by course and study preferences.'}
+            : 'Matching classmates by course and study preferences.'
+        }
+      />
+      {courseGroups.length > 0 ? (
+        <p className="-mt-4 mb-2 text-sm text-muted">
+          {openGroupCount > 0
+            ? `${openGroupCount} open group${openGroupCount === 1 ? '' : 's'} · ${totalOpenSlots} slot${totalOpenSlots === 1 ? '' : 's'}`
+            : `${courseGroups.length} existing group${courseGroups.length === 1 ? '' : 's'} found`}
         </p>
-        {courseGroups.length > 0 ? (
-          <p className="mt-2 text-sm text-muted">
-            {openGroupCount > 0
-              ? `${openGroupCount} open group${openGroupCount === 1 ? '' : 's'} · ${totalOpenSlots} slot${totalOpenSlots === 1 ? '' : 's'}`
-              : `${courseGroups.length} existing group${courseGroups.length === 1 ? '' : 's'} found`}
-          </p>
-        ) : null}
-      </header>
+      ) : null}
 
       {statusMessage && (
         <div
@@ -294,22 +297,14 @@ export function FindGroupsPage() {
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         {isWaitingForPeers && (
-          <button
-            type="button"
-            onClick={handleCheckAgain}
-            className="min-h-11 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-page"
-          >
+          <Button variant="secondary" onClick={handleCheckAgain}>
             Check again
-          </button>
+          </Button>
         )}
-        <button
-          type="button"
-          onClick={handleChangeCourse}
-          className="min-h-11 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-page"
-        >
+        <Button variant="secondary" onClick={handleChangeCourse}>
           Change course
-        </button>
+        </Button>
       </div>
-    </div>
+    </PageShell>
   )
 }

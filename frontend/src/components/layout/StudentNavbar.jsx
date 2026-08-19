@@ -1,4 +1,4 @@
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Bell, LogOut } from 'lucide-react'
 import { StudySyncLogo } from '@/components/layout/StudySyncLogo'
@@ -34,57 +34,62 @@ export function StudentNavbar({ className }) {
   }
 
   return (
-    <header className={cn('sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur', className)}>
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 sm:gap-6 sm:px-6">
-        <StudySyncLogo className="min-w-0 [&_span]:truncate [&_span]:text-base sm:[&_span]:text-lg" />
+    <header
+      className={cn(
+        'sticky top-0 z-40 border-b border-border bg-surface/95 shadow-xs backdrop-blur-md',
+        className,
+      )}
+    >
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <StudySyncLogo />
 
-        <nav className="hidden items-center gap-6 lg:flex">
+        <nav className="hidden items-center gap-0.5 lg:flex">
           {navLinks.map(({ to, label, isWorkspace }) => {
             const isActive = isWorkspace
               ? isWorkspaceRoute(location.pathname)
               : location.pathname === to
 
             return (
-              <NavLink
+              <Link
                 key={to}
                 to={to}
                 className={cn(
-                  'relative pb-0.5 text-sm font-medium transition',
-                  isActive ? 'text-ink' : 'text-muted hover:text-ink',
+                  'rounded-xl px-4 py-2 text-sm font-semibold transition-all',
+                  isActive
+                    ? 'bg-brand-600 text-white shadow-sm'
+                    : 'text-soft hover:bg-page hover:text-ink',
                 )}
               >
                 {label}
-                {isActive ? (
-                  <span className="absolute inset-x-0 -bottom-1 h-0.5 rounded-full bg-brand-600" />
-                ) : null}
-              </NavLink>
+              </Link>
             )
           })}
         </nav>
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1.5">
           <Link
             to={ROUTES.NOTIFICATIONS}
             className={cn(
-              'relative flex h-9 w-9 items-center justify-center rounded-lg transition',
+              'relative flex h-10 w-10 items-center justify-center rounded-xl transition',
               location.pathname === ROUTES.NOTIFICATIONS
-                ? 'bg-brand-50 text-brand-700'
+                ? 'bg-brand-600 text-white'
                 : 'text-muted hover:bg-page hover:text-ink',
             )}
             aria-label={
               unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'
             }
           >
-            <Bell className="h-5 w-5" />
+            <Bell className="h-[18px] w-[18px]" />
             {unreadCount > 0 ? (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-surface">
+              <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             ) : null}
           </Link>
+
           <Link
             to={ROUTES.PROFILE}
-            className="hidden rounded-full transition hover:opacity-90 lg:block"
+            className="hidden rounded-full ring-2 ring-transparent transition hover:ring-brand-200 lg:block"
             aria-label="Your profile"
           >
             <ProfileAvatar
@@ -95,10 +100,11 @@ export function StudentNavbar({ className }) {
               refreshKey={avatarVersion}
             />
           </Link>
+
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-muted transition hover:bg-page hover:text-ink"
+            className="inline-flex h-10 items-center gap-1.5 rounded-xl px-2.5 text-sm font-semibold text-muted transition hover:bg-page hover:text-ink"
             aria-label="Sign out"
           >
             <LogOut className="h-4 w-4" />

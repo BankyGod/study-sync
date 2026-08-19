@@ -2,10 +2,12 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { CalendarDays, Folder, LayoutGrid, MessageSquare } from 'lucide-react'
 import { NavBadge } from '@/components/common/NavBadge'
 import { useWorkspaceChatActivity } from '@/context/WorkspaceChatActivityContext'
+import { useWorkspaceCall } from '@/context/WorkspaceCallContext'
 import { cn } from '@/utils/cn'
 
 export function WorkspaceBottomNav({ groupId }) {
   const { unreadCount: chatUnreadCount } = useWorkspaceChatActivity()
+  const { isCallOpen } = useWorkspaceCall()
   const location = useLocation()
   const base = `/workspace/${groupId}`
 
@@ -40,6 +42,8 @@ export function WorkspaceBottomNav({ groupId }) {
       isActive: () => location.pathname.startsWith(`${base}/calendar`),
     },
   ]
+
+  if (isCallOpen) return null
 
   return (
     <nav
