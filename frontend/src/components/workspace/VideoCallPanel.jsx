@@ -1,8 +1,15 @@
 import { PhoneOff, Video, X } from 'lucide-react'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Room } from 'livekit-client'
+import {
+  LiveKitRoom,
+  RoomAudioRenderer,
+  VideoConference,
+} from '@livekit/components-react'
+import '@livekit/components-styles'
 import { useAuth } from '@/hooks/useAuth'
 import { useWorkspaceCall } from '@/context/WorkspaceCallContext'
-import { buildJitsiEmbedUrl } from '@/services/workspaceCallService'
+import { canJoinLiveKit, getLiveKitConnectError } from '@/services/workspaceCallService'
 
 export function VideoCallPanel() {
   const { user } = useAuth()
@@ -14,17 +21,34 @@ export function VideoCallPanel() {
     leaveCall,
     endCall,
     closeCallPanel,
+    registerRoomDisconnect,
   } = useWorkspaceCall()
+  const [roomError, setRoomError] = useState('')
 
-  const embedUrl = useMemo(
-    () => buildJitsiEmbedUrl(activeCall?.roomUrl, user?.name || 'StudySync'),
-    [activeCall?.roomUrl, user?.name],
-  )
+  const ready = canJoinLiveKit(activeCall)
+  const connectHint = getLiveKitConnectError(activeCall)
+
+  const room = useMemo(() => new Room(), [activeCall?.id, activeCall?.token])
 
   const canEndForAll =
     !activeCall?.startedBy ||
     String(activeCall.startedBy) === String(user?.id) ||
     String(activeCall.startedBy?.id) === String(user?.id)
+
+  useEffect(() => {
+    if (!isCallOpen || !ready) {
+      registerRoomDisconnect?.(null)
+      return undefined
+    }
+
+    registerRoomDisconnect?.(() => {
+      room.disconnect()
+    })
+
+    return () => {
+      registerRoomDisconnect?.(null)
+    }
+  }, [isCallOpen, ready, registerRoomDisconnect, room])
 
   useEffect(() => {
     if (!isCallOpen) return undefined
@@ -36,6 +60,10 @@ export function VideoCallPanel() {
     }
   }, [isCallOpen])
 
+  useEffect(() => {
+    setRoomError('')
+  }, [activeCall?.token, activeCall?.url])
+
   if (!isCallOpen || !activeCall) return null
 
   return (
@@ -46,7 +74,9 @@ export function VideoCallPanel() {
             <Video className="h-4 w-4 shrink-0" />
             <span className="truncate">{activeCall.title || 'Pod video call'}</span>
           </p>
-          <p className="mt-0.5 text-xs text-surface/60">Live pod call</p>
+          <p className="mt-0.5 text-xs text-surface/60">
+            LiveKit · {activeCall.roomName || activeCall.id}
+          </p>
         </div>
         <button
           type="button"
@@ -58,25 +88,41 @@ export function VideoCallPanel() {
         </button>
       </header>
 
-      <div className="relative min-h-0 flex-1 bg-black">
-        {embedUrl ? (
-          <iframe
-            key={embedUrl}
-            title={activeCall.title || 'Pod video call'}
-            src={embedUrl}
-            allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen"
-            allowFullScreen
-            referrerPolicy="no-referrer-when-downgrade"
-            className="absolute inset-0 h-full w-full border-0"
-          />
+      <div className="relative min-h-0 flex-1 bg-black" data-lk-theme="default">
+        {ready ? (
+          <LiveKitRoom
+            key={`${activeCall.id}-${activeCall.token}`}
+            room={room}
+            token={activeCall.token}
+            serverUrl={activeCall.url}
+            connect
+            audio
+            video
+            className="h-full"
+            onError={(err) => {
+              setRoomError(err?.message || 'Unable to connect to the LiveKit room.')
+            }}
+          >
+            <VideoConference />
+            <RoomAudioRenderer />
+          </LiveKitRoom>
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-            <p className="text-base font-semibold">Meeting room unavailable</p>
+            <p className="text-base font-semibold">LiveKit unavailable</p>
             <p className="max-w-md text-sm text-surface/70">
-              {error || 'This call has no embeddable room URL yet. Try leaving and joining again.'}
+              {error ||
+                roomError ||
+                connectHint ||
+                'Need call.url + call.token with livekitConfigured=true from start/join.'}
             </p>
           </div>
         )}
+
+        {roomError && ready ? (
+          <div className="absolute inset-x-0 bottom-0 bg-red-600/90 px-4 py-2 text-center text-xs font-medium">
+            {roomError}
+          </div>
+        ) : null}
       </div>
 
       <footer className="flex flex-wrap items-center justify-center gap-3 border-t border-white/10 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">

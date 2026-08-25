@@ -15,5 +15,8 @@
     "type": "git",
     "url": "git+https://github.com/BankyGod/study-sync.git"
   },
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "livekit-client": "^2.22.0"
+  }
 }

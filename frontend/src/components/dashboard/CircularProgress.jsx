@@ -51,11 +51,11 @@ export function CircularProgress({
             className="transition-all duration-500"
           />
         </svg>
-        <span className="absolute text-lg font-bold text-slate-900">
+        <span className="absolute text-sm font-bold text-ink">
           {hasValue ? `${normalized}%` : '—'}
         </span>
       </div>
-      {showLabel && label ? <span className="text-sm font-medium text-slate-500">{label}</span> : null}
+      {showLabel && label ? <span className="text-[11px] font-medium text-muted">{label}</span> : null}
     </div>
   )
 }

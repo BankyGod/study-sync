@@ -24,59 +24,37 @@ export function AppLayout({ variant = 'admin' }) {
 
   return (
     <div className="flex min-h-dvh bg-page">
-      {/* Dark sidebar */}
-      <aside
-        className="hidden w-60 shrink-0 flex-col lg:flex xl:w-64"
-        style={{ background: 'var(--color-sidebar)' }}
-      >
-        {/* Logo */}
-        <div className="px-5 py-6">
-          <StudySyncLogo light />
-          <div className="mt-4 rounded-xl bg-white/5 px-3 py-2">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
-              {isAdmin ? 'Instructor Portal' : 'Student Workspace'}
-            </p>
-          </div>
+      <aside className="hidden w-52 shrink-0 flex-col bg-rail lg:flex">
+        <div className="border-b border-rail-line px-3 py-3">
+          <StudySyncLogo light size="sm" />
+          <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-rail-muted">
+            {isAdmin ? 'Instructor' : 'Student'}
+          </p>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 space-y-1 px-3">
+        <nav className="flex-1 space-y-0.5 p-2">
           {adminLinks.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               end={to === ROUTES.ADMIN_DASHBOARD}
-              className={({ isActive }) =>
-                cn('sidebar-link', isActive && 'sidebar-link-active')
-              }
+              className={({ isActive }) => cn('ss-rail-link', isActive && 'ss-rail-on')}
             >
-              <Icon className="h-[18px] w-[18px] shrink-0 opacity-80" />
+              <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" />
               {label}
             </NavLink>
           ))}
         </nav>
 
-        {/* User footer */}
-        <div
-          className="mx-3 mb-4 rounded-2xl p-3"
-          style={{ background: 'var(--color-sidebar-hover)' }}
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-sm font-bold text-white">
-              {(user?.name ?? 'A').charAt(0).toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-white">{user?.name}</p>
-              <p className="truncate text-xs capitalize" style={{ color: 'var(--color-sidebar-text)' }}>
-                {user?.role}
-              </p>
-            </div>
+        <div className="border-t border-rail-line p-2">
+          <div className="rounded-md bg-white/5 px-2.5 py-2">
+            <p className="truncate text-[12px] font-semibold text-white">{user?.name}</p>
+            <p className="truncate text-[10px] capitalize text-rail-muted">{user?.role}</p>
           </div>
           <button
             type="button"
             onClick={handleLogout}
-            className="mt-3 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-colors hover:bg-white/10"
-            style={{ color: 'var(--color-sidebar-text)' }}
+            className="mt-1.5 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-[12px] font-medium text-rail-muted transition hover:bg-white/5 hover:text-white"
           >
             <LogOut className="h-3.5 w-3.5" />
             Sign out
@@ -84,18 +62,13 @@ export function AppLayout({ variant = 'admin' }) {
         </div>
       </aside>
 
-      {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Mobile topbar */}
-        <header
-          className="flex items-center justify-between px-4 py-3 lg:hidden"
-          style={{ background: 'var(--color-sidebar)' }}
-        >
-          <StudySyncLogo light size="sm" />
+        <header className="flex h-11 items-center justify-between border-b border-border bg-surface px-3 lg:hidden">
+          <StudySyncLogo size="sm" />
           <button
             type="button"
             onClick={handleLogout}
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-white/60 transition hover:bg-white/10 hover:text-white"
+            className="flex h-8 w-8 items-center justify-center rounded-md text-muted hover:bg-page hover:text-ink"
           >
             <LogOut className="h-4 w-4" />
           </button>

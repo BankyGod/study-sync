@@ -1,5 +1,6 @@
 import { Video } from 'lucide-react'
 import { useWorkspaceCall } from '@/context/WorkspaceCallContext'
+import { canJoinLiveKit } from '@/services/workspaceCallService'
 import { cn } from '@/utils/cn'
 
 export function ActiveCallBanner({ className }) {
@@ -45,7 +46,7 @@ export function ActiveCallBanner({ className }) {
                   type="button"
                   disabled={isBusy}
                   onClick={() =>
-                    isJoined && activeCall.roomUrl
+                    isJoined && canJoinLiveKit(activeCall)
                       ? openCallPanel()
                       : startOrJoinCall()
                   }

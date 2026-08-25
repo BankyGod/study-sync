@@ -64,27 +64,26 @@ export function AdminLoginPage() {
   return (
     <AuthLayout
       title="Instructor portal"
-      subtitle="Sign in with an instructor account to manage cohorts, matching, and study pods."
+      subtitle="Manage cohorts, matching, and pods."
       footer={
-        <div className="space-y-2 text-center">
-          <AuthFooterLink prompt="Student account?" linkText="Student sign in" to={ROUTES.LOGIN} />
-          <p className="text-sm text-slate-500">
-            Need an instructor account?{' '}
-            <Link to={ROUTES.ADMIN_REGISTER} className="font-medium text-brand-700 hover:underline">
-              Register with email & password
+        <div className="space-y-1 text-center">
+          <AuthFooterLink prompt="Student?" linkText="Student sign in" to={ROUTES.LOGIN} />
+          <p className="text-[12px] text-muted">
+            Need access?{' '}
+            <Link to={ROUTES.ADMIN_REGISTER} className="font-semibold text-brand-700 hover:underline">
+              Register
             </Link>
           </p>
         </div>
       }
     >
       {isAuthenticated && !isStaffRole(user?.role) ? (
-        <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          You are signed in as a student ({user?.email || user?.name}). Sign in with an instructor
-          account below to continue.
+        <p className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 text-[12px] text-amber-900">
+          Signed in as a student. Use an instructor account below.
         </p>
       ) : null}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
         <Input
           label="University email"
           type="email"

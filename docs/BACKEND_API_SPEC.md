@@ -1099,6 +1099,88 @@ Store files in object storage (S3, Azure Blob, or local `uploads/` for dev). Per
 
 ---
 
+## 17b. Workspace video calls (LiveKit)
+
+Base path: `/api/workspaces/:groupId/calls`
+
+The frontend embeds **LiveKit** in-app (`LiveKitRoom` + `VideoConference`).  
+No LiveKit API keys in the frontend. No Jitsi / `roomUrl` browser links.
+
+### Env (backend only)
+
+| Variable | Purpose |
+|----------|---------|
+| `LIVEKIT_API_KEY` | LiveKit project API key |
+| `LIVEKIT_API_SECRET` | LiveKit project API secret |
+| `LIVEKIT_URL` | WebSocket URL, e.g. `wss://your-project.livekit.cloud` |
+
+### `POST /api/workspaces/:groupId/calls`
+
+Optional body: `{ "provider": "livekit", "title": "..." }`
+
+**Response** must include credentials on the call object:
+
+```json
+{
+  "call": {
+    "id": "call_abc",
+    "provider": "livekit",
+    "livekitConfigured": true,
+    "url": "wss://your-project.livekit.cloud",
+    "token": "<participant JWT>",
+    "roomName": "pod-biology-101-call_abc",
+    "title": "Pod study call",
+    "status": "active",
+    "startedBy": "user_123"
+  }
+}
+```
+
+Frontend connects with `serverUrl={call.url}` and `token={call.token}`.
+
+### `POST /api/workspaces/:groupId/calls/:callId/join`
+
+Other members (or anyone needing a fresh token) call this.  
+Return the same shape — **each user gets their own** `call.token` + `call.url`.
+
+### `GET /api/workspaces/:groupId/calls/active`
+
+Active call metadata. Token may be omitted; clients `join` for credentials.  
+On Socket.IO `call:started`, clients refresh active call then join.
+
+### Leave / end (StudySync REST)
+
+- `POST .../calls/:id/leave` — then frontend `room.disconnect()`
+- `POST .../calls/:id/end` — end for all, broadcast `call:ended`, frontend disconnects
+
+### Sanity
+
+- `call.livekitConfigured === true` and `call.token` + `call.url` present
+- App served over HTTPS (or localhost) for camera/mic
+- Backend redeployed with `LIVEKIT_*` env vars
+
+### Token grant example (Node)
+
+```js
+import { AccessToken } from 'livekit-server-sdk'
+
+const at = new AccessToken(apiKey, apiSecret, {
+  identity: userId,
+  name: userDisplayName,
+  ttl: '2h',
+})
+at.addGrant({
+  roomJoin: true,
+  room: roomName,
+  canPublish: true,
+  canSubscribe: true,
+  canPublishData: true,
+})
+const token = await at.toJwt()
+```
+
+---
+
 ## 18. Security checklist
 
 - Hash passwords (bcrypt/argon2)

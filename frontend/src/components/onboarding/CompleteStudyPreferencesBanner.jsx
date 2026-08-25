@@ -1,38 +1,37 @@
 import { Link } from 'react-router-dom'
 import { GraduationCap } from 'lucide-react'
+import { Button } from '@/components/common/Button'
 import { ROUTES } from '@/utils/constants'
 import { cn } from '@/utils/cn'
 
 export function CompleteStudyPreferencesBanner({
   returnTo = ROUTES.FIND_GROUPS,
   className,
-  title = 'Complete your study preferences',
-  description = 'You skipped setup during signup. Finish your learning style, availability, courses, and study preferences before searching for a pod.',
+  title = 'Complete study preferences',
+  description = 'Finish learning style, availability, courses, and preferences before searching.',
 }) {
   return (
     <div
       className={cn(
-        'flex flex-col gap-4 rounded-lg border border-ochre/30 bg-ochre-soft/60 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5',
+        'flex flex-col gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between',
         className,
       )}
       role="status"
     >
-      <div className="flex gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface text-ochre">
-          <GraduationCap className="h-5 w-5" />
+      <div className="flex min-w-0 gap-2.5">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-surface text-amber-800">
+          <GraduationCap className="h-3.5 w-3.5" />
         </div>
-        <div>
-          <p className="text-sm font-semibold text-ink">{title}</p>
-          <p className="mt-1 text-sm leading-relaxed text-muted">{description}</p>
+        <div className="min-w-0">
+          <p className="text-[13px] font-semibold text-ink">{title}</p>
+          <p className="mt-0.5 text-[12px] leading-snug text-muted">{description}</p>
         </div>
       </div>
-      <Link
-        to={ROUTES.ONBOARDING}
-        state={{ returnTo }}
-        className="inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-surface transition hover:bg-brand-700 sm:w-auto"
-      >
-        Complete setup
-      </Link>
+      <Button asChild size="sm" className="w-full shrink-0 sm:w-auto">
+        <Link to={ROUTES.ONBOARDING} state={{ returnTo }}>
+          Complete setup
+        </Link>
+      </Button>
     </div>
   )
 }

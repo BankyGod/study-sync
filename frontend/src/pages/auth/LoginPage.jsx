@@ -41,24 +41,24 @@ export function LoginPage() {
 
   return (
     <AuthLayout
-      title="Welcome back"
-      subtitle="Sign in to continue to your study pods and workspaces."
+      title="Sign in"
+      subtitle="Continue to your pods and workspaces."
       footer={
-        <div className="space-y-2 text-center">
+        <div className="space-y-1 text-center">
           <AuthFooterLink
-            prompt="New to StudySync?"
-            linkText="Create an account"
+            prompt="New here?"
+            linkText="Create account"
             to={ROUTES.REGISTER}
           />
           <AuthFooterLink
             prompt="Instructor?"
-            linkText="Admin sign in"
+            linkText="Admin portal"
             to={ROUTES.ADMIN_LOGIN}
           />
         </div>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
         <Input
           label="University email"
           type="email"
@@ -75,10 +75,10 @@ export function LoginPage() {
           {...register('password')}
         />
 
-        {authError && <p className="text-sm text-red-600">{authError}</p>}
+        {authError ? <p className="text-[12px] text-red-600">{authError}</p> : null}
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? 'Signing in...' : 'Sign in'}
+          {isSubmitting ? 'Signing in…' : 'Sign in'}
         </Button>
       </form>
     </AuthLayout>

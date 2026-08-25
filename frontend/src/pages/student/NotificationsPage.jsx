@@ -101,14 +101,14 @@ export function NotificationsPage() {
         }
       />
 
-      <div className="mt-6 flex items-center gap-4 border-b border-border">
+      <div className="mt-4 flex items-center gap-3 border-b border-border">
         {FILTERS.map((item) => (
           <button
             key={item.id}
             type="button"
             onClick={() => handleFilterChange(item.id)}
             className={cn(
-              'relative pb-3 text-sm font-medium transition',
+              'relative pb-2 text-[13px] font-medium transition',
               filter === item.id ? 'text-ink' : 'text-muted hover:text-ink',
             )}
           >
@@ -121,25 +121,25 @@ export function NotificationsPage() {
         ))}
       </div>
 
-      <div className="mt-6">
+      <div className="mt-4">
         {isLoading ? (
-          <div className="flex justify-center py-16">
+          <div className="flex justify-center py-10">
             <Spinner />
           </div>
         ) : error ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-800">
             {getNotificationsErrorMessage(error)}
           </div>
         ) : notifications.length === 0 ? (
           <div className="ui-empty">
-            <Bell className="mx-auto h-6 w-6 text-muted" />
-            <h2 className="mt-4 font-display text-lg font-semibold text-ink">
+            <Bell className="mx-auto h-5 w-5 text-muted" />
+            <h2 className="mt-2 text-[13px] font-semibold text-ink">
               {unreadOnly ? 'No unread notifications' : 'Nothing here yet'}
             </h2>
-            <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
+            <p className="mx-auto mt-1 max-w-sm text-[12px] text-muted">
               {unreadOnly
                 ? 'You are all caught up.'
-                : 'When teammates assign tasks or update progress, alerts appear here.'}
+                : 'Task and pod updates will show here.'}
             </p>
           </div>
         ) : (
@@ -153,12 +153,12 @@ export function NotificationsPage() {
             ))}
 
             {nextCursor ? (
-              <div className="border-t border-border px-4 py-3">
+              <div className="border-t border-border px-3 py-2">
                 <button
                   type="button"
                   onClick={handleLoadMore}
                   disabled={isLoadingMore}
-                  className="text-sm font-semibold text-brand-700 transition hover:text-brand-800 disabled:opacity-60"
+                  className="text-[12px] font-semibold text-brand-700 transition hover:text-brand-800 disabled:opacity-60"
                 >
                   {isLoadingMore ? 'Loading…' : 'Load more'}
                 </button>

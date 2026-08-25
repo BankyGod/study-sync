@@ -1,26 +1,32 @@
 export function StudySyncLogo({ className = '', light = false, size = 'md' }) {
-  const sz = size === 'sm' ? 'h-7 w-7' : 'h-9 w-9'
-  const icon = size === 'sm' ? 'h-4 w-4' : 'h-5 w-5'
-  const text = size === 'sm' ? 'text-base' : 'text-lg'
+  const box = size === 'sm' ? 'h-6 w-6' : 'h-7 w-7'
+  const mark = size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4'
+  const word = size === 'sm' ? 'text-[13px]' : 'text-sm'
 
   return (
-    <div className={`flex min-w-0 items-center gap-2.5 ${className}`}>
+    <div className={`flex min-w-0 items-center gap-2 ${className}`}>
       <div
-        className={`${sz} shrink-0 flex items-center justify-center rounded-xl`}
-        style={{
-          background: light
-            ? 'rgba(255,255,255,0.15)'
-            : 'linear-gradient(135deg, #7c6af4 0%, #6c4de8 100%)',
-        }}
+        className={`${box} flex shrink-0 items-center justify-center rounded-md ${
+          light ? 'bg-white/10 text-white' : 'bg-ink text-white'
+        }`}
       >
-        <svg viewBox="0 0 24 24" className={icon} fill="none" aria-hidden="true">
-          <path d="M12 3L4 7v5c0 4.4 3.4 8.5 8 9.5 4.6-1 8-5.1 8-9.5V7l-8-4z" fill="white" opacity="0.9" />
-          <path d="M9.5 11.5l2 2 4-4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <svg viewBox="0 0 24 24" className={mark} fill="none" aria-hidden="true">
+          <path
+            d="M5 6.5h6.5v11H7A2 2 0 0 1 5 15.5v-9Z"
+            fill="currentColor"
+            opacity="0.95"
+          />
+          <path
+            d="M12.5 6.5H19v9a2 2 0 0 1-2 2h-4.5v-11Z"
+            fill="currentColor"
+            opacity="0.55"
+          />
         </svg>
       </div>
       <span
-        className={`truncate ${text} font-semibold tracking-tight`}
-        style={{ color: light ? '#ffffff' : 'var(--color-ink)' }}
+        className={`truncate font-display ${word} font-semibold tracking-tight ${
+          light ? 'text-white' : 'text-ink'
+        }`}
       >
         StudySync
       </span>

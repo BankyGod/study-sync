@@ -1,7 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  canJoinLiveKit,
   createPodCall,
   endPodCall,
+  getLiveKitConnectError,
   joinPodCall,
   leavePodCall,
   loadActiveCall,
@@ -21,6 +23,22 @@ export function WorkspaceCallProvider({ groupId, children }) {
   const [error, setError] = useState('')
   const [isBusy, setIsBusy] = useState(false)
 
+  /** LiveKit Room.disconnect — registered by VideoCallPanel */
+  const disconnectRoomRef = useRef(null)
+
+  const registerRoomDisconnect = useCallback((disconnectFn) => {
+    disconnectRoomRef.current = typeof disconnectFn === 'function' ? disconnectFn : null
+  }, [])
+
+  const disconnectLiveKit = useCallback(() => {
+    try {
+      disconnectRoomRef.current?.()
+    } catch {
+      // ignore disconnect errors after leave/end
+    }
+    disconnectRoomRef.current = null
+  }, [])
+
   const refreshActiveCall = useCallback(async () => {
     if (DEV_BYPASS_AUTH) {
       setActiveCall(null)
@@ -30,10 +48,15 @@ export function WorkspaceCallProvider({ groupId, children }) {
 
     try {
       const call = await loadActiveCall(groupId)
-      setActiveCall((previous) => mergeCallState(previous, call))
+      setActiveCall((previous) => {
+        if (!call) return null
+        // Keep this user's join token/url if active poll omits them.
+        return mergeCallState(previous, call)
+      })
       if (!call) {
         setIsCallOpen(false)
         setIsJoined(false)
+        disconnectLiveKit()
       }
       setError('')
       return call
@@ -43,14 +66,15 @@ export function WorkspaceCallProvider({ groupId, children }) {
     } finally {
       setIsLoading(false)
     }
-  }, [groupId])
+  }, [disconnectLiveKit, groupId])
 
   useEffect(() => {
     setIsLoading(true)
     setIsCallOpen(false)
     setIsJoined(false)
+    disconnectLiveKit()
     refreshActiveCall()
-  }, [refreshActiveCall])
+  }, [disconnectLiveKit, refreshActiveCall])
 
   const socketHandlers = useMemo(
     () => ({
@@ -62,13 +86,14 @@ export function WorkspaceCallProvider({ groupId, children }) {
       },
       onCallStarted: () => refreshActiveCall(),
       onCallEnded: () => {
+        disconnectLiveKit()
         setActiveCall(null)
         setIsCallOpen(false)
         setIsJoined(false)
       },
       onCallUpdated: () => refreshActiveCall(),
     }),
-    [refreshActiveCall],
+    [disconnectLiveKit, refreshActiveCall],
   )
 
   useWebSocket(DEV_BYPASS_AUTH ? null : groupId, socketHandlers)
@@ -78,12 +103,12 @@ export function WorkspaceCallProvider({ groupId, children }) {
       setIsBusy(true)
       setError('')
       try {
-        // Always re-fetch so joiners use the host's room URL, not a local fallback.
         let call = await loadActiveCall(groupId)
 
         if (!call) {
           try {
-            call = await createPodCall(groupId, { title, provider: 'jitsi' })
+            // Starter: POST /calls with provider livekit — use returned call.url + call.token.
+            call = await createPodCall(groupId, { title, provider: 'livekit' })
           } catch (startError) {
             if (startError?.response?.status === 409) {
               call = await loadActiveCall(groupId)
@@ -91,26 +116,29 @@ export function WorkspaceCallProvider({ groupId, children }) {
               throw startError
             }
           }
+
+          if (call && canJoinLiveKit(call)) {
+            setActiveCall(call)
+            setIsJoined(true)
+            setIsCallOpen(true)
+            return call
+          }
         }
 
         if (!call?.id) {
           throw new Error('No active call available.')
         }
 
+        // Joiners (and starters without credentials): POST .../calls/:id/join
+        // Each user gets their own token.
         const joined = await joinPodCall(groupId, call.id)
         const nextCall = mergeCallState(call, joined, {
-          roomUrl:
-            call.roomUrl ||
-            joined?.roomUrl ||
-            (call.roomName
-              ? `https://meet.jit.si/${encodeURIComponent(String(call.roomName).replace(/\s+/g, '-'))}`
-              : null) ||
-            (call.id ? `https://meet.jit.si/studysync-${call.id}` : null),
-          provider: call.provider || joined?.provider || 'jitsi',
+          provider: joined?.provider || call.provider || 'livekit',
         })
 
-        if (!nextCall.roomUrl) {
-          throw new Error('Call started, but no meeting room URL was returned.')
+        const connectError = getLiveKitConnectError(nextCall)
+        if (connectError) {
+          throw new Error(connectError)
         }
 
         setActiveCall(nextCall)
@@ -130,6 +158,7 @@ export function WorkspaceCallProvider({ groupId, children }) {
 
   const leaveCall = useCallback(async () => {
     if (!activeCall?.id) {
+      disconnectLiveKit()
       setIsCallOpen(false)
       setIsJoined(false)
       return
@@ -137,6 +166,7 @@ export function WorkspaceCallProvider({ groupId, children }) {
     setIsBusy(true)
     try {
       await leavePodCall(groupId, activeCall.id)
+      disconnectLiveKit()
       setIsCallOpen(false)
       setIsJoined(false)
       await refreshActiveCall()
@@ -145,7 +175,7 @@ export function WorkspaceCallProvider({ groupId, children }) {
     } finally {
       setIsBusy(false)
     }
-  }, [activeCall, groupId, refreshActiveCall])
+  }, [activeCall, disconnectLiveKit, groupId, refreshActiveCall])
 
   const endCall = useCallback(async () => {
     if (!activeCall?.id) return
@@ -154,6 +184,7 @@ export function WorkspaceCallProvider({ groupId, children }) {
     setIsBusy(true)
     try {
       await endPodCall(groupId, activeCall.id)
+      disconnectLiveKit()
       setActiveCall(null)
       setIsCallOpen(false)
       setIsJoined(false)
@@ -162,10 +193,10 @@ export function WorkspaceCallProvider({ groupId, children }) {
     } finally {
       setIsBusy(false)
     }
-  }, [activeCall, groupId])
+  }, [activeCall, disconnectLiveKit, groupId])
 
   const openCallPanel = useCallback(() => {
-    if (activeCall?.roomUrl) {
+    if (canJoinLiveKit(activeCall)) {
       setIsCallOpen(true)
       return
     }
@@ -189,6 +220,7 @@ export function WorkspaceCallProvider({ groupId, children }) {
     endCall,
     openCallPanel,
     closeCallPanel,
+    registerRoomDisconnect,
   }
 
   return (

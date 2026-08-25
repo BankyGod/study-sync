@@ -91,14 +91,15 @@ export function WorkspacePodsPage() {
             </Link>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-border bg-surface">
-            {groups.map((pod) => (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {groups.map((pod, index) => (
               <PodCard
                 key={pod.id ?? pod.groupId}
                 to={buildWorkspacePath(pod.groupId)}
                 title={pod.title}
                 members={pod.members ?? []}
                 progress={pod.progress ?? 0}
+                index={index}
               />
             ))}
           </div>
