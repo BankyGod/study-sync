@@ -4,6 +4,12 @@ import { getApiErrorMessage } from '@/utils/apiErrors'
 
 export { getApiErrorMessage as getAdminErrorMessage }
 
+/**
+ * Admin API (instructor only) — matches docs/BACKEND_API_SPEC.md §15:
+ * GET/POST /admin/cohorts, POST /admin/seed, POST /admin/matching/run,
+ * GET /admin/groups, GET /admin/students
+ */
+
 function asList(payload, keys = []) {
   if (Array.isArray(payload)) return payload
   for (const key of keys) {
@@ -12,9 +18,17 @@ function asList(payload, keys = []) {
   return []
 }
 
-export async function fetchAdminDashboard() {
-  const { data } = await apiClient.get(endpoints.admin.dashboard)
-  return data
+function asNumber(value, fallback = 0) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.trim() && !Number.isNaN(Number(value))) {
+    return Number(value)
+  }
+  if (Array.isArray(value)) return value.length
+  if (value && typeof value === 'object') {
+    if (typeof value.total === 'number') return value.total
+    if (typeof value.count === 'number') return value.count
+  }
+  return fallback
 }
 
 export async function fetchAdminCohorts() {
@@ -40,84 +54,64 @@ export async function runAdminMatching(payload = {}) {
 export async function fetchAdminGroups(params = {}) {
   const { data } = await apiClient.get(endpoints.admin.groups, { params })
   return {
-    groups: asList(data, ['groups', 'items', 'data']),
+    groups: asList(data, ['groups', 'items', 'data', 'pods']),
     raw: data,
   }
 }
 
-export async function fetchAdminGroup(groupId) {
-  const { data } = await apiClient.get(endpoints.admin.group(groupId))
-  return data?.group ?? data
-}
-
 export async function fetchAdminStudents(params = {}) {
-  const { data } = await apiClient.get(endpoints.admin.students, { params })
+  const clean = Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value != null && String(value).trim() !== ''),
+  )
+  const { data } = await apiClient.get(endpoints.admin.students, { params: clean })
   return {
-    students: asList(data, ['students', 'items', 'data']),
+    students: asList(data, ['students', 'items', 'data', 'users']),
     page: data?.page ?? 1,
     total: data?.total ?? data?.count ?? null,
     raw: data,
   }
 }
 
-export async function fetchAdminStudent(userId) {
-  const { data } = await apiClient.get(endpoints.admin.student(userId))
-  return data?.student ?? data
-}
+/** Build overview KPIs from the three list endpoints (no /admin/dashboard in the API). */
+export async function fetchAdminOverview() {
+  const [cohorts, groupsResult, studentsResult] = await Promise.all([
+    fetchAdminCohorts(),
+    fetchAdminGroups(),
+    fetchAdminStudents({ page: 1 }),
+  ])
 
-export async function fetchAdminReport(name, params = {}) {
-  const path = endpoints.admin.reports?.[name]
-  if (!path) throw new Error(`Unknown report: ${name}`)
-  const { data } = await apiClient.get(path, { params })
-  return data
-}
+  const groups = groupsResult.groups
+  const students = studentsResult.students
+  const matchedFromStudents = students.filter(
+    (s) => s.groupId || s.group?.id || s.groupName || s.assignedGroupId,
+  ).length
 
-function asDisplayValue(value, fallback = '—') {
-  if (value == null) return fallback
-  if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean') {
-    return value
+  const studentTotal =
+    typeof studentsResult.total === 'number'
+      ? studentsResult.total
+      : cohorts.reduce((sum, c) => sum + asNumber(c.studentCount ?? c.students), 0) ||
+        students.length
+
+  const groupTotal =
+    groups.length ||
+    cohorts.reduce((sum, c) => sum + asNumber(c.groupCount ?? c.groups), 0)
+
+  const matchedTotal =
+    matchedFromStudents ||
+    groups.reduce(
+      (sum, g) => sum + asNumber(g.memberCount ?? g.members?.length ?? g.students?.length),
+      0,
+    )
+
+  return {
+    cohorts,
+    groups,
+    students,
+    stats: [
+      { label: 'Students', value: studentTotal },
+      { label: 'Pods', value: groupTotal },
+      { label: 'Cohorts', value: cohorts.length },
+      { label: 'Matched', value: matchedTotal },
+    ],
   }
-  if (Array.isArray(value)) return value.length
-  if (typeof value === 'object') {
-    if (typeof value.total === 'number' || typeof value.total === 'string') return value.total
-    if (typeof value.count === 'number' || typeof value.count === 'string') return value.count
-    if (typeof value.value === 'number' || typeof value.value === 'string') return value.value
-    if (Array.isArray(value.memberships)) return value.memberships.length
-    if (Array.isArray(value.items)) return value.items.length
-  }
-  return fallback
-}
-
-export function getDashboardStats(dashboard) {
-  const overview = dashboard?.overview ?? dashboard?.totals ?? dashboard ?? {}
-  return [
-    {
-      label: 'Students',
-      value: asDisplayValue(
-        overview.students ?? overview.studentCount ?? overview.totalStudents,
-      ),
-    },
-    {
-      label: 'Pods',
-      value: asDisplayValue(
-        overview.groups ?? overview.pods ?? overview.groupCount ?? overview.totalGroups,
-      ),
-    },
-    {
-      label: 'Cohorts',
-      value: asDisplayValue(
-        overview.cohorts ?? overview.cohortCount ?? overview.totalCohorts,
-      ),
-    },
-    {
-      label: 'Matched',
-      value: asDisplayValue(
-        overview.matchedStudents ??
-          overview.studentsMatched ??
-          overview.matched ??
-          overview.activeSessions ??
-          overview.memberships,
-      ),
-    },
-  ]
 }

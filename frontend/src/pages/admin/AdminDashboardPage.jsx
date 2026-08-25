@@ -1,23 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, GraduationCap, Play, UserRound, Users } from 'lucide-react'
+import { ArrowRight, GraduationCap, UserRound, Users } from 'lucide-react'
 import { Button } from '@/components/common/Button'
 import { Spinner } from '@/components/common/Spinner'
 import { PageShell, StatTile } from '@/components/layout/PageShell'
-import {
-  fetchAdminDashboard,
-  getAdminErrorMessage,
-  getDashboardStats,
-  runAdminMatching,
-} from '@/services/adminService'
+import { fetchAdminOverview, getAdminErrorMessage } from '@/services/adminService'
 import { ROUTES } from '@/utils/constants'
 
 export function AdminDashboardPage() {
-  const [dashboard, setDashboard] = useState(null)
+  const [stats, setStats] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
-  const [isMatching, setIsMatching] = useState(false)
-  const [matchMessage, setMatchMessage] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -25,11 +18,11 @@ export function AdminDashboardPage() {
       setIsLoading(true)
       setError('')
       try {
-        const data = await fetchAdminDashboard()
-        if (!cancelled) setDashboard(data)
+        const overview = await fetchAdminOverview()
+        if (!cancelled) setStats(overview.stats)
       } catch (loadError) {
         if (!cancelled) {
-          setError(getAdminErrorMessage(loadError, 'Unable to load admin dashboard.'))
+          setError(getAdminErrorMessage(loadError, 'Unable to load admin overview.'))
         }
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -41,56 +34,24 @@ export function AdminDashboardPage() {
     }
   }, [])
 
-  const handleRunMatching = async () => {
-    setIsMatching(true)
-    setMatchMessage('')
-    try {
-      const result = await runAdminMatching()
-      setMatchMessage(
-        result?.jobId
-          ? `Job ${result.jobId} started (${result.status ?? 'running'}).`
-          : 'Matching started.',
-      )
-      const refreshed = await fetchAdminDashboard()
-      setDashboard(refreshed)
-    } catch (runError) {
-      setMatchMessage(getAdminErrorMessage(runError, 'Unable to run matching.'))
-    } finally {
-      setIsMatching(false)
-    }
-  }
-
-  const stats = getDashboardStats(dashboard)
-
   const actions = [
     {
       title: 'Cohorts',
-      description: 'Create and seed student cohorts.',
+      description: 'Create cohorts, seed data, run matching.',
       icon: GraduationCap,
       to: ROUTES.ADMIN_COHORTS,
-      label: 'Manage',
     },
     {
-      title: 'Matching',
-      description: 'Run the heuristic matching engine.',
-      icon: Play,
-      action: handleRunMatching,
-      loading: isMatching,
-      label: isMatching ? 'Running…' : 'Run now',
-    },
-    {
-      title: 'Teams',
-      description: 'Inspect groups and member health.',
+      title: 'Groups',
+      description: 'Browse matched study pods.',
       icon: Users,
       to: ROUTES.ADMIN_GROUPS,
-      label: 'View',
     },
     {
       title: 'Students',
-      description: 'Directory and onboarding status.',
+      description: 'Onboarding status and assignments.',
       icon: UserRound,
       to: ROUTES.ADMIN_STUDENTS,
-      label: 'View',
     },
   ]
 
@@ -106,7 +67,7 @@ export function AdminDashboardPage() {
             Overview
           </h1>
           <p className="mt-1.5 max-w-lg text-[13px] text-white/65">
-            Monitor pods, manage cohorts, and run group matching from one place.
+            Live counts from cohorts, groups, and students. Matching runs from Cohorts.
           </p>
         </div>
       </section>
@@ -127,34 +88,24 @@ export function AdminDashboardPage() {
         </div>
       )}
 
-      {matchMessage ? (
-        <p className="rounded-xl border border-border bg-surface px-3 py-2 text-[12px] text-ink shadow-sm">
-          {matchMessage}
-        </p>
-      ) : null}
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        {actions.map(({ title, description, icon: Icon, to, label, action, loading }) => (
-          <div key={title} className="dash-card flex items-center gap-3 p-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
-              <Icon className="h-4 w-4" />
+      <div className="grid gap-3 sm:grid-cols-3">
+        {actions.map(({ title, description, icon: Icon, to }) => (
+          <div key={title} className="dash-card flex flex-col gap-3 p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
+                <Icon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[13px] font-semibold text-ink">{title}</p>
+                <p className="text-[11px] text-muted">{description}</p>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-semibold text-ink">{title}</p>
-              <p className="text-[11px] text-muted">{description}</p>
-            </div>
-            {to ? (
-              <Button asChild variant="secondary" size="sm">
-                <Link to={to}>
-                  {label}
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </Button>
-            ) : (
-              <Button size="sm" onClick={action} disabled={loading}>
-                {label}
-              </Button>
-            )}
+            <Button asChild variant="secondary" size="sm" className="w-full sm:w-auto">
+              <Link to={to}>
+                Open
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
           </div>
         ))}
       </div>

@@ -993,7 +993,15 @@ Validate JWT on connection. Reject unauthenticated sockets.
 
 ## 15. Admin API (instructor role)
 
-All routes require `role: instructor`. Frontend pages are scaffolded only.
+All routes require `role: instructor` (or `admin`). Frontend admin portal wires these endpoints only.
+
+### Overview (no dedicated dashboard route)
+
+The Overview page aggregates:
+
+- `GET /admin/cohorts`
+- `GET /admin/groups`
+- `GET /admin/students`
 
 ### `GET /api/admin/cohorts`
 
