@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Card } from '@/components/common/Card'
 import { Spinner } from '@/components/common/Spinner'
-import { ReliabilityScore } from '@/components/reliability/ReliabilityScore'
-import { fetchAdminGroups, getAdminErrorMessage } from '@/services/adminService'
+import { PageHeader, PageShell } from '@/components/layout/PageShell'
+import {
+  fetchAdminCohorts,
+  fetchAdminGroups,
+  getAdminErrorMessage,
+} from '@/services/adminService'
 
 function getMembers(group) {
   return group.members ?? group.students ?? group.users ?? []
@@ -13,19 +17,18 @@ function getMemberName(member) {
   return member.name ?? member.fullName ?? (fullName || member.email || 'Student')
 }
 
-function getReliability(member) {
-  const score =
-    member.reliability ??
-    member.reliabilityScore ??
-    member.score ??
-    member.profile?.reliabilityScore
-  return typeof score === 'number' ? score : null
-}
-
 export function GroupOverviewPage() {
   const [groups, setGroups] = useState([])
+  const [cohorts, setCohorts] = useState([])
+  const [cohortId, setCohortId] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    fetchAdminCohorts()
+      .then(setCohorts)
+      .catch(() => setCohorts([]))
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -34,7 +37,9 @@ export function GroupOverviewPage() {
       setIsLoading(true)
       setError('')
       try {
-        const { groups: list } = await fetchAdminGroups()
+        const params = {}
+        if (cohortId) params.cohortId = cohortId
+        const { groups: list } = await fetchAdminGroups(params)
         if (!cancelled) setGroups(list)
       } catch (loadError) {
         if (!cancelled) {
@@ -49,96 +54,93 @@ export function GroupOverviewPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [cohortId])
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <header>
-        <h1 className="font-display text-2xl font-semibold text-ink">Team overview</h1>
-        <p className="mt-1 text-sm text-muted">
-          All clustered teams with reliability flags for at-risk participants.
-        </p>
-      </header>
+    <PageShell className="space-y-5">
+      <PageHeader
+        eyebrow="Instructor"
+        title="Groups"
+        description="GET /api/admin/groups — matched study pods"
+      />
+
+      <Card title="Filter">
+        <label className="block max-w-sm space-y-1">
+          <span className="block text-xs font-semibold text-soft">Cohort</span>
+          <select
+            className="h-9 w-full rounded-md border border-border bg-surface px-2.5 text-[13px]"
+            value={cohortId}
+            onChange={(event) => setCohortId(event.target.value)}
+          >
+            <option value="">All cohorts</option>
+            {cohorts.map((cohort) => (
+              <option key={cohort.id} value={cohort.id}>
+                {cohort.name ?? cohort.id}
+              </option>
+            ))}
+          </select>
+        </label>
+      </Card>
 
       {isLoading ? (
-        <div className="flex min-h-[180px] items-center justify-center">
+        <div className="dash-card flex min-h-[140px] items-center justify-center">
           <Spinner size="lg" />
         </div>
       ) : error ? (
-        <p className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700">
           {error}
         </p>
       ) : groups.length === 0 ? (
-        <p className="text-sm text-muted">No groups yet. Run matching from Cohorts to create pods.</p>
+        <p className="text-[13px] text-muted">
+          No groups yet. Create a cohort and run matching from Cohorts.
+        </p>
       ) : (
-        groups.map((group) => {
-          const members = getMembers(group)
-          const title = group.name ?? group.title ?? `Pod ${String(group.id).slice(0, 8)}`
-          return (
-            <Card
-              key={group.id}
-              title={title}
-              description={`${members.length || group.memberCount || 0} members${
-                group.courseCode ? ` · ${group.courseCode}` : ''
-              }`}
-            >
-              {members.length === 0 ? (
-                <p className="text-sm text-muted">
-                  {group.memberCount
-                    ? `${group.memberCount} members (detail not included in list response).`
-                    : 'No member details returned for this group.'}
-                </p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead>
-                      <tr className="border-b border-border text-muted">
-                        <th className="py-2 font-medium">Student</th>
-                        <th className="py-2 font-medium">Reliability</th>
-                        <th className="py-2 font-medium">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {members.map((member, index) => {
-                        const reliability = getReliability(member)
-                        const flagged =
-                          member.flagged ||
-                          (typeof reliability === 'number' && reliability < 50)
-                        return (
-                          <tr
-                            key={member.id ?? member.userId ?? `${getMemberName(member)}-${index}`}
-                            className="border-b border-border/60"
-                          >
-                            <td className="py-3 font-medium text-ink">{getMemberName(member)}</td>
-                            <td className="py-3">
-                              {typeof reliability === 'number' ? (
-                                <ReliabilityScore score={reliability} size="sm" showLabel={false} />
-                              ) : (
-                                <span className="text-muted">—</span>
-                              )}
-                            </td>
-                            <td className="py-3">
-                              {flagged ? (
-                                <span className="rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700">
-                                  Low reliability
-                                </span>
-                              ) : (
-                                <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
-                                  On track
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </Card>
-          )
-        })
+        <div className="space-y-3">
+          {groups.map((group) => {
+            const members = getMembers(group)
+            const title = group.name ?? group.title ?? `Pod ${String(group.id).slice(0, 8)}`
+            const memberCount = members.length || group.memberCount || 0
+            const course =
+              group.courseCode ??
+              group.course?.code ??
+              [group.subject, group.courseNumber].filter(Boolean).join(' ')
+
+            return (
+              <Card
+                key={group.id}
+                title={title}
+                description={[
+                  `${memberCount} member${memberCount === 1 ? '' : 's'}`,
+                  course || null,
+                  group.cohortName ?? null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              >
+                {members.length === 0 ? (
+                  <p className="text-[12px] text-muted">
+                    {group.memberCount
+                      ? `${group.memberCount} members (names not included in list response).`
+                      : 'No member details in this response.'}
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-border">
+                    {members.map((member, index) => (
+                      <li
+                        key={member.id ?? member.userId ?? `${getMemberName(member)}-${index}`}
+                        className="flex items-center justify-between gap-3 py-2 text-[13px]"
+                      >
+                        <span className="font-medium text-ink">{getMemberName(member)}</span>
+                        <span className="text-[11px] text-muted">{member.email ?? ''}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Card>
+            )
+          })}
+        </div>
       )}
-    </div>
+    </PageShell>
   )
 }

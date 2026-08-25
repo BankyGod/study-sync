@@ -8,7 +8,7 @@ import { cn } from '@/utils/cn'
 const adminLinks = [
   { to: ROUTES.ADMIN_DASHBOARD, label: 'Overview', icon: LayoutDashboard },
   { to: ROUTES.ADMIN_COHORTS, label: 'Cohorts', icon: GraduationCap },
-  { to: ROUTES.ADMIN_GROUPS, label: 'Teams', icon: Users },
+  { to: ROUTES.ADMIN_GROUPS, label: 'Groups', icon: Users },
   { to: ROUTES.ADMIN_STUDENTS, label: 'Students', icon: UserRound },
 ]
 

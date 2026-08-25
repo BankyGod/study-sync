@@ -12,6 +12,10 @@ import {
   seedAdminCohort,
 } from '@/services/adminService'
 
+function courseCodeFrom(subject, number) {
+  return `${subject.trim().toLowerCase().replace(/\s+/g, '-')}-${number.trim()}`
+}
+
 export function CohortManagementPage() {
   const [cohorts, setCohorts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -31,9 +35,7 @@ export function CohortManagementPage() {
     try {
       const list = await fetchAdminCohorts()
       setCohorts(list)
-      if (!selectedCohortId && list[0]?.id) {
-        setSelectedCohortId(list[0].id)
-      }
+      if (!selectedCohortId && list[0]?.id) setSelectedCohortId(list[0].id)
     } catch (loadError) {
       setError(getAdminErrorMessage(loadError, 'Unable to load cohorts.'))
     } finally {
@@ -54,7 +56,7 @@ export function CohortManagementPage() {
     try {
       const cohort = await createAdminCohort({
         name: name.trim(),
-        targetGroupSize: Number(groupSize),
+        targetGroupSize: Number(groupSize) || undefined,
       })
       setName('')
       setMessage(`Created cohort “${cohort?.name ?? name.trim()}”.`)
@@ -75,12 +77,15 @@ export function CohortManagementPage() {
     setIsSaving(true)
     setMessage('')
     try {
-      await seedAdminCohort({
+      const result = await seedAdminCohort({
         cohortId: selectedCohortId,
         studentCount: Number(studentCount),
         courses: [{ subject: courseSubject.trim(), courseNumber: courseNumber.trim() }],
       })
-      setMessage('Seed request submitted.')
+      setMessage(
+        result?.message ||
+          `Seed submitted (${studentCount} students for ${courseSubject} ${courseNumber}).`,
+      )
       await loadCohorts()
     } catch (seedError) {
       setMessage(getAdminErrorMessage(seedError, 'Unable to seed cohort data.'))
@@ -97,16 +102,18 @@ export function CohortManagementPage() {
     setIsSaving(true)
     setMessage('')
     try {
-      const courseCode = `${courseSubject.trim().toLowerCase().replace(/\s+/g, '-')}-${courseNumber.trim()}`
       const result = await runAdminMatching({
         cohortId: selectedCohortId,
-        courseCode,
+        courseCode: courseCodeFrom(courseSubject, courseNumber),
       })
-      setMessage(
-        result?.jobId
-          ? `Matching job ${result.jobId} started.`
-          : 'Matching run started for this cohort.',
-      )
+      const parts = [
+        result?.jobId ? `Job ${result.jobId}` : 'Matching started',
+        result?.status ? `(${result.status})` : null,
+        result?.groupsCreated != null ? `${result.groupsCreated} groups` : null,
+        result?.studentsMatched != null ? `${result.studentsMatched} students` : null,
+      ].filter(Boolean)
+      setMessage(parts.join(' · '))
+      await loadCohorts()
     } catch (matchError) {
       setMessage(getAdminErrorMessage(matchError, 'Unable to run matching.'))
     } finally {
@@ -115,22 +122,24 @@ export function CohortManagementPage() {
   }
 
   return (
-    <PageShell>
+    <PageShell className="space-y-5">
       <PageHeader
         eyebrow="Instructor"
-        title="Cohort management"
-        description="Create cohorts, seed staging data, and run batch matching."
+        title="Cohorts"
+        description="POST /admin/cohorts · seed · matching/run"
       />
 
-      <div className="mt-8 space-y-6">
-      {message && (
-        <p className="rounded-xl border border-border bg-surface px-4 py-3 text-sm text-ink">
+      {message ? (
+        <p className="rounded-xl border border-border bg-surface px-3 py-2 text-[12px] text-ink shadow-sm">
           {message}
         </p>
-      )}
+      ) : null}
 
-      <Card variant="panel" title="Create cohort" description="Register a new cohort for matching.">
-        <form onSubmit={handleCreate} className="grid gap-4 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+      <Card title="Create cohort" description="POST /api/admin/cohorts">
+        <form
+          onSubmit={handleCreate}
+          className="grid gap-3 sm:grid-cols-[1fr_8rem_auto] sm:items-end"
+        >
           <Input
             label="Cohort name"
             placeholder="CS 400 — Fall 2026"
@@ -138,25 +147,25 @@ export function CohortManagementPage() {
             onChange={(event) => setName(event.target.value)}
           />
           <Input
-            label="Target group size (N)"
+            label="Group size"
             type="number"
             min={2}
             max={10}
             value={groupSize}
             onChange={(event) => setGroupSize(event.target.value)}
           />
-          <Button type="submit" disabled={isSaving || !name.trim()}>
+          <Button type="submit" size="sm" disabled={isSaving || !name.trim()}>
             {isSaving ? 'Saving…' : 'Create'}
           </Button>
         </form>
       </Card>
 
-      <Card variant="panel" title="Seed & match" description="Generate demo students then run matching for a cohort.">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <label className="block text-sm">
-            <span className="mb-1.5 block font-medium text-ink">Cohort</span>
+      <Card title="Seed & match" description="POST /api/admin/seed · POST /api/admin/matching/run">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="block space-y-1">
+            <span className="block text-xs font-semibold text-soft">Cohort</span>
             <select
-              className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+              className="h-9 w-full rounded-md border border-border bg-surface px-2.5 text-[13px]"
               value={selectedCohortId}
               onChange={(event) => setSelectedCohortId(event.target.value)}
             >
@@ -187,28 +196,28 @@ export function CohortManagementPage() {
             onChange={(event) => setCourseNumber(event.target.value)}
           />
         </div>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <Button variant="secondary" onClick={handleSeed} disabled={isSaving}>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button variant="secondary" size="sm" onClick={handleSeed} disabled={isSaving}>
             Seed data
           </Button>
-          <Button onClick={handleRunMatching} disabled={isSaving}>
+          <Button size="sm" onClick={handleRunMatching} disabled={isSaving}>
             Run matching
           </Button>
         </div>
       </Card>
 
-      <Card variant="panel" title="Active cohorts">
+      <Card title="Active cohorts" description="GET /api/admin/cohorts">
         {isLoading ? (
-          <div className="flex min-h-[120px] items-center justify-center">
+          <div className="flex min-h-[100px] items-center justify-center">
             <Spinner />
           </div>
         ) : error ? (
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-[12px] text-red-600">{error}</p>
         ) : cohorts.length === 0 ? (
-          <p className="text-sm text-muted">No cohorts yet. Create one to begin.</p>
+          <p className="text-[12px] text-muted">No cohorts yet. Create one to begin.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full text-left text-[13px]">
               <thead>
                 <tr className="border-b border-border text-muted">
                   <th className="py-2 font-medium">Name</th>
@@ -219,11 +228,11 @@ export function CohortManagementPage() {
               <tbody>
                 {cohorts.map((cohort) => (
                   <tr key={cohort.id} className="border-b border-border/60">
-                    <td className="py-3 font-medium text-ink">{cohort.name ?? cohort.id}</td>
-                    <td className="py-3 text-muted">
+                    <td className="py-2.5 font-medium text-ink">{cohort.name ?? cohort.id}</td>
+                    <td className="py-2.5 text-muted">
                       {cohort.studentCount ?? cohort.students ?? '—'}
                     </td>
-                    <td className="py-3 text-muted">
+                    <td className="py-2.5 text-muted">
                       {cohort.groupCount ?? cohort.groups ?? '—'}
                     </td>
                   </tr>
@@ -233,7 +242,6 @@ export function CohortManagementPage() {
           </div>
         )}
       </Card>
-      </div>
     </PageShell>
   )
 }

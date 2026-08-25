@@ -2,20 +2,50 @@ import { useEffect, useState } from 'react'
 import { Card } from '@/components/common/Card'
 import { Input } from '@/components/common/Input'
 import { Spinner } from '@/components/common/Spinner'
-import { fetchAdminStudents, getAdminErrorMessage } from '@/services/adminService'
+import { PageHeader, PageShell } from '@/components/layout/PageShell'
+import {
+  fetchAdminCohorts,
+  fetchAdminStudents,
+  getAdminErrorMessage,
+} from '@/services/adminService'
 
 function getStudentName(student) {
   const fullName = [student.firstName, student.lastName].filter(Boolean).join(' ')
   return student.name ?? student.fullName ?? (fullName || student.email || 'Student')
 }
 
+function getOnboardingLabel(student) {
+  if (student.onboardingComplete || student.profileComplete) return 'Complete'
+  if (student.onboardingStatus) return String(student.onboardingStatus)
+  return 'Pending'
+}
+
+function getGroupLabel(student) {
+  return (
+    student.groupName ??
+    student.group?.name ??
+    student.group?.title ??
+    student.assignedGroupName ??
+    student.groupId ??
+    'Unassigned'
+  )
+}
+
 export function AdminStudentsPage() {
   const [students, setStudents] = useState([])
+  const [cohorts, setCohorts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [cohortId, setCohortId] = useState('')
   const [courseCode, setCourseCode] = useState('')
+  const [page, setPage] = useState(1)
   const [total, setTotal] = useState(null)
+
+  useEffect(() => {
+    fetchAdminCohorts()
+      .then(setCohorts)
+      .catch(() => setCohorts([]))
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -23,10 +53,11 @@ export function AdminStudentsPage() {
       setIsLoading(true)
       setError('')
       try {
-        const params = {}
-        if (cohortId.trim()) params.cohortId = cohortId.trim()
-        if (courseCode.trim()) params.courseCode = courseCode.trim()
-        const result = await fetchAdminStudents(params)
+        const result = await fetchAdminStudents({
+          cohortId: cohortId || undefined,
+          courseCode: courseCode.trim() || undefined,
+          page,
+        })
         if (!cancelled) {
           setStudents(result.students)
           setTotal(result.total)
@@ -38,55 +69,90 @@ export function AdminStudentsPage() {
       } finally {
         if (!cancelled) setIsLoading(false)
       }
-    }, 250)
+    }, 200)
 
     return () => {
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [cohortId, courseCode])
+  }, [cohortId, courseCode, page])
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <header>
-        <h1 className="font-display text-2xl font-semibold text-ink">Students</h1>
-        <p className="mt-1 text-sm text-muted">
-          Onboarding status and group assignments across the platform.
-        </p>
-      </header>
+    <PageShell className="space-y-5">
+      <PageHeader
+        eyebrow="Instructor"
+        title="Students"
+        description="GET /api/admin/students?cohortId=&courseCode=&page="
+      />
 
       <Card title="Filters">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            label="Cohort ID"
-            placeholder="Optional UUID"
-            value={cohortId}
-            onChange={(event) => setCohortId(event.target.value)}
-          />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block space-y-1">
+            <span className="block text-xs font-semibold text-soft">Cohort</span>
+            <select
+              className="h-9 w-full rounded-md border border-border bg-surface px-2.5 text-[13px]"
+              value={cohortId}
+              onChange={(event) => {
+                setPage(1)
+                setCohortId(event.target.value)
+              }}
+            >
+              <option value="">All cohorts</option>
+              {cohorts.map((cohort) => (
+                <option key={cohort.id} value={cohort.id}>
+                  {cohort.name ?? cohort.id}
+                </option>
+              ))}
+            </select>
+          </label>
           <Input
             label="Course code"
             placeholder="e.g. computer-science-401"
             value={courseCode}
-            onChange={(event) => setCourseCode(event.target.value)}
+            onChange={(event) => {
+              setPage(1)
+              setCourseCode(event.target.value)
+            }}
           />
         </div>
       </Card>
 
       <Card
         title="Directory"
-        description={typeof total === 'number' ? `${total} total` : undefined}
+        description={typeof total === 'number' ? `${total} total` : `${students.length} loaded`}
+        action={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="text-[12px] font-semibold text-brand-700 disabled:opacity-40"
+              disabled={page <= 1 || isLoading}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Prev
+            </button>
+            <span className="text-[11px] text-muted">Page {page}</span>
+            <button
+              type="button"
+              className="text-[12px] font-semibold text-brand-700 disabled:opacity-40"
+              disabled={isLoading || (typeof total === 'number' && page * 20 >= total)}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </button>
+          </div>
+        }
       >
         {isLoading ? (
-          <div className="flex min-h-[140px] items-center justify-center">
+          <div className="flex min-h-[120px] items-center justify-center">
             <Spinner />
           </div>
         ) : error ? (
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-[12px] text-red-600">{error}</p>
         ) : students.length === 0 ? (
-          <p className="text-sm text-muted">No students found for these filters.</p>
+          <p className="text-[12px] text-muted">No students found for these filters.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full text-left text-[13px]">
               <thead>
                 <tr className="border-b border-border text-muted">
                   <th className="py-2 font-medium">Name</th>
@@ -101,19 +167,10 @@ export function AdminStudentsPage() {
                     key={student.id ?? student.userId ?? student.email}
                     className="border-b border-border/60"
                   >
-                    <td className="py-3 font-medium text-ink">{getStudentName(student)}</td>
-                    <td className="py-3 text-muted">{student.email ?? '—'}</td>
-                    <td className="py-3 text-muted">
-                      {student.onboardingComplete || student.profileComplete
-                        ? 'Complete'
-                        : student.onboardingStatus ?? 'Pending'}
-                    </td>
-                    <td className="py-3 text-muted">
-                      {student.groupName ??
-                        student.group?.name ??
-                        student.groupId ??
-                        'Unassigned'}
-                    </td>
+                    <td className="py-2.5 font-medium text-ink">{getStudentName(student)}</td>
+                    <td className="py-2.5 text-muted">{student.email ?? '—'}</td>
+                    <td className="py-2.5 text-muted">{getOnboardingLabel(student)}</td>
+                    <td className="py-2.5 text-muted">{getGroupLabel(student)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -121,6 +178,6 @@ export function AdminStudentsPage() {
           </div>
         )}
       </Card>
-    </div>
+    </PageShell>
   )
 }
