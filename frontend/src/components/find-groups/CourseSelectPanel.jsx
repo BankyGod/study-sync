@@ -57,7 +57,7 @@ export function CourseSelectPanel({
           Join a study pod
         </h1>
         <p className="mt-2 max-w-xl text-sm text-muted sm:text-base">
-          Select a course you are enrolled in. We will search for pods on that course.
+          Prefer an open pod above when available. Or select a course here to search for a new match.
         </p>
       </header>
 

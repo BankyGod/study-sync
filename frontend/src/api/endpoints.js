@@ -28,11 +28,13 @@ export const endpoints = {
     leaveGroup: (groupId) => `/matching/groups/${groupId}/leave`,
   },
   admin: {
+    dashboard: '/admin/dashboard',
     cohorts: '/admin/cohorts',
-    seedData: '/admin/seed',
-    runMatching: '/admin/matching/run',
     groups: '/admin/groups',
+    group: (groupId) => `/admin/groups/${groupId}`,
     students: '/admin/students',
+    student: (userId) => `/admin/students/${userId}`,
+    users: '/admin/users',
   },
   workspace: {
     byGroup: (groupId) => `/workspaces/${groupId}`,

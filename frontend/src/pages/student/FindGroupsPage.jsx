@@ -4,6 +4,7 @@ import { OrbitAnimation } from '@/components/find-groups/OrbitAnimation'
 import { MatchingProgress } from '@/components/find-groups/MatchingProgress'
 import { MatchFoundView } from '@/components/find-groups/MatchFoundView'
 import { CourseSelectPanel, courseKey } from '@/components/find-groups/CourseSelectPanel'
+import { OpenCoursePodsPanel } from '@/components/find-groups/OpenCoursePodsPanel'
 import { CompleteStudyPreferencesBanner } from '@/components/onboarding/CompleteStudyPreferencesBanner'
 import { useMatchingProgress } from '@/hooks/useMatchingProgress'
 import { Button } from '@/components/common/Button'
@@ -17,7 +18,7 @@ import {
   saveOnboardingProfile,
   setCachedOnboardingProfile,
 } from '@/services/onboardingProfileService'
-import { fetchCourseGroups } from '@/services/matchingService'
+import { fetchCourseGroups, fetchOpenPodsForCourses } from '@/services/matchingService'
 import { ROUTES } from '@/utils/constants'
 import { formatCourseName, getValidCourses } from '@/utils/onboarding'
 import {
@@ -39,6 +40,8 @@ export function FindGroupsPage() {
   const [selectedCourse, setSelectedCourse] = useState(null)
   const [courseLabel, setCourseLabel] = useState(null)
   const [courseGroups, setCourseGroups] = useState([])
+  const [openPods, setOpenPods] = useState([])
+  const [isLoadingOpenPods, setIsLoadingOpenPods] = useState(false)
   const [isProfileReady, setIsProfileReady] = useState(false)
   const [hasSavedProfile, setHasSavedProfile] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -52,6 +55,16 @@ export function FindGroupsPage() {
       runKey,
       selectedCourse,
     })
+
+  const validCourses = useMemo(() => getValidCourses(courses), [courses])
+  const validCoursesKey = useMemo(
+    () =>
+      validCourses
+        .map((c) => `${c.subject.trim().toLowerCase()}|${c.courseNumber.trim()}`)
+        .sort()
+        .join(','),
+    [validCourses],
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -69,12 +82,12 @@ export function FindGroupsPage() {
         const merged = mergeOnboardingProfile(profile)
         setCachedOnboardingProfile(profile ?? merged)
 
-        const validCourses = getValidCourses(merged.courses)
-        setCourses(validCourses.length > 0 ? merged.courses : [createEmptyCourse()])
+        const nextValid = getValidCourses(merged.courses)
+        setCourses(nextValid.length > 0 ? merged.courses : [createEmptyCourse()])
 
         const preselectedId =
           location.state?.preselectedCourseId ??
-          (validCourses.length === 1 ? courseKey(validCourses[0]) : null)
+          (nextValid.length === 1 ? courseKey(nextValid[0]) : null)
 
         if (preselectedId) {
           setSelectedCourseId(preselectedId)
@@ -96,6 +109,32 @@ export function FindGroupsPage() {
   }, [location.state?.preselectedCourseId, location.state?.fromOnboarding])
 
   useEffect(() => {
+    if (phase !== 'select-course' || !hasSavedProfile || !validCoursesKey) {
+      setOpenPods([])
+      return undefined
+    }
+
+    let cancelled = false
+    setIsLoadingOpenPods(true)
+
+    fetchOpenPodsForCourses(validCourses)
+      .then((pods) => {
+        if (!cancelled) setOpenPods(pods)
+      })
+      .catch(() => {
+        if (!cancelled) setOpenPods([])
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingOpenPods(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- validCoursesKey tracks course identity
+  }, [phase, hasSavedProfile, validCoursesKey])
+
+  useEffect(() => {
     if (isComplete && phase === 'searching') {
       const timeout = window.setTimeout(() => setPhase('found'), 400)
       return () => window.clearTimeout(timeout)
@@ -103,15 +142,10 @@ export function FindGroupsPage() {
     return undefined
   }, [isComplete, phase])
 
-  const validCourses = useMemo(() => getValidCourses(courses), [courses])
-
   useEffect(() => {
-    validCourses.forEach((course) => {
-      const key = courseKey(course)
-      if (!selectedCourseId && validCourses.length === 1) {
-        setSelectedCourseId(key)
-      }
-    })
+    if (!selectedCourseId && validCourses.length === 1) {
+      setSelectedCourseId(courseKey(validCourses[0]))
+    }
   }, [validCourses, selectedCourseId])
 
   const handleStartSearch = async () => {
@@ -205,7 +239,7 @@ export function FindGroupsPage() {
       isOnboardingRequiredMessage(error)
 
     return (
-      <PageShell width="5xl">
+      <PageShell>
         {!isProfileReady && !profileError ? (
           <div className="flex min-h-[280px] items-center justify-center">
             <Spinner size="lg" />
@@ -215,11 +249,20 @@ export function FindGroupsPage() {
             <PageHeader
               eyebrow="Matching"
               title="Find your study group"
-              description="Choose a course and we will match you with classmates by schedule, learning style, and preferences."
+              description="Join an open pod for your courses, or search to get matched if none have space."
             />
             {showOnboardingPrompt ? (
               <CompleteStudyPreferencesBanner returnTo={ROUTES.FIND_GROUPS} />
             ) : null}
+
+            {!showOnboardingPrompt ? (
+              <OpenCoursePodsPanel
+                pods={openPods}
+                isLoading={isLoadingOpenPods}
+                canJoin={hasSavedProfile}
+              />
+            ) : null}
+
             <CourseSelectPanel
               courses={courses}
               selectedCourseId={selectedCourseId}
@@ -245,7 +288,7 @@ export function FindGroupsPage() {
   const totalOpenSlots = courseGroups.reduce((sum, group) => sum + (group.openSlots ?? 0), 0)
 
   return (
-    <PageShell width="5xl">
+    <PageShell>
       <PageHeader
         eyebrow={courseLabel ? `Searching · ${courseLabel}` : 'Searching'}
         title="Finding your study group"
@@ -256,11 +299,22 @@ export function FindGroupsPage() {
         }
       />
       {courseGroups.length > 0 ? (
-        <p className="-mt-4 mb-2 text-sm text-muted">
-          {openGroupCount > 0
-            ? `${openGroupCount} open group${openGroupCount === 1 ? '' : 's'} · ${totalOpenSlots} slot${totalOpenSlots === 1 ? '' : 's'}`
-            : `${courseGroups.length} existing group${courseGroups.length === 1 ? '' : 's'} found`}
-        </p>
+        <div className="-mt-2 mb-4 space-y-3">
+          <p className="text-sm text-muted">
+            {openGroupCount > 0
+              ? `${openGroupCount} open group${openGroupCount === 1 ? '' : 's'} · ${totalOpenSlots} slot${totalOpenSlots === 1 ? '' : 's'}`
+              : `${courseGroups.length} existing group${courseGroups.length === 1 ? '' : 's'} found`}
+          </p>
+          {openGroupCount > 0 ? (
+            <OpenCoursePodsPanel
+              pods={courseGroups.map((group) => ({
+                ...group,
+                courseLabel: courseLabel ?? group.courseLabel,
+              }))}
+              canJoin={hasSavedProfile}
+            />
+          ) : null}
+        </div>
       ) : null}
 
       {statusMessage && (

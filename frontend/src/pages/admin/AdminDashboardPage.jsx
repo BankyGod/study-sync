@@ -4,7 +4,7 @@ import { ArrowRight, GraduationCap, UserRound, Users } from 'lucide-react'
 import { Button } from '@/components/common/Button'
 import { Spinner } from '@/components/common/Spinner'
 import { PageShell, StatTile } from '@/components/layout/PageShell'
-import { fetchAdminOverview, getAdminErrorMessage } from '@/services/adminService'
+import { fetchAdminDashboard, getAdminErrorMessage } from '@/services/adminService'
 import { ROUTES } from '@/utils/constants'
 
 export function AdminDashboardPage() {
@@ -18,7 +18,7 @@ export function AdminDashboardPage() {
       setIsLoading(true)
       setError('')
       try {
-        const overview = await fetchAdminOverview()
+        const overview = await fetchAdminDashboard()
         if (!cancelled) setStats(overview.stats)
       } catch (loadError) {
         if (!cancelled) {
@@ -37,7 +37,7 @@ export function AdminDashboardPage() {
   const actions = [
     {
       title: 'Cohorts',
-      description: 'Create cohorts, seed data, run matching.',
+      description: 'Create and browse academic cohorts.',
       icon: GraduationCap,
       to: ROUTES.ADMIN_COHORTS,
     },
@@ -67,7 +67,7 @@ export function AdminDashboardPage() {
             Overview
           </h1>
           <p className="mt-1.5 max-w-lg text-[13px] text-white/65">
-            Live counts from cohorts, groups, and students. Matching runs from Cohorts.
+            Live counts for real students and pods (seed/demo accounts excluded).
           </p>
         </div>
       </section>

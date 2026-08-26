@@ -59,7 +59,79 @@ export async function fetchCourseGroups(course) {
   }
 
   const { data } = await apiClient.get(endpoints.matching.byCourse(encodeURIComponent(courseCode)))
-  return data
+  const groups = normalizeCourseGroups(data)
+  return {
+    courseCode: data?.courseCode ?? courseCode,
+    groups,
+    raw: data,
+  }
+}
+
+export function normalizeCourseGroups(payload) {
+  const list = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.groups)
+      ? payload.groups
+      : Array.isArray(payload?.items)
+        ? payload.items
+        : []
+
+  return list
+    .map((group) => {
+      const groupId = group.groupId ?? group.id ?? group.slug
+      if (!groupId) return null
+
+      const memberCount = Number(group.memberCount ?? group.members?.length ?? 0) || 0
+      const maxSize = Number(group.maxSize ?? group.capacity ?? group.targetSize) || null
+      let openSlots = group.openSlots
+      if (openSlots == null && maxSize != null) {
+        openSlots = Math.max(0, maxSize - memberCount)
+      }
+      openSlots = Number(openSlots) || 0
+
+      return {
+        groupId: String(groupId),
+        title: group.title ?? group.name ?? 'Study group',
+        memberCount,
+        maxSize,
+        openSlots,
+        courseCode: group.courseCode ?? payload?.courseCode ?? null,
+        courseLabel: group.courseLabel ?? null,
+      }
+    })
+    .filter(Boolean)
+}
+
+/** Load open pods across the student's enrolled courses. */
+export async function fetchOpenPodsForCourses(courses = []) {
+  const unique = []
+  const seen = new Set()
+
+  for (const course of courses) {
+    const code = getCourseCode(course)
+    if (!code || seen.has(code)) continue
+    seen.add(code)
+    unique.push(course)
+  }
+
+  const results = await Promise.allSettled(
+    unique.map(async (course) => {
+      const data = await fetchCourseGroups(course)
+      const label =
+        course.subject && course.courseNumber
+          ? `${course.subject.trim()} ${course.courseNumber.trim()}`
+          : data.courseCode
+      return (data.groups ?? []).map((group) => ({
+        ...group,
+        courseCode: group.courseCode ?? data.courseCode,
+        courseLabel: group.courseLabel ?? label,
+        subject: course.subject?.trim() ?? '',
+        courseNumber: course.courseNumber?.trim() ?? '',
+      }))
+    }),
+  )
+
+  return results.flatMap((result) => (result.status === 'fulfilled' ? result.value : []))
 }
 
 export function isMatchingWaiting(response) {

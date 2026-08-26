@@ -3,11 +3,7 @@ import { Card } from '@/components/common/Card'
 import { Input } from '@/components/common/Input'
 import { Spinner } from '@/components/common/Spinner'
 import { PageHeader, PageShell } from '@/components/layout/PageShell'
-import {
-  fetchAdminCohorts,
-  fetchAdminStudents,
-  getAdminErrorMessage,
-} from '@/services/adminService'
+import { fetchAdminStudents, getAdminErrorMessage } from '@/services/adminService'
 
 function getStudentName(student) {
   const fullName = [student.firstName, student.lastName].filter(Boolean).join(' ')
@@ -15,37 +11,61 @@ function getStudentName(student) {
 }
 
 function getOnboardingLabel(student) {
-  if (student.onboardingComplete || student.profileComplete) return 'Complete'
+  if (student.onboardingCompleted || student.onboardingComplete || student.profileComplete) {
+    return 'Complete'
+  }
   if (student.onboardingStatus) return String(student.onboardingStatus)
   return 'Pending'
 }
 
 function getGroupLabel(student) {
+  if (Array.isArray(student.groups) && student.groups.length > 0) {
+    return student.groups.map((g) => g.title || g.groupId || g.id).join(', ')
+  }
   return (
     student.groupName ??
     student.group?.name ??
     student.group?.title ??
     student.assignedGroupName ??
-    student.groupId ??
-    'Unassigned'
+    (student.matched ? 'Matched' : 'Unassigned')
+  )
+}
+
+function StudentAvatar({ student }) {
+  const url = student.avatarUrl
+  const name = getStudentName(student)
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('')
+
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt=""
+        className="h-8 w-8 rounded-full object-cover ring-1 ring-border"
+      />
+    )
+  }
+
+  return (
+    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-[11px] font-semibold text-brand-700">
+      {initials || '?'}
+    </span>
   )
 }
 
 export function AdminStudentsPage() {
   const [students, setStudents] = useState([])
-  const [cohorts, setCohorts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
-  const [cohortId, setCohortId] = useState('')
-  const [courseCode, setCourseCode] = useState('')
+  const [q, setQ] = useState('')
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(null)
-
-  useEffect(() => {
-    fetchAdminCohorts()
-      .then(setCohorts)
-      .catch(() => setCohorts([]))
-  }, [])
+  const [hiddenDemoCount, setHiddenDemoCount] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -54,13 +74,14 @@ export function AdminStudentsPage() {
       setError('')
       try {
         const result = await fetchAdminStudents({
-          cohortId: cohortId || undefined,
-          courseCode: courseCode.trim() || undefined,
+          q: q.trim() || undefined,
           page,
+          limit: 20,
         })
         if (!cancelled) {
           setStudents(result.students)
           setTotal(result.total)
+          setHiddenDemoCount(result.filteredDemoCount ?? 0)
         }
       } catch (loadError) {
         if (!cancelled) {
@@ -75,51 +96,38 @@ export function AdminStudentsPage() {
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [cohortId, courseCode, page])
+  }, [q, page])
 
   return (
     <PageShell className="space-y-5">
       <PageHeader
         eyebrow="Instructor"
         title="Students"
-        description="GET /api/admin/students?cohortId=&courseCode=&page="
+        description="Real registered students only — seed/demo accounts are hidden."
       />
 
-      <Card title="Filters">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block space-y-1">
-            <span className="block text-xs font-semibold text-soft">Cohort</span>
-            <select
-              className="h-9 w-full rounded-md border border-border bg-surface px-2.5 text-[13px]"
-              value={cohortId}
-              onChange={(event) => {
-                setPage(1)
-                setCohortId(event.target.value)
-              }}
-            >
-              <option value="">All cohorts</option>
-              {cohorts.map((cohort) => (
-                <option key={cohort.id} value={cohort.id}>
-                  {cohort.name ?? cohort.id}
-                </option>
-              ))}
-            </select>
-          </label>
-          <Input
-            label="Course code"
-            placeholder="e.g. computer-science-401"
-            value={courseCode}
-            onChange={(event) => {
-              setPage(1)
-              setCourseCode(event.target.value)
-            }}
-          />
-        </div>
+      <Card title="Search">
+        <Input
+          label="Name, email, or student ID"
+          placeholder="Search students…"
+          value={q}
+          onChange={(event) => {
+            setPage(1)
+            setQ(event.target.value)
+          }}
+        />
       </Card>
+
+      {hiddenDemoCount > 0 ? (
+        <p className="rounded-xl border border-border bg-surface px-3 py-2 text-[12px] text-muted">
+          Hidden {hiddenDemoCount} seed/demo account{hiddenDemoCount === 1 ? '' : 's'} on this
+          page (@studysync.local).
+        </p>
+      ) : null}
 
       <Card
         title="Directory"
-        description={typeof total === 'number' ? `${total} total` : `${students.length} loaded`}
+        description={typeof total === 'number' ? `${total} real students` : `${students.length} loaded`}
         action={
           <div className="flex items-center gap-2">
             <button
@@ -149,16 +157,18 @@ export function AdminStudentsPage() {
         ) : error ? (
           <p className="text-[12px] text-red-600">{error}</p>
         ) : students.length === 0 ? (
-          <p className="text-[12px] text-muted">No students found for these filters.</p>
+          <p className="text-[12px] text-muted">
+            No real students found. Seed/demo accounts are excluded from this directory.
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
                 <tr className="border-b border-border text-muted">
-                  <th className="py-2 font-medium">Name</th>
+                  <th className="py-2 font-medium">Student</th>
                   <th className="py-2 font-medium">Email</th>
                   <th className="py-2 font-medium">Onboarding</th>
-                  <th className="py-2 font-medium">Group</th>
+                  <th className="py-2 font-medium">Pods</th>
                 </tr>
               </thead>
               <tbody>
@@ -167,7 +177,12 @@ export function AdminStudentsPage() {
                     key={student.id ?? student.userId ?? student.email}
                     className="border-b border-border/60"
                   >
-                    <td className="py-2.5 font-medium text-ink">{getStudentName(student)}</td>
+                    <td className="py-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <StudentAvatar student={student} />
+                        <span className="font-medium text-ink">{getStudentName(student)}</span>
+                      </div>
+                    </td>
                     <td className="py-2.5 text-muted">{student.email ?? '—'}</td>
                     <td className="py-2.5 text-muted">{getOnboardingLabel(student)}</td>
                     <td className="py-2.5 text-muted">{getGroupLabel(student)}</td>

@@ -1019,20 +1019,6 @@ The Overview page aggregates:
 
 Create cohort.
 
-### `POST /api/admin/seed`
-
-Seed demo/staging data for a cohort.
-
-**Request:**
-
-```json
-{
-  "cohortId": "uuid",
-  "studentCount": 50,
-  "courses": [{ "subject": "Computer Science", "courseNumber": "401" }]
-}
-```
-
 ### `POST /api/admin/matching/run`
 
 Run batch matching for a cohort or course.
@@ -1249,7 +1235,7 @@ When the API is ready, the frontend team will:
 6. **Workspace write** — task CRUD, messages, file upload, sessions
 7. **WebSocket** — join room + broadcast task/message events
 8. **Dashboard** — user's groups with task progress
-9. **Admin** — cohorts, seed, batch matching
+9. **Admin** — cohorts, batch matching, groups, students (real data only; no seed/demo)
 10. **User display profile** — GET/PUT profile
 
 ---

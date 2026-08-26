@@ -61,7 +61,7 @@ export function GroupOverviewPage() {
       <PageHeader
         eyebrow="Instructor"
         title="Groups"
-        description="GET /api/admin/groups — matched study pods"
+        description="GET /api/admin/groups — real pods (demo/seed groups hidden)"
       />
 
       <Card title="Filter">
