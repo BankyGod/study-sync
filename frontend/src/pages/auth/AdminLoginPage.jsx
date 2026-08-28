@@ -83,10 +83,11 @@ export function AdminLoginPage() {
         </p>
       ) : null}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <Input
           label="University email"
           type="email"
+          size="lg"
           autoComplete="email"
           placeholder="you@gctu.edu.gh"
           error={errors.email?.message}
@@ -95,6 +96,7 @@ export function AdminLoginPage() {
         <Input
           label="Password"
           type="password"
+          size="lg"
           autoComplete="current-password"
           error={errors.password?.message}
           {...register('password')}
@@ -102,7 +104,7 @@ export function AdminLoginPage() {
 
         {authError && <p className="text-sm text-red-600">{authError}</p>}
 
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
+        <Button type="submit" className="h-11 w-full rounded-xl text-sm" disabled={isSubmitting}>
           {isSubmitting ? 'Signing in...' : 'Sign in to admin'}
         </Button>
       </form>

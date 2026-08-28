@@ -1,7 +1,9 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { GraduationCap, LayoutDashboard, LogOut, UserRound, Users } from 'lucide-react'
 import { StudySyncLogo } from '@/components/layout/StudySyncLogo'
+import { SidebarToggle } from '@/components/layout/SidebarToggle'
 import { useAuth } from '@/hooks/useAuth'
+import { SidebarProvider, useSidebar } from '@/context/SidebarContext'
 import { ROUTES } from '@/utils/constants'
 import { cn } from '@/utils/cn'
 
@@ -13,8 +15,17 @@ const adminLinks = [
 ]
 
 export function AppLayout({ variant = 'admin' }) {
+  return (
+    <SidebarProvider>
+      <AppLayoutShell variant={variant} />
+    </SidebarProvider>
+  )
+}
+
+function AppLayoutShell({ variant = 'admin' }) {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+  const { collapsed } = useSidebar()
   const isAdmin = variant === 'admin'
 
   const handleLogout = () => {
@@ -24,41 +35,75 @@ export function AppLayout({ variant = 'admin' }) {
 
   return (
     <div className="flex min-h-dvh bg-page">
-      <aside className="hidden w-52 shrink-0 flex-col bg-rail lg:flex">
-        <div className="border-b border-rail-line px-3 py-3">
-          <StudySyncLogo light size="sm" />
-          <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-rail-muted">
-            {isAdmin ? 'Instructor' : 'Student'}
-          </p>
+      <aside
+        className={cn(
+          'hidden shrink-0 flex-col bg-rail transition-[width] duration-200 ease-out lg:flex',
+          collapsed ? 'w-16' : 'w-52',
+        )}
+      >
+        <div
+          className={cn(
+            'flex items-center border-b border-rail-line py-3',
+            collapsed ? 'justify-center px-2' : 'justify-between gap-2 px-3',
+          )}
+        >
+          <StudySyncLogo light size="sm" showWordmark={!collapsed} />
+          {!collapsed ? <SidebarToggle /> : null}
         </div>
 
-        <nav className="flex-1 space-y-0.5 p-2">
+        {collapsed ? (
+          <div className="flex justify-center border-b border-rail-line py-2">
+            <SidebarToggle />
+          </div>
+        ) : (
+          <p className="border-b border-rail-line px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-rail-muted">
+            {isAdmin ? 'Instructor' : 'Student'}
+          </p>
+        )}
+
+        <nav className={cn('flex-1 space-y-0.5', collapsed ? 'p-2' : 'p-2')}>
           {adminLinks.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               end={to === ROUTES.ADMIN_DASHBOARD}
-              className={({ isActive }) => cn('ss-rail-link', isActive && 'ss-rail-on')}
+              title={label}
+              className={({ isActive }) =>
+                cn('ss-rail-link', isActive && 'ss-rail-on', collapsed && 'justify-center px-0')
+              }
             >
               <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" />
-              {label}
+              {!collapsed ? label : null}
             </NavLink>
           ))}
         </nav>
 
-        <div className="border-t border-rail-line p-2">
-          <div className="rounded-md bg-white/5 px-2.5 py-2">
-            <p className="truncate text-[12px] font-semibold text-white">{user?.name}</p>
-            <p className="truncate text-[10px] capitalize text-rail-muted">{user?.role}</p>
-          </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="mt-1.5 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-[12px] font-medium text-rail-muted transition hover:bg-white/5 hover:text-white"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            Sign out
-          </button>
+        <div className={cn('border-t border-rail-line', collapsed ? 'p-2' : 'p-2')}>
+          {collapsed ? (
+            <button
+              type="button"
+              onClick={handleLogout}
+              title="Sign out"
+              className="flex w-full items-center justify-center rounded-md p-2 text-rail-muted transition hover:bg-white/5 hover:text-white"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
+          ) : (
+            <>
+              <div className="rounded-md bg-white/5 px-2.5 py-2">
+                <p className="truncate text-[12px] font-semibold text-white">{user?.name}</p>
+                <p className="truncate text-[10px] capitalize text-rail-muted">{user?.role}</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="mt-1.5 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-[12px] font-medium text-rail-muted transition hover:bg-white/5 hover:text-white"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Sign out
+              </button>
+            </>
+          )}
         </div>
       </aside>
 

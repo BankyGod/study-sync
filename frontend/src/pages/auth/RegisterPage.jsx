@@ -78,7 +78,8 @@ export function RegisterPage() {
     <AuthLayout
       title="Create your account"
       subtitle="Register with your academic details to join course-based study pods at GCTU."
-      formClassName="w-full max-w-2xl"
+      size="wide"
+      formClassName="w-full max-w-3xl"
       footer={
         <div className="space-y-2 text-center">
           <AuthFooterLink
@@ -94,17 +95,19 @@ export function RegisterPage() {
         </div>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-        <AuthSection title="Personal information">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <AuthSection title="Personal information" size="lg">
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
               label="First name"
+              size="lg"
               autoComplete="given-name"
               error={errors.firstName?.message}
               {...register('firstName')}
             />
             <Input
               label="Last name"
+              size="lg"
               autoComplete="family-name"
               error={errors.lastName?.message}
               {...register('lastName')}
@@ -114,6 +117,7 @@ export function RegisterPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
               label="Student ID"
+              size="lg"
               placeholder="e.g. 12345678"
               error={errors.studentId?.message}
               {...register('studentId')}
@@ -121,6 +125,7 @@ export function RegisterPage() {
             <Input
               label="Phone number (optional)"
               type="tel"
+              size="lg"
               autoComplete="tel"
               placeholder="+233..."
               error={errors.phone?.message}
@@ -131,6 +136,7 @@ export function RegisterPage() {
           <Input
             label="University email"
             type="email"
+            size="lg"
             autoComplete="email"
             placeholder="you@gctu.edu.gh"
             error={errors.email?.message}
@@ -138,8 +144,8 @@ export function RegisterPage() {
           />
         </AuthSection>
 
-        <AuthSection title="Academic information">
-          <AuthSelect label="University" error={errors.university?.message} {...register('university')}>
+        <AuthSection title="Academic information" size="lg">
+          <AuthSelect label="University" size="lg" error={errors.university?.message} {...register('university')}>
             {UNIVERSITIES.map((university) => (
               <option key={university} value={university}>
                 {university}
@@ -148,7 +154,7 @@ export function RegisterPage() {
           </AuthSelect>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <AuthSelect label="Program" error={errors.program?.message} {...register('program')}>
+            <AuthSelect label="Program" size="lg" error={errors.program?.message} {...register('program')}>
               {ACADEMIC_PROGRAMS.map((program) => (
                 <option key={program} value={program}>
                   {program}
@@ -156,7 +162,7 @@ export function RegisterPage() {
               ))}
             </AuthSelect>
 
-            <AuthSelect label="Level" error={errors.level?.message} {...register('level')}>
+            <AuthSelect label="Level" size="lg" error={errors.level?.message} {...register('level')}>
               {ACADEMIC_LEVELS.map((level) => (
                 <option key={level} value={level}>
                   Level {level}
@@ -166,11 +172,12 @@ export function RegisterPage() {
           </div>
         </AuthSection>
 
-        <AuthSection title="Account security">
+        <AuthSection title="Account security" size="lg">
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
               label="Password"
               type="password"
+              size="lg"
               autoComplete="new-password"
               error={errors.password?.message}
               {...register('password')}
@@ -178,6 +185,7 @@ export function RegisterPage() {
             <Input
               label="Confirm password"
               type="password"
+              size="lg"
               autoComplete="new-password"
               error={errors.confirmPassword?.message}
               {...register('confirmPassword')}
@@ -187,13 +195,13 @@ export function RegisterPage() {
 
         <input type="hidden" value={ROLES.STUDENT} {...register('role')} />
 
-        <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+        <label className="flex items-start gap-3 rounded-2xl border border-border bg-page px-4 py-3.5">
           <input
             type="checkbox"
-            className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+            className="mt-1 h-4 w-4 rounded border-border text-brand-600 focus:ring-brand-500"
             {...register('agreeToTerms')}
           />
-          <span className="text-sm text-slate-600">
+          <span className="text-sm leading-relaxed text-soft">
             I agree to StudySync&apos;s terms of use and consent to my profile data being used for
             study group matching and collaborative learning features.
           </span>
@@ -204,7 +212,7 @@ export function RegisterPage() {
 
         {authError && <p className="text-sm text-red-600">{authError}</p>}
 
-        <Button type="submit" className={cn('w-full')} disabled={isSubmitting}>
+        <Button type="submit" className={cn('h-11 w-full rounded-xl text-sm')} disabled={isSubmitting}>
           {isSubmitting ? 'Creating account...' : 'Create account & continue'}
         </Button>
       </form>

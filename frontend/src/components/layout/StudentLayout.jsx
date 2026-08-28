@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { StudentNavbar } from '@/components/layout/StudentNavbar'
 import { StudentSidebar } from '@/components/layout/StudentSidebar'
 import { StudentBottomNav } from '@/components/layout/StudentBottomNav'
+import { SidebarProvider } from '@/context/SidebarContext'
 import { useNotificationSocket } from '@/hooks/useNotificationSocket'
 import { isInsideWorkspaceGroup, isWorkspaceChatRoute } from '@/utils/studentNav'
 import { cn } from '@/utils/cn'
@@ -13,6 +14,7 @@ export function StudentLayout() {
   const isMobileChat = isWorkspaceChatRoute(location.pathname)
 
   return (
+    <SidebarProvider>
     <div className="flex min-h-dvh min-w-0 overflow-x-clip bg-page">
       {!inWorkspaceGroup ? <StudentSidebar /> : null}
 
@@ -29,5 +31,6 @@ export function StudentLayout() {
         <StudentBottomNav />
       </div>
     </div>
+    </SidebarProvider>
   )
 }

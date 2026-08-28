@@ -1,4 +1,4 @@
-export function StudySyncLogo({ className = '', light = false, size = 'md' }) {
+export function StudySyncLogo({ className = '', light = false, size = 'md', showWordmark = true }) {
   const box = size === 'sm' ? 'h-6 w-6' : 'h-7 w-7'
   const mark = size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4'
   const word = size === 'sm' ? 'text-[13px]' : 'text-sm'
@@ -23,13 +23,15 @@ export function StudySyncLogo({ className = '', light = false, size = 'md' }) {
           />
         </svg>
       </div>
-      <span
-        className={`truncate font-display ${word} font-semibold tracking-tight ${
-          light ? 'text-white' : 'text-ink'
-        }`}
-      >
-        StudySync
-      </span>
+      {showWordmark ? (
+        <span
+          className={`truncate font-display ${word} font-semibold tracking-tight ${
+            light ? 'text-white' : 'text-ink'
+          }`}
+        >
+          StudySync
+        </span>
+      ) : null}
     </div>
   )
 }

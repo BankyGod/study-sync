@@ -70,6 +70,7 @@ export function AdminRegisterPage() {
         <Input
           label="Email"
           type="email"
+          size="lg"
           autoComplete="email"
           placeholder="you@gctu.edu.gh"
           error={errors.email?.message}
@@ -78,6 +79,7 @@ export function AdminRegisterPage() {
         <Input
           label="Password"
           type="password"
+          size="lg"
           autoComplete="new-password"
           error={errors.password?.message}
           {...register('password')}
@@ -85,6 +87,7 @@ export function AdminRegisterPage() {
         <Input
           label="Confirm password"
           type="password"
+          size="lg"
           autoComplete="new-password"
           error={errors.confirmPassword?.message}
           {...register('confirmPassword')}
@@ -92,7 +95,7 @@ export function AdminRegisterPage() {
 
         {authError && <p className="text-sm text-red-600">{authError}</p>}
 
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
+        <Button type="submit" className="h-11 w-full rounded-xl text-sm" disabled={isSubmitting}>
           {isSubmitting ? 'Creating account...' : 'Create instructor account'}
         </Button>
       </form>

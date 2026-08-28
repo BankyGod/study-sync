@@ -2,16 +2,27 @@ import { Link } from 'react-router-dom'
 import { StudySyncLogo } from '@/components/layout/StudySyncLogo'
 import { ROUTES } from '@/utils/constants'
 import { AUTH_BACKGROUND_IMAGE } from '@/utils/auth'
+import { cn } from '@/utils/cn'
 
 export function AuthLayout({
   children,
   title,
   subtitle,
   footer,
-  formClassName = 'w-full max-w-[22rem]',
+  formClassName = 'w-full max-w-md',
+  size = 'default',
 }) {
+  const isWide = size === 'wide'
+
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_24rem]">
+    <div
+      className={cn(
+        'min-h-dvh',
+        isWide
+          ? 'lg:grid lg:grid-cols-[minmax(0,0.85fr)_minmax(30rem,1.15fr)] xl:grid-cols-[minmax(0,1fr)_minmax(36rem,48rem)]'
+          : 'lg:grid lg:grid-cols-[minmax(0,1fr)_26rem] xl:grid-cols-[minmax(0,1fr)_28rem]',
+      )}
+    >
       <div className="relative hidden min-h-dvh overflow-hidden bg-rail lg:block">
         <img
           src={AUTH_BACKGROUND_IMAGE}
@@ -42,18 +53,35 @@ export function AuthLayout({
           <StudySyncLogo size="sm" />
         </div>
 
-        <div className="flex flex-1 items-center justify-center px-4 py-8">
+        <div
+          className={cn(
+            'flex flex-1 justify-center px-4 py-8 sm:px-6 lg:px-8',
+            isWide ? 'items-start overflow-y-auto lg:py-10' : 'items-center',
+          )}
+        >
           <div className={formClassName}>
-            <div className="mb-5">
-              <h1 className="font-display text-xl font-semibold tracking-tight text-ink">
+            <div className={cn('mb-5', isWide && 'mb-6')}>
+              <h1
+                className={cn(
+                  'font-display font-semibold tracking-tight text-ink',
+                  isWide ? 'text-2xl sm:text-3xl' : 'text-xl',
+                )}
+              >
                 {title}
               </h1>
               {subtitle ? (
-                <p className="mt-1 text-[13px] leading-snug text-muted">{subtitle}</p>
+                <p
+                  className={cn(
+                    'mt-1 leading-snug text-muted',
+                    isWide ? 'text-sm sm:text-[15px]' : 'text-[13px]',
+                  )}
+                >
+                  {subtitle}
+                </p>
               ) : null}
             </div>
 
-            <div className="space-y-3">{children}</div>
+            <div className={cn(isWide ? 'space-y-4' : 'space-y-3')}>{children}</div>
             {footer ? <div className="mt-1">{footer}</div> : null}
           </div>
         </div>
