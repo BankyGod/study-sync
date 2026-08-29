@@ -63,7 +63,16 @@ export async function login(credentials) {
 
 export async function fetchCurrentUser() {
   const { data } = await apiClient.get(endpoints.auth.me)
-  return data
+  const user = data?.user ?? data
+  if (!user || typeof user !== 'object') return data
+
+  const avatarUrl =
+    user.avatarUrl ?? user.avatar_url ?? user.photoUrl ?? user.imageUrl ?? null
+
+  return {
+    ...user,
+    avatarUrl: avatarUrl || user.avatarUrl || null,
+  }
 }
 
 export function logout() {

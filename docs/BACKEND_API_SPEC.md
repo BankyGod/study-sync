@@ -329,9 +329,12 @@ Returns the current user from the JWT. Used on app load / session refresh.
   "university": "...",
   "program": "...",
   "level": "400",
-  "phone": ""
+  "phone": "",
+  "avatarUrl": "https://cdn.example.com/avatars/uuid.jpg"
 }
 ```
+
+`avatarUrl` may be `null` when the user has no photo. Prefer a **public HTTPS URL** (or signed URL) that works in an `<img src>` without an `Authorization` header.
 
 ---
 
@@ -412,6 +415,49 @@ Separate from registration and onboarding — edited on `/profile`.
 **Request:** same fields except `email` is read-only (sourced from `users.email`).
 
 **Response `200`:** updated profile object.
+
+### `POST /api/users/me/avatar`
+
+Upload the authenticated user's profile photo.
+
+**Auth:** required  
+**Body:** `multipart/form-data` with **one** file field named `file` (preferred; also accept `avatar` or `photo`)
+
+Backend Multer example:
+
+```js
+upload.single('file') // must match the FormData field name exactly
+```
+
+Wrong field name returns Multer’s **`Unexpected field`**.  
+**Types:** `image/jpeg`, `image/png`, `image/webp`, `image/gif`  
+**Max size:** 5 MB
+
+**Response `200` / `201`:**
+
+```json
+{
+  "avatarUrl": "https://cdn.example.com/avatars/uuid.jpg",
+  "updatedAt": "2026-08-29T12:00:00.000Z"
+}
+```
+
+**Critical:** `avatarUrl` must be openable by the browser as a normal image URL (public or signed).  
+Do **not** return only a private path that requires `Authorization` unless you also implement `GET /api/users/me/avatar` that streams the image bytes.
+
+Also set `user.avatarUrl` on `GET /api/auth/me` after upload.
+
+### `GET /api/users/me/avatar`
+
+Optional but recommended if files are stored privately. Streams the image (`Content-Type: image/jpeg` etc.) with auth. Frontend can fetch this with the JWT and display it.
+
+### `GET /api/users/:userId/avatar`
+
+Same for other users' photos (used in pods/chat).
+
+### `DELETE /api/users/me/avatar`
+
+Removes the photo. Subsequent `avatarUrl` values should be `null`.
 
 ---
 

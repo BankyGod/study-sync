@@ -12,6 +12,7 @@ import { Spinner } from '@/components/common/Spinner'
 import { PageHeader, PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/hooks/useAuth'
 import { ROUTES } from '@/utils/constants'
+import { fetchCurrentUser } from '@/services/authService'
 import {
   fetchUserGroups,
   getAvatarUploadErrorMessage,
@@ -115,12 +116,41 @@ export function ProfilePage() {
     setIsAvatarUploading(true)
     setError('')
     setSuccess('')
+
+    // Instant local preview so the circle never stays on initials after pick.
+    const localPreview = URL.createObjectURL(file)
+    updateUser({ avatarUrl: localPreview })
+    refreshAvatar()
+
     try {
       const data = await uploadUserAvatar(file)
-      updateUser({ avatarUrl: data.avatarUrl ?? null })
+      const preview = data.previewDataUrl ?? localPreview
+
+      let nextUrl = data.avatarUrl ?? preview
+
+      try {
+        const me = await fetchCurrentUser()
+        const fromMe =
+          me?.avatarUrl ?? me?.avatar_url ?? me?.photoUrl ?? me?.imageUrl ?? null
+        if (fromMe) nextUrl = fromMe
+        if (me?.id) {
+          updateUser({
+            ...me,
+            avatarUrl: fromMe || nextUrl,
+          })
+        } else {
+          updateUser({ avatarUrl: nextUrl })
+        }
+      } catch {
+        updateUser({ avatarUrl: nextUrl })
+      }
+
       refreshAvatar()
       setSuccess('Profile photo updated.')
+      URL.revokeObjectURL(localPreview)
     } catch (uploadError) {
+      URL.revokeObjectURL(localPreview)
+      updateUser({ avatarUrl: user?.avatarUrl && !String(user.avatarUrl).startsWith('blob:') ? user.avatarUrl : null })
       setError(getAvatarUploadErrorMessage(uploadError))
     } finally {
       setIsAvatarUploading(false)

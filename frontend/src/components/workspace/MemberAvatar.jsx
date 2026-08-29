@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   getProfileInitials,
+  loadDisplayableAvatarSrc,
   normalizeAvatarColor,
   readCachedUserAvatar,
-  resolveAvatarSrc,
+  revokeUserAvatarObjectUrl,
 } from '@/services/usersService'
 import { DEV_BYPASS_AUTH } from '@/utils/constants'
 import { cn } from '@/utils/cn'
@@ -26,31 +27,62 @@ export function MemberAvatar({
   style,
 }) {
   const avatarUrl = member?.avatarUrl ?? null
-  const resolved = resolveAvatarSrc(avatarUrl, refreshKey)
-  const [src, setSrc] = useState(
-    () => resolved || (DEV_BYPASS_AUTH ? readCachedUserAvatar(member?.id) : null),
-  )
+  const [src, setSrc] = useState(null)
   const [failed, setFailed] = useState(false)
+  const objectUrlRef = useRef(null)
 
   const initials = member?.initials ?? getProfileInitials(member?.name ?? '')
   const color = normalizeAvatarColor(member?.color)
   const showInitials = !src || failed
 
   useEffect(() => {
-    setFailed(false)
+    let cancelled = false
 
-    if (resolved) {
-      setSrc(resolved)
-      return
+    async function load() {
+      setFailed(false)
+      if (objectUrlRef.current) {
+        revokeUserAvatarObjectUrl(objectUrlRef.current)
+        objectUrlRef.current = null
+      }
+
+      const nextUrl =
+        avatarUrl || (DEV_BYPASS_AUTH ? readCachedUserAvatar(member?.id) : null)
+
+      if (!nextUrl) {
+        if (!cancelled) {
+          setSrc(null)
+        }
+        return
+      }
+
+      if (nextUrl.startsWith('data:') || nextUrl.startsWith('blob:')) {
+        if (!cancelled) setSrc(nextUrl)
+        return
+      }
+
+      const displaySrc = await loadDisplayableAvatarSrc(nextUrl, refreshKey)
+      if (cancelled) {
+        revokeUserAvatarObjectUrl(displaySrc)
+        return
+      }
+
+      if (displaySrc?.startsWith('blob:')) {
+        objectUrlRef.current = displaySrc
+      }
+      setSrc(displaySrc)
+      setFailed(!displaySrc)
     }
 
-    if (DEV_BYPASS_AUTH) {
-      setSrc(readCachedUserAvatar(member?.id))
-      return
-    }
+    load()
 
-    setSrc(null)
-  }, [resolved, member?.id, refreshKey])
+    return () => {
+      cancelled = true
+      if (objectUrlRef.current) {
+        revokeUserAvatarObjectUrl(objectUrlRef.current)
+        objectUrlRef.current = null
+      }
+    }
+  }, [avatarUrl, member?.id, refreshKey])
 
   const avatar = (
     <div

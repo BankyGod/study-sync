@@ -199,6 +199,88 @@ export function validateAvatarFile(file) {
   return null
 }
 
+/** Pull avatar URL from common API response shapes. */
+export function extractAvatarUrl(payload) {
+  if (!payload) return null
+  if (typeof payload === 'string' && payload.trim()) return payload.trim()
+
+  const candidates = [
+    payload.avatarUrl,
+    payload.avatar_url,
+    payload.url,
+    payload.photoUrl,
+    payload.photo_url,
+    payload.imageUrl,
+    payload.image_url,
+    payload.path,
+    payload.user?.avatarUrl,
+    payload.user?.avatar_url,
+    payload.data?.avatarUrl,
+    payload.data?.avatar_url,
+    payload.data?.url,
+  ]
+
+  for (const value of candidates) {
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return null
+}
+
+/**
+ * Return a browser-displayable src.
+ * Public/CDN URLs are used as-is.
+ * API avatar routes (need JWT) are fetched as a blob object URL.
+ */
+export async function loadDisplayableAvatarSrc(avatarUrl, refreshKey = 0) {
+  if (!avatarUrl) return null
+  if (avatarUrl.startsWith('data:') || avatarUrl.startsWith('blob:')) return avatarUrl
+
+  const apiPath = toAvatarApiPath(avatarUrl)
+  if (apiPath) {
+    try {
+      const response = await apiClient.get(apiPath, {
+        responseType: 'blob',
+        skipAuthLogout: true,
+        params: refreshKey ? { v: refreshKey } : undefined,
+      })
+      const blob = response.data
+      if (!(blob instanceof Blob)) return null
+      if (blob.type && !blob.type.startsWith('image/') && blob.type !== 'application/octet-stream') {
+        return null
+      }
+      // Empty JSON error bodies sometimes come back as tiny blobs
+      if (blob.size < 32) return null
+      return URL.createObjectURL(blob)
+    } catch {
+      return null
+    }
+  }
+
+  return resolveAvatarSrc(avatarUrl, refreshKey)
+}
+
+/** Convert an avatar URL to an axios path under /api (e.g. /users/me/avatar). */
+function toAvatarApiPath(avatarUrl) {
+  if (!avatarUrl || avatarUrl.startsWith('data:') || avatarUrl.startsWith('blob:')) return null
+
+  let path = avatarUrl
+  if (/^https?:\/\//i.test(avatarUrl)) {
+    try {
+      path = new URL(avatarUrl).pathname
+    } catch {
+      return null
+    }
+  }
+
+  if (path.startsWith('/api/')) path = path.slice(4)
+  if (!path.startsWith('/')) path = `/${path}`
+
+  if (/^\/users\/me\/avatar\/?$/i.test(path) || /^\/users\/[^/]+\/avatar\/?$/i.test(path)) {
+    return path
+  }
+  return null
+}
+
 function readDevAvatarCache() {
   return localStorage.getItem(STORAGE_KEYS.USER_AVATAR) || null
 }
@@ -234,21 +316,84 @@ export async function uploadUserAvatar(file) {
     throw new Error(validationError)
   }
 
+  const previewDataUrl = await fileToDataUrl(file)
+
   if (DEV_BYPASS_AUTH) {
-    const previewDataUrl = await fileToDataUrl(file)
     writeDevAvatarCache(previewDataUrl)
-    return { avatarUrl: previewDataUrl, updatedAt: new Date().toISOString() }
+    return { avatarUrl: previewDataUrl, previewDataUrl, updatedAt: new Date().toISOString() }
   }
 
-  const formData = new FormData()
-  formData.append('photo', file)
+  // Backend Multer `.single('…')` must match exactly — wrong name → LIMIT_UNEXPECTED_FILE.
+  // Try common field names until one is accepted.
+  const fieldNames = ['image', 'file', 'photo', 'avatar', 'profilePhoto', 'picture']
+  let data = null
+  let lastError = null
+  const rejectedFields = []
 
-  const { data } = await apiClient.post(endpoints.users.avatar, formData)
-  const avatarUrl = data?.avatarUrl ?? data?.url ?? data?.photoUrl ?? null
+  for (const fieldName of fieldNames) {
+    const formData = new FormData()
+    formData.append(fieldName, file, file.name || 'avatar.jpg')
+
+    try {
+      const response = await apiClient.post(endpoints.users.avatar, formData)
+      data = response.data
+      break
+    } catch (error) {
+      lastError = error
+      if (isUnexpectedMulterFieldError(error)) {
+        rejectedFields.push(getRejectedMulterField(error) || fieldName)
+        continue
+      }
+      throw error
+    }
+  }
+
+  if (!data) {
+    if (rejectedFields.length) {
+      const err = new Error(
+        `Upload field name mismatch (rejected: ${[...new Set(rejectedFields)].join(', ')}). Backend Multer .single('…') must match one of: ${fieldNames.join(', ')}.`,
+      )
+      err.code = 'LIMIT_UNEXPECTED_FILE'
+      err.response = lastError?.response
+      throw err
+    }
+    throw lastError ?? new Error('Unable to update profile photo.')
+  }
+
+  let avatarUrl = extractAvatarUrl(data)
+  if (avatarUrl) {
+    avatarUrl = resolveApiUrl(avatarUrl)
+  } else {
+    // Upload succeeded but no URL in body — use the authenticated avatar route.
+    avatarUrl = endpoints.users.avatar
+  }
+
   return {
     ...data,
-    avatarUrl: avatarUrl ? resolveApiUrl(avatarUrl) : null,
+    avatarUrl,
+    previewDataUrl,
+    updatedAt: data?.updatedAt ?? new Date().toISOString(),
   }
+}
+
+function isUnexpectedMulterFieldError(error) {
+  const data = error?.response?.data
+  const code =
+    data?.error?.code ?? data?.code ?? error?.code ?? data?.error?.name
+  const message = String(
+    data?.error?.message ?? data?.message ?? error?.message ?? '',
+  ).toLowerCase()
+
+  return (
+    code === 'LIMIT_UNEXPECTED_FILE' ||
+    message.includes('unexpected field') ||
+    message.includes('limit_unexpected_file')
+  )
+}
+
+function getRejectedMulterField(error) {
+  const data = error?.response?.data
+  return data?.error?.field ?? data?.field ?? null
 }
 
 export async function deleteUserAvatar() {
@@ -261,6 +406,33 @@ export async function deleteUserAvatar() {
 }
 
 export function getAvatarUploadErrorMessage(error) {
+  const status = error?.response?.status
+  const apiMessage =
+    error?.response?.data?.error?.message ?? error?.response?.data?.message
+
+  if (String(apiMessage || '').toLowerCase().includes('unexpected field') || error?.code === 'LIMIT_UNEXPECTED_FILE') {
+    return (
+      apiMessage ||
+      error?.message ||
+      'Upload field name mismatch. Backend must use multer().single with the same field name the frontend sends.'
+    )
+  }
+  if (status === 401) {
+    return 'Your session expired. Sign in again, then upload the photo.'
+  }
+  if (status === 413) {
+    return 'That image is too large. Use a photo under 5 MB.'
+  }
+  if (status === 415 || status === 400) {
+    return apiMessage || 'Use a JPEG, PNG, WebP, or GIF image.'
+  }
+  if (status === 500 || status === 502 || status === 503) {
+    return (
+      apiMessage ||
+      'Server failed while saving the photo (500). Backend needs to fix POST /users/me/avatar storage.'
+    )
+  }
+
   return getApiErrorMessage(error, 'Unable to update profile photo.')
 }
 

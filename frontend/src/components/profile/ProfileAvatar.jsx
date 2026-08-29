@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Camera, Loader2, Trash2 } from 'lucide-react'
 import {
   getProfileInitials,
+  loadDisplayableAvatarSrc,
   readCachedUserAvatar,
-  resolveAvatarSrc,
+  revokeUserAvatarObjectUrl,
 } from '@/services/usersService'
 import { DEV_BYPASS_AUTH } from '@/utils/constants'
 import { cn } from '@/utils/cn'
@@ -34,36 +35,70 @@ export function ProfileAvatar({
   onRemove,
   isUploading = false,
 }) {
-  const resolved = resolveAvatarSrc(avatarUrl, refreshKey)
-  const [src, setSrc] = useState(
-    () => resolved || (DEV_BYPASS_AUTH ? readCachedUserAvatar(userId) : null),
-  )
+  const [src, setSrc] = useState(null)
   const [failed, setFailed] = useState(false)
-  const [hasPhoto, setHasPhoto] = useState(
-    Boolean(resolved || (DEV_BYPASS_AUTH && readCachedUserAvatar(userId))),
-  )
+  const [hasPhoto, setHasPhoto] = useState(false)
   const fileInputRef = useRef(null)
+  const objectUrlRef = useRef(null)
   const initials = getProfileInitials(fullName)
 
   useEffect(() => {
-    setFailed(false)
+    let cancelled = false
 
-    if (resolved) {
-      setSrc(resolved)
-      setHasPhoto(true)
-      return
+    async function load() {
+      setFailed(false)
+
+      if (objectUrlRef.current) {
+        revokeUserAvatarObjectUrl(objectUrlRef.current)
+        objectUrlRef.current = null
+      }
+
+      const fallback =
+        !avatarUrl && DEV_BYPASS_AUTH ? readCachedUserAvatar(userId) : null
+      const nextUrl = avatarUrl || fallback
+
+      if (!nextUrl) {
+        if (!cancelled) {
+          setSrc(null)
+          setHasPhoto(false)
+        }
+        return
+      }
+
+      // Instant paint for data URLs / blob previews
+      if (nextUrl.startsWith('data:') || nextUrl.startsWith('blob:')) {
+        if (!cancelled) {
+          setSrc(nextUrl)
+          setHasPhoto(true)
+        }
+        return
+      }
+
+      const displaySrc = await loadDisplayableAvatarSrc(nextUrl, refreshKey)
+      if (cancelled) {
+        revokeUserAvatarObjectUrl(displaySrc)
+        return
+      }
+
+      if (displaySrc?.startsWith('blob:')) {
+        objectUrlRef.current = displaySrc
+      }
+
+      setSrc(displaySrc)
+      setHasPhoto(Boolean(displaySrc))
+      setFailed(!displaySrc)
     }
 
-    if (DEV_BYPASS_AUTH) {
-      const cached = readCachedUserAvatar(userId)
-      setSrc(cached)
-      setHasPhoto(Boolean(cached))
-      return
-    }
+    load()
 
-    setSrc(null)
-    setHasPhoto(false)
-  }, [resolved, userId, refreshKey])
+    return () => {
+      cancelled = true
+      if (objectUrlRef.current) {
+        revokeUserAvatarObjectUrl(objectUrlRef.current)
+        objectUrlRef.current = null
+      }
+    }
+  }, [avatarUrl, userId, refreshKey])
 
   const handleFileChange = (event) => {
     const file = event.target.files?.[0]
