@@ -296,6 +296,31 @@ Return `{ "courseCode": "...", "groups": [] }` when no groups exist (not 404).
 
 ---
 
+**`POST /api/matching/groups`** (create course pod — required for Find Groups)
+
+Used when search finds no open pod (or all pods are full). Frontend sends:
+
+```json
+{
+  "course": { "subject": "Biology", "courseNumber": "101" },
+  "title": "Biology 101 · Pod 1",
+  "podNumber": 1
+}
+```
+
+**Rules:**
+1. If any pod for that course still has `openSlots > 0` → **`409`** `OPEN_POD_EXISTS` with `openGroups` list (do not create a duplicate).
+2. Create only when there are zero groups, or every group is full.
+3. Number pods `1, 2, 3…` (`biology-101-1`, title `Biology 101 · Pod N`).
+4. Auto-add creator to `group_members`.
+5. Already in a course group → **`409`** `ALREADY_IN_GROUP`.
+
+**`201` response:** `{ groupId, title, courseLabel, podNumber, memberCount, maxSize, openSlots, created: true }`
+
+Also expose join: **`POST /api/matching/groups/:groupId/join`**
+
+---
+
 ### 4.3 User groups (dashboard + workspace pod list)
 
 **`GET /api/users/me/groups`**

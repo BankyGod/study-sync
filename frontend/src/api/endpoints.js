@@ -24,6 +24,7 @@ export const endpoints = {
     findGroup: '/matching/find-group',
     job: (jobId) => `/matching/jobs/${jobId}`,
     byCourse: (courseCode) => `/matching/course/${courseCode}`,
+    createGroup: '/matching/groups',
     joinGroup: (groupId) => `/matching/groups/${groupId}/join`,
     leaveGroup: (groupId) => `/matching/groups/${groupId}/leave`,
   },

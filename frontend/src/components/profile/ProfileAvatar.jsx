@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Camera, Loader2, Trash2 } from 'lucide-react'
-import { getProfileInitials, readCachedUserAvatar } from '@/services/usersService'
+import {
+  getProfileInitials,
+  readCachedUserAvatar,
+  resolveAvatarSrc,
+} from '@/services/usersService'
 import { DEV_BYPASS_AUTH } from '@/utils/constants'
 import { cn } from '@/utils/cn'
 
@@ -9,6 +13,13 @@ const SIZE_CLASSES = {
   md: 'h-14 w-14 text-sm',
   lg: 'h-16 w-16 text-xl sm:h-20 sm:w-20 sm:text-2xl',
   xl: 'h-24 w-24 text-2xl',
+}
+
+const CAMERA_SIZES = {
+  sm: 'h-6 w-6',
+  md: 'h-7 w-7',
+  lg: 'h-8 w-8 sm:h-9 sm:w-9',
+  xl: 'h-9 w-9',
 }
 
 export function ProfileAvatar({
@@ -23,14 +34,22 @@ export function ProfileAvatar({
   onRemove,
   isUploading = false,
 }) {
-  const [src, setSrc] = useState(() => avatarUrl || (DEV_BYPASS_AUTH ? readCachedUserAvatar(userId) : null))
-  const [hasPhoto, setHasPhoto] = useState(Boolean(avatarUrl || (DEV_BYPASS_AUTH && readCachedUserAvatar(userId))))
+  const resolved = resolveAvatarSrc(avatarUrl, refreshKey)
+  const [src, setSrc] = useState(
+    () => resolved || (DEV_BYPASS_AUTH ? readCachedUserAvatar(userId) : null),
+  )
+  const [failed, setFailed] = useState(false)
+  const [hasPhoto, setHasPhoto] = useState(
+    Boolean(resolved || (DEV_BYPASS_AUTH && readCachedUserAvatar(userId))),
+  )
   const fileInputRef = useRef(null)
   const initials = getProfileInitials(fullName)
 
   useEffect(() => {
-    if (avatarUrl) {
-      setSrc(avatarUrl)
+    setFailed(false)
+
+    if (resolved) {
+      setSrc(resolved)
       setHasPhoto(true)
       return
     }
@@ -44,7 +63,7 @@ export function ProfileAvatar({
 
     setSrc(null)
     setHasPhoto(false)
-  }, [avatarUrl, userId, refreshKey])
+  }, [resolved, userId, refreshKey])
 
   const handleFileChange = (event) => {
     const file = event.target.files?.[0]
@@ -54,25 +73,28 @@ export function ProfileAvatar({
     }
   }
 
-  const showInitials = !src
+  const showInitials = !src || failed
 
   return (
-    <div className={cn('relative shrink-0', className)}>
+    <div className={cn('relative shrink-0', editable && 'pb-1 pr-1', className)}>
       <div
         className={cn(
-          'relative overflow-hidden rounded-full bg-brand-600 font-bold text-surface',
+          'relative overflow-hidden rounded-full bg-brand-600 font-bold text-white shadow-sm',
           SIZE_CLASSES[size] ?? SIZE_CLASSES.lg,
-          editable && 'ring-2 ring-surface ring-offset-2 ring-offset-page',
+          editable && 'ring-2 ring-white',
         )}
       >
         {showInitials ? (
-          <span className="flex h-full w-full items-center justify-center">{initials || 'A'}</span>
+          <span className="flex h-full w-full select-none items-center justify-center">
+            {initials || '?'}
+          </span>
         ) : (
           <img
             src={src}
             alt=""
-            className="h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover"
             onError={() => {
+              setFailed(true)
               setSrc(null)
               setHasPhoto(false)
             }}
@@ -81,7 +103,7 @@ export function ProfileAvatar({
 
         {isUploading ? (
           <div className="absolute inset-0 flex items-center justify-center bg-ink/40">
-            <Loader2 className="h-5 w-5 animate-spin text-surface" />
+            <Loader2 className="h-5 w-5 animate-spin text-white" />
           </div>
         ) : null}
       </div>
@@ -99,10 +121,15 @@ export function ProfileAvatar({
             type="button"
             disabled={isUploading}
             onClick={() => fileInputRef.current?.click()}
-            className="absolute -bottom-0.5 -right-0.5 flex h-9 w-9 items-center justify-center rounded-full border-2 border-page bg-brand-600 text-surface transition hover:bg-brand-700 disabled:opacity-60"
+            className={cn(
+              'absolute bottom-0 right-0 z-10 flex items-center justify-center rounded-full border-2 border-white bg-brand-600 text-white shadow-sm transition',
+              'hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300',
+              'disabled:opacity-60',
+              CAMERA_SIZES[size] ?? CAMERA_SIZES.lg,
+            )}
             aria-label="Upload profile photo"
           >
-            <Camera className="h-4 w-4" />
+            <Camera className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </button>
         </>
       ) : null}

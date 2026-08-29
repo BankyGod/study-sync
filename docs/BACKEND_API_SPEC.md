@@ -525,12 +525,73 @@ List open groups or match candidates for a course. `courseCode` is URL-encoded s
   "courseCode": "biology-101",
   "groups": [
     {
-      "groupId": "biology-101",
-      "title": "Biology 101 Study Group",
+      "groupId": "biology-101-1",
+      "title": "Biology 101 · Pod 1",
+      "podNumber": 1,
       "memberCount": 4,
+      "maxSize": 6,
       "openSlots": 2
     }
   ]
+}
+```
+
+### `POST /api/matching/groups` (create course pod)
+
+Explicitly create a pod for a course so classmates can see and join it.
+
+**Request:**
+
+```json
+{
+  "course": {
+    "subject": "Biology",
+    "courseNumber": "101"
+  },
+  "title": "Biology 101 · Pod 1",
+  "podNumber": 1
+}
+```
+
+**Business rules (required):**
+
+1. **No duplicate open pods.** If any existing group for the same `subject` + `courseNumber` still has `openSlots > 0`, do **not** create another. Return **`409`**:
+   ```json
+   {
+     "error": {
+       "code": "OPEN_POD_EXISTS",
+       "message": "An open pod already exists for this course. Join it instead of creating another.",
+       "openGroups": [
+         {
+           "groupId": "biology-101-1",
+           "title": "Biology 101 · Pod 1",
+           "podNumber": 1,
+           "memberCount": 3,
+           "maxSize": 6,
+           "openSlots": 3
+         }
+       ]
+     }
+   }
+   ```
+2. **Create only when** there are no groups for the course, **or** every existing group is full (`openSlots === 0`).
+3. **Number pods** sequentially for that course: `Pod 1`, `Pod 2`, `Pod 3`, …  
+   Prefer slug `biology-101-1`, `biology-101-2`, and title `Biology 101 · Pod N`.
+4. Auto-add the creator to `group_members` so they can open the workspace immediately.
+5. If the user is already in a group for this course → **`409`** `ALREADY_IN_GROUP`.
+
+**Response `201`:**
+
+```json
+{
+  "groupId": "biology-101-1",
+  "title": "Biology 101 · Pod 1",
+  "courseLabel": "Biology 101",
+  "podNumber": 1,
+  "memberCount": 1,
+  "maxSize": 6,
+  "openSlots": 5,
+  "created": true
 }
 ```
 
@@ -544,7 +605,11 @@ Score candidates on:
 4. `studyPreferences.groupSize` vs current group size
 5. `timeCommitment` and `difficulty` alignment
 
-Create a new group if no suitable pod exists; otherwise add the student to the best-scoring group.
+**Pod creation rules for `find-group` (same as create):**
+
+- Prefer joining an existing open pod for the course.
+- Create a new numbered pod only when none exist or all existing pods are full.
+- Never create a second open pod for the same course while seats remain.
 
 ### WebSocket: matching events
 

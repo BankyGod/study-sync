@@ -1,8 +1,30 @@
 import apiClient from '@/api/client'
 import { endpoints } from '@/api/endpoints'
 import { getApiErrorMessage } from '@/utils/apiErrors'
+import { resolveApiUrl } from '@/utils/apiUrl'
 import { getStoredUser } from '@/services/authService'
 import { DEV_BYPASS_AUTH, STORAGE_KEYS } from '@/utils/constants'
+
+const AVATAR_COLOR_FALLBACK = 'bg-sky-500'
+const AVATAR_COLOR_CLASSES = new Set([
+  'bg-sky-500',
+  'bg-brand-500',
+  'bg-brand-600',
+  'bg-emerald-500',
+  'bg-violet-500',
+  'bg-amber-500',
+  'bg-rose-500',
+  'bg-indigo-500',
+  'bg-cyan-500',
+  'bg-teal-500',
+  'bg-orange-500',
+  'bg-blue-500',
+  'bg-green-500',
+  'bg-purple-500',
+  'bg-pink-500',
+  'bg-red-500',
+  'bg-slate-500',
+])
 
 export function getProfileInitials(fullName = '') {
   return fullName
@@ -12,6 +34,31 @@ export function getProfileInitials(fullName = '') {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('')
+}
+
+/** Ensure avatar color is a usable Tailwind bg class (API may send hex or empty). */
+export function normalizeAvatarColor(color) {
+  if (!color || typeof color !== 'string') return AVATAR_COLOR_FALLBACK
+  const trimmed = color.trim()
+  if (AVATAR_COLOR_CLASSES.has(trimmed)) return trimmed
+  if (trimmed.startsWith('bg-') && /^bg-[a-z]+-\d{2,3}$/.test(trimmed)) return trimmed
+  return AVATAR_COLOR_FALLBACK
+}
+
+/**
+ * Resolve avatar URL from the API. Relative paths need the API origin.
+ * Optional refreshKey busts browser cache after upload.
+ */
+export function resolveAvatarSrc(avatarUrl, refreshKey = 0) {
+  if (!avatarUrl) return null
+  if (avatarUrl.startsWith('data:') || avatarUrl.startsWith('blob:')) return avatarUrl
+
+  const resolved = resolveApiUrl(avatarUrl)
+  if (!resolved) return null
+  if (!refreshKey) return resolved
+
+  const separator = resolved.includes('?') ? '&' : '?'
+  return `${resolved}${separator}v=${refreshKey}`
 }
 
 export function buildProfileFromAuthUser(user) {
@@ -197,7 +244,11 @@ export async function uploadUserAvatar(file) {
   formData.append('photo', file)
 
   const { data } = await apiClient.post(endpoints.users.avatar, formData)
-  return data
+  const avatarUrl = data?.avatarUrl ?? data?.url ?? data?.photoUrl ?? null
+  return {
+    ...data,
+    avatarUrl: avatarUrl ? resolveApiUrl(avatarUrl) : null,
+  }
 }
 
 export async function deleteUserAvatar() {

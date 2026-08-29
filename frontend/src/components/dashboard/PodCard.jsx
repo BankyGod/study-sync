@@ -34,14 +34,16 @@ export function PodCard({ title, members = [], progress = 0, to, compact = false
           </div>
 
           <div className="mt-3 flex items-center gap-2">
-            <div className="flex -space-x-1.5">
-              {members.slice(0, 3).map((member) => (
+            <div className="flex items-center pl-0.5">
+              {members.slice(0, 3).map((member, memberIndex) => (
                 <MemberAvatar
-                  key={member.id ?? member.initials}
+                  key={member.id ?? member.initials ?? memberIndex}
                   member={member}
                   size="sm"
                   bordered
                   refreshKey={avatarVersion}
+                  className={cn(memberIndex > 0 && '-ml-1.5', 'relative')}
+                  style={{ zIndex: members.length - memberIndex }}
                 />
               ))}
             </div>

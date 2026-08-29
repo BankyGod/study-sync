@@ -5,6 +5,7 @@ import { MatchingProgress } from '@/components/find-groups/MatchingProgress'
 import { MatchFoundView } from '@/components/find-groups/MatchFoundView'
 import { CourseSelectPanel, courseKey } from '@/components/find-groups/CourseSelectPanel'
 import { OpenCoursePodsPanel } from '@/components/find-groups/OpenCoursePodsPanel'
+import { CreatePodPrompt } from '@/components/find-groups/CreatePodPrompt'
 import { CompleteStudyPreferencesBanner } from '@/components/onboarding/CompleteStudyPreferencesBanner'
 import { useMatchingProgress } from '@/hooks/useMatchingProgress'
 import { Button } from '@/components/common/Button'
@@ -18,7 +19,13 @@ import {
   saveOnboardingProfile,
   setCachedOnboardingProfile,
 } from '@/services/onboardingProfileService'
-import { fetchCourseGroups, fetchOpenPodsForCourses } from '@/services/matchingService'
+import {
+  canCreatePodForCourse,
+  fetchCourseGroups,
+  fetchOpenPodsForCourses,
+  getCourseCode,
+  getOpenPods,
+} from '@/services/matchingService'
 import { ROUTES } from '@/utils/constants'
 import { formatCourseName, getValidCourses } from '@/utils/onboarding'
 import {
@@ -41,6 +48,7 @@ export function FindGroupsPage() {
   const [courseLabel, setCourseLabel] = useState(null)
   const [courseGroups, setCourseGroups] = useState([])
   const [openPods, setOpenPods] = useState([])
+  const [selectedCourseGroups, setSelectedCourseGroups] = useState([])
   const [isLoadingOpenPods, setIsLoadingOpenPods] = useState(false)
   const [isProfileReady, setIsProfileReady] = useState(false)
   const [hasSavedProfile, setHasSavedProfile] = useState(false)
@@ -65,6 +73,14 @@ export function FindGroupsPage() {
         .join(','),
     [validCourses],
   )
+
+  const selectedValidCourse = useMemo(
+    () => validCourses.find((item) => courseKey(item) === selectedCourseId) ?? null,
+    [validCourses, selectedCourseId],
+  )
+
+  const openGroupsForSearch = useMemo(() => getOpenPods(courseGroups), [courseGroups])
+  const canCreateForSearch = canCreatePodForCourse(courseGroups)
 
   useEffect(() => {
     let cancelled = false
@@ -134,6 +150,27 @@ export function FindGroupsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- validCoursesKey tracks course identity
   }, [phase, hasSavedProfile, validCoursesKey])
 
+  // Load all pods (including full) for the selected course so we can offer create safely.
+  useEffect(() => {
+    if (phase !== 'select-course' || !hasSavedProfile || !selectedValidCourse) {
+      setSelectedCourseGroups([])
+      return undefined
+    }
+
+    let cancelled = false
+    fetchCourseGroups(selectedValidCourse)
+      .then((data) => {
+        if (!cancelled) setSelectedCourseGroups(data?.groups ?? [])
+      })
+      .catch(() => {
+        if (!cancelled) setSelectedCourseGroups([])
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [phase, hasSavedProfile, selectedValidCourse])
+
   useEffect(() => {
     if (isComplete && phase === 'searching') {
       const timeout = window.setTimeout(() => setPhase('found'), 400)
@@ -170,21 +207,33 @@ export function FindGroupsPage() {
       setCachedOnboardingProfile(saved)
       setHasSavedProfile(true)
 
+      const label = formatCourseName(course)
       setSelectedCourse({
         subject: course.subject.trim(),
         courseNumber: course.courseNumber.trim(),
       })
-      setCourseLabel(formatCourseName(course))
+      setCourseLabel(label)
+
+      let groups = []
+      try {
+        const courseData = await fetchCourseGroups(course)
+        groups = courseData?.groups ?? []
+        setCourseGroups(groups)
+      } catch {
+        groups = []
+        setCourseGroups([])
+      }
+
+      // If an open pod already exists, show join UI first — do not create a duplicate.
+      if (getOpenPods(groups).length > 0) {
+        setPhase('browse')
+        reset()
+        return
+      }
+
       setPhase('searching')
       reset()
       setRunKey((key) => key + 1)
-
-      try {
-        const courseData = await fetchCourseGroups(course)
-        setCourseGroups(courseData?.groups ?? [])
-      } catch {
-        setCourseGroups([])
-      }
     } catch (saveError) {
       setSelectError(
         saveError.message?.includes('Select') || saveError.message?.includes('Add')
@@ -214,11 +263,34 @@ export function FindGroupsPage() {
     if (selectedCourse) {
       try {
         const courseData = await fetchCourseGroups(selectedCourse)
-        setCourseGroups(courseData?.groups ?? [])
+        const groups = courseData?.groups ?? []
+        setCourseGroups(groups)
+        if (getOpenPods(groups).length > 0) {
+          setPhase('browse')
+        }
       } catch {
         setCourseGroups([])
       }
     }
+  }
+
+  const handleOpenPodsFound = (groups) => {
+    if (!groups?.length) return
+    setCourseGroups((prev) => {
+      const byId = new Map(prev.map((g) => [g.groupId, g]))
+      for (const group of groups) {
+        byId.set(group.groupId, group)
+      }
+      return [...byId.values()]
+    })
+    setOpenPods((prev) => {
+      const byId = new Map(prev.map((g) => [g.groupId, g]))
+      for (const group of groups) {
+        byId.set(group.groupId, { ...group, courseLabel: group.courseLabel ?? courseLabel })
+      }
+      return [...byId.values()]
+    })
+    setPhase('browse')
   }
 
   if (phase === 'found' && match) {
@@ -238,6 +310,23 @@ export function FindGroupsPage() {
       isOnboardingRequiredMessage(profileError || selectError) ||
       isOnboardingRequiredMessage(error)
 
+    const selectedCode = selectedValidCourse ? getCourseCode(selectedValidCourse) : null
+    const openForSelected = selectedCode
+      ? openPods.filter(
+          (pod) =>
+            pod.courseCode === selectedCode ||
+            (pod.subject &&
+              pod.courseNumber &&
+              getCourseCode({ subject: pod.subject, courseNumber: pod.courseNumber }) ===
+                selectedCode),
+        )
+      : []
+    const showCreateForSelected =
+      Boolean(selectedValidCourse) &&
+      hasSavedProfile &&
+      !isLoadingOpenPods &&
+      canCreatePodForCourse(selectedCourseGroups)
+
     return (
       <PageShell>
         {!isProfileReady && !profileError ? (
@@ -249,7 +338,7 @@ export function FindGroupsPage() {
             <PageHeader
               eyebrow="Matching"
               title="Find your study group"
-              description="Join an open pod for your courses, or search to get matched if none have space."
+              description="Join an open pod when one has seats. If none exist — or all are full — create the next numbered pod for that course."
             />
             {showOnboardingPrompt ? (
               <CompleteStudyPreferencesBanner returnTo={ROUTES.FIND_GROUPS} />
@@ -260,6 +349,19 @@ export function FindGroupsPage() {
                 pods={openPods}
                 isLoading={isLoadingOpenPods}
                 canJoin={hasSavedProfile}
+              />
+            ) : null}
+
+            {!showOnboardingPrompt && showCreateForSelected && openForSelected.length === 0 ? (
+              <CreatePodPrompt
+                course={{
+                  subject: selectedValidCourse.subject.trim(),
+                  courseNumber: selectedValidCourse.courseNumber.trim(),
+                }}
+                courseLabel={formatCourseName(selectedValidCourse)}
+                existingGroups={selectedCourseGroups}
+                canCreate={hasSavedProfile}
+                onOpenPodsFound={handleOpenPodsFound}
               />
             ) : null}
 
@@ -283,9 +385,42 @@ export function FindGroupsPage() {
     )
   }
 
+  if (phase === 'browse') {
+    return (
+      <PageShell>
+        <PageHeader
+          eyebrow={courseLabel ? `Available · ${courseLabel}` : 'Available pods'}
+          title="Open pods found"
+          description="Join a pod with free seats. A new pod for this course can only be created when every existing one is full."
+          actions={
+            <Button variant="secondary" onClick={handleChangeCourse}>
+              Change course
+            </Button>
+          }
+        />
+        <OpenCoursePodsPanel
+          pods={openGroupsForSearch.map((group) => ({
+            ...group,
+            courseLabel: courseLabel ?? group.courseLabel,
+          }))}
+          canJoin={hasSavedProfile}
+          createCourse={selectedCourse}
+          createCourseLabel={courseLabel}
+          createExistingGroups={courseGroups}
+          onOpenPodsFound={handleOpenPodsFound}
+        />
+      </PageShell>
+    )
+  }
+
   const statusMessage = error
-  const openGroupCount = courseGroups.filter((group) => (group.openSlots ?? 0) > 0).length
-  const totalOpenSlots = courseGroups.reduce((sum, group) => sum + (group.openSlots ?? 0), 0)
+  const openGroupCount = openGroupsForSearch.length
+  const totalOpenSlots = openGroupsForSearch.reduce(
+    (sum, group) => sum + (group.openSlots ?? 0),
+    0,
+  )
+  const showCreatePrompt =
+    Boolean(selectedCourse) && canCreateForSearch && (isWaitingForPeers || courseGroups.length === 0 || openGroupCount === 0)
 
   return (
     <PageShell>
@@ -294,7 +429,7 @@ export function FindGroupsPage() {
         title="Finding your study group"
         description={
           courseLabel
-            ? `Scanning students in ${courseLabel} for schedule, learning style, and preference fit.`
+            ? `Looking for open pods in ${courseLabel}. If none exist, you can create one.`
             : 'Matching classmates by course and study preferences.'
         }
       />
@@ -303,7 +438,7 @@ export function FindGroupsPage() {
           <p className="text-sm text-muted">
             {openGroupCount > 0
               ? `${openGroupCount} open group${openGroupCount === 1 ? '' : 's'} · ${totalOpenSlots} slot${totalOpenSlots === 1 ? '' : 's'}`
-              : `${courseGroups.length} existing group${courseGroups.length === 1 ? '' : 's'} found`}
+              : `${courseGroups.length} existing group${courseGroups.length === 1 ? '' : 's'} — all full`}
           </p>
           {openGroupCount > 0 ? (
             <OpenCoursePodsPanel
@@ -314,6 +449,18 @@ export function FindGroupsPage() {
               canJoin={hasSavedProfile}
             />
           ) : null}
+        </div>
+      ) : null}
+
+      {showCreatePrompt ? (
+        <div className="mb-6">
+          <CreatePodPrompt
+            course={selectedCourse}
+            courseLabel={courseLabel}
+            existingGroups={courseGroups}
+            canCreate={hasSavedProfile}
+            onOpenPodsFound={handleOpenPodsFound}
+          />
         </div>
       ) : null}
 
@@ -329,7 +476,7 @@ export function FindGroupsPage() {
           <p>{statusMessage}</p>
           {isWaitingForPeers && (
             <p className="mt-2 text-xs text-amber-700">
-              We&apos;ll keep checking as more students join {courseLabel ?? 'your course'}.
+              Or create a pod for {courseLabel ?? 'this course'} so others can join when they search.
             </p>
           )}
         </div>
@@ -342,7 +489,7 @@ export function FindGroupsPage() {
       ) : null}
 
       <div className="mt-6 overflow-x-clip">
-        <OrbitAnimation paused={Boolean(statusMessage)} />
+        <OrbitAnimation paused={Boolean(statusMessage) || showCreatePrompt} />
       </div>
 
       <div className="mt-8 sm:mt-10">

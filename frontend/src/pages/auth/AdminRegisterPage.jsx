@@ -3,9 +3,9 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { AuthEmailField, AuthPasswordField } from '@/components/auth/AuthField'
 import { AuthFooterLink, AuthLayout } from '@/components/auth/AuthLayout'
 import { Button } from '@/components/common/Button'
-import { Input } from '@/components/common/Input'
 import { useAuthContext } from '@/context/AuthContext'
 import { getWorkspaceErrorMessage } from '@/utils/workspaceErrors'
 import { isStaffRole, ROUTES } from '@/utils/constants'
@@ -57,7 +57,9 @@ export function AdminRegisterPage() {
   return (
     <AuthLayout
       title="Create instructor account"
-      subtitle="Only an email and password are required for the admin portal."
+      subtitle="Only an email and password are required"
+      brandHeadline="Lead cohorts — guide pods"
+      brandBody="Manage matching, cohorts, and study groups from one compact instructor workspace."
       footer={
         <AuthFooterLink
           prompt="Already have an instructor account?"
@@ -66,37 +68,37 @@ export function AdminRegisterPage() {
         />
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <Input
-          label="Email"
-          type="email"
-          size="lg"
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        <AuthEmailField
+          label="Email address"
           autoComplete="email"
           placeholder="you@gctu.edu.gh"
           error={errors.email?.message}
           {...register('email')}
         />
-        <Input
+        <AuthPasswordField
           label="Password"
-          type="password"
-          size="lg"
           autoComplete="new-password"
+          placeholder="Create a password"
           error={errors.password?.message}
           {...register('password')}
         />
-        <Input
+        <AuthPasswordField
           label="Confirm password"
-          type="password"
-          size="lg"
           autoComplete="new-password"
+          placeholder="Confirm password"
           error={errors.confirmPassword?.message}
           {...register('confirmPassword')}
         />
 
-        {authError && <p className="text-sm text-red-600">{authError}</p>}
+        {authError ? <p className="text-[13px] text-red-600">{authError}</p> : null}
 
-        <Button type="submit" className="h-11 w-full rounded-xl text-sm" disabled={isSubmitting}>
-          {isSubmitting ? 'Creating account...' : 'Create instructor account'}
+        <Button
+          type="submit"
+          className="h-12 w-full rounded-xl bg-ink text-[15px] text-white hover:bg-ink/90 active:bg-ink"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Creating account…' : 'Create account'}
         </Button>
       </form>
     </AuthLayout>

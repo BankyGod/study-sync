@@ -3,15 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { AuthEmailField, AuthField, AuthPasswordField } from '@/components/auth/AuthField'
 import { AuthFooterLink, AuthLayout } from '@/components/auth/AuthLayout'
 import { AuthSection, AuthSelect } from '@/components/auth/AuthFormFields'
 import { Button } from '@/components/common/Button'
-import { Input } from '@/components/common/Input'
 import { useAuthContext } from '@/context/AuthContext'
 import { ACADEMIC_LEVELS, ACADEMIC_PROGRAMS, UNIVERSITIES } from '@/utils/auth'
 import { getWorkspaceErrorMessage } from '@/utils/workspaceErrors'
 import { ROUTES, ROLES } from '@/utils/constants'
-import { cn } from '@/utils/cn'
 
 const registerSchema = z
   .object({
@@ -77,11 +76,13 @@ export function RegisterPage() {
   return (
     <AuthLayout
       title="Create your account"
-      subtitle="Register with your academic details to join course-based study pods at GCTU."
+      subtitle="Join course-based study pods at GCTU"
       size="wide"
-      formClassName="w-full max-w-3xl"
+      formClassName="w-full max-w-2xl"
+      brandHeadline="Study together — succeed faster"
+      brandBody="Match by course and schedule. Collaborate in focused workspaces built for university cohorts."
       footer={
-        <div className="space-y-2 text-center">
+        <div className="space-y-1">
           <AuthFooterLink
             prompt="Already have an account?"
             linkText="Sign in"
@@ -95,37 +96,35 @@ export function RegisterPage() {
         </div>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <AuthSection title="Personal information" size="lg">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input
+            <AuthField
               label="First name"
-              size="lg"
               autoComplete="given-name"
+              placeholder="First name"
               error={errors.firstName?.message}
               {...register('firstName')}
             />
-            <Input
+            <AuthField
               label="Last name"
-              size="lg"
               autoComplete="family-name"
+              placeholder="Last name"
               error={errors.lastName?.message}
               {...register('lastName')}
             />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input
+            <AuthField
               label="Student ID"
-              size="lg"
               placeholder="e.g. 12345678"
               error={errors.studentId?.message}
               {...register('studentId')}
             />
-            <Input
+            <AuthField
               label="Phone number (optional)"
               type="tel"
-              size="lg"
               autoComplete="tel"
               placeholder="+233..."
               error={errors.phone?.message}
@@ -133,10 +132,8 @@ export function RegisterPage() {
             />
           </div>
 
-          <Input
+          <AuthEmailField
             label="University email"
-            type="email"
-            size="lg"
             autoComplete="email"
             placeholder="you@gctu.edu.gh"
             error={errors.email?.message}
@@ -174,19 +171,17 @@ export function RegisterPage() {
 
         <AuthSection title="Account security" size="lg">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input
+            <AuthPasswordField
               label="Password"
-              type="password"
-              size="lg"
               autoComplete="new-password"
+              placeholder="Create a password"
               error={errors.password?.message}
               {...register('password')}
             />
-            <Input
+            <AuthPasswordField
               label="Confirm password"
-              type="password"
-              size="lg"
               autoComplete="new-password"
+              placeholder="Confirm password"
               error={errors.confirmPassword?.message}
               {...register('confirmPassword')}
             />
@@ -195,25 +190,29 @@ export function RegisterPage() {
 
         <input type="hidden" value={ROLES.STUDENT} {...register('role')} />
 
-        <label className="flex items-start gap-3 rounded-2xl border border-border bg-page px-4 py-3.5">
+        <label className="flex items-start gap-3 rounded-xl border border-[#d8dde3] bg-page px-4 py-3.5">
           <input
             type="checkbox"
             className="mt-1 h-4 w-4 rounded border-border text-brand-600 focus:ring-brand-500"
             {...register('agreeToTerms')}
           />
-          <span className="text-sm leading-relaxed text-soft">
+          <span className="text-[13px] leading-relaxed text-soft">
             I agree to StudySync&apos;s terms of use and consent to my profile data being used for
             study group matching and collaborative learning features.
           </span>
         </label>
-        {errors.agreeToTerms && (
-          <p className="-mt-4 text-xs text-red-600">{errors.agreeToTerms.message}</p>
-        )}
+        {errors.agreeToTerms ? (
+          <p className="-mt-3 text-[12px] text-red-600">{errors.agreeToTerms.message}</p>
+        ) : null}
 
-        {authError && <p className="text-sm text-red-600">{authError}</p>}
+        {authError ? <p className="text-[13px] text-red-600">{authError}</p> : null}
 
-        <Button type="submit" className={cn('h-11 w-full rounded-xl text-sm')} disabled={isSubmitting}>
-          {isSubmitting ? 'Creating account...' : 'Create account & continue'}
+        <Button
+          type="submit"
+          className="h-12 w-full rounded-xl bg-ink text-[15px] text-white hover:bg-ink/90 active:bg-ink"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Creating account…' : 'Create account & continue'}
         </Button>
       </form>
     </AuthLayout>

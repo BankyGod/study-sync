@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { AuthEmailField, AuthPasswordField } from '@/components/auth/AuthField'
 import { AuthFooterLink, AuthLayout } from '@/components/auth/AuthLayout'
 import { Button } from '@/components/common/Button'
-import { Input } from '@/components/common/Input'
 import { useAuthContext } from '@/context/AuthContext'
 import { getWorkspaceErrorMessage } from '@/utils/workspaceErrors'
 import { getHomeRouteForRole, ROUTES } from '@/utils/constants'
@@ -41,13 +41,15 @@ export function LoginPage() {
 
   return (
     <AuthLayout
-      title="Sign in"
-      subtitle="Continue to your pods and workspaces."
+      title="Welcome back!"
+      subtitle="Sign in to StudySync"
+      brandHeadline="Study together — succeed faster"
+      brandBody="Match by course and schedule. Collaborate in focused workspaces built for university cohorts."
       footer={
-        <div className="space-y-1 text-center">
+        <div className="space-y-1">
           <AuthFooterLink
-            prompt="New here?"
-            linkText="Create account"
+            prompt="Don't have an account?"
+            linkText="Sign up to continue"
             to={ROUTES.REGISTER}
           />
           <AuthFooterLink
@@ -58,28 +60,29 @@ export function LoginPage() {
         </div>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <Input
-          label="University email"
-          type="email"
-          size="lg"
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        <AuthEmailField
+          label="Email address"
           autoComplete="email"
           placeholder="you@gctu.edu.gh"
           error={errors.email?.message}
           {...register('email')}
         />
-        <Input
+        <AuthPasswordField
           label="Password"
-          type="password"
-          size="lg"
           autoComplete="current-password"
+          placeholder="Enter password"
           error={errors.password?.message}
           {...register('password')}
         />
 
-        {authError ? <p className="text-[12px] text-red-600">{authError}</p> : null}
+        {authError ? <p className="text-[13px] text-red-600">{authError}</p> : null}
 
-        <Button type="submit" className="h-11 w-full rounded-xl text-sm" disabled={isSubmitting}>
+        <Button
+          type="submit"
+          className="h-12 w-full rounded-xl bg-ink text-[15px] text-white hover:bg-ink/90 active:bg-ink"
+          disabled={isSubmitting}
+        >
           {isSubmitting ? 'Signing in…' : 'Sign in'}
         </Button>
       </form>

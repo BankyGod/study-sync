@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react'
-import { getProfileInitials, readCachedUserAvatar } from '@/services/usersService'
+import {
+  getProfileInitials,
+  normalizeAvatarColor,
+  readCachedUserAvatar,
+  resolveAvatarSrc,
+} from '@/services/usersService'
 import { DEV_BYPASS_AUTH } from '@/utils/constants'
 import { cn } from '@/utils/cn'
 
@@ -18,19 +23,24 @@ export function MemberAvatar({
   className,
   refreshKey = 0,
   bordered = false,
+  style,
 }) {
   const avatarUrl = member?.avatarUrl ?? null
+  const resolved = resolveAvatarSrc(avatarUrl, refreshKey)
   const [src, setSrc] = useState(
-    () => avatarUrl || (DEV_BYPASS_AUTH ? readCachedUserAvatar(member?.id) : null),
+    () => resolved || (DEV_BYPASS_AUTH ? readCachedUserAvatar(member?.id) : null),
   )
+  const [failed, setFailed] = useState(false)
 
   const initials = member?.initials ?? getProfileInitials(member?.name ?? '')
-  const color = member?.color ?? 'bg-sky-500'
-  const showInitials = !src
+  const color = normalizeAvatarColor(member?.color)
+  const showInitials = !src || failed
 
   useEffect(() => {
-    if (avatarUrl) {
-      setSrc(avatarUrl)
+    setFailed(false)
+
+    if (resolved) {
+      setSrc(resolved)
       return
     }
 
@@ -40,24 +50,37 @@ export function MemberAvatar({
     }
 
     setSrc(null)
-  }, [avatarUrl, member?.id, refreshKey])
+  }, [resolved, member?.id, refreshKey])
 
   const avatar = (
     <div
       title={member?.name}
+      style={style}
       className={cn(
         'relative flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-white',
         SIZE_CLASSES[size],
-        showInitials && color,
-        bordered && 'border-2 border-white',
-        onClick && 'cursor-pointer transition hover:ring-2 hover:ring-brand-300 hover:ring-offset-2',
+        color,
+        bordered && 'ring-2 ring-white',
+        onClick && 'cursor-pointer transition hover:ring-2 hover:ring-brand-300 hover:ring-offset-1',
         className,
       )}
     >
-      {showInitials ? initials : <img src={src} alt="" className="h-full w-full object-cover" />}
-      {showOnline && online && (
-        <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
+      {showInitials ? (
+        <span className="select-none">{initials || '?'}</span>
+      ) : (
+        <img
+          src={src}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+          onError={() => {
+            setFailed(true)
+            setSrc(null)
+          }}
+        />
       )}
+      {showOnline && online ? (
+        <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
+      ) : null}
     </div>
   )
 

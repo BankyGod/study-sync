@@ -32,7 +32,6 @@ function getGroupLabel(student) {
 }
 
 function StudentAvatar({ student }) {
-  const url = student.avatarUrl
   const name = getStudentName(student)
   const initials = name
     .split(/\s+/)
@@ -40,13 +39,19 @@ function StudentAvatar({ student }) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('')
+  const [src, setSrc] = useState(() => student.avatarUrl || null)
 
-  if (url) {
+  useEffect(() => {
+    setSrc(student.avatarUrl || null)
+  }, [student.avatarUrl])
+
+  if (src) {
     return (
       <img
-        src={url}
+        src={src}
         alt=""
-        className="h-8 w-8 rounded-full object-cover ring-1 ring-border"
+        className="h-8 w-8 rounded-full bg-brand-50 object-cover ring-1 ring-border"
+        onError={() => setSrc(null)}
       />
     )
   }

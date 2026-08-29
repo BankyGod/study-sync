@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Users } from 'lucide-react'
 import { Button } from '@/components/common/Button'
 import { Spinner } from '@/components/common/Spinner'
+import { CreatePodPrompt } from '@/components/find-groups/CreatePodPrompt'
 import { joinStudyGroup, getMatchingErrorMessage } from '@/services/matchingService'
 import { buildWorkspacePath } from '@/utils/workspace'
 import { cn } from '@/utils/cn'
@@ -12,6 +13,12 @@ export function OpenCoursePodsPanel({
   isLoading = false,
   canJoin = true,
   className,
+  /** When empty, optionally offer create for this course */
+  createCourse = null,
+  createCourseLabel = null,
+  createExistingGroups = [],
+  onCreated,
+  onOpenPodsFound,
 }) {
   const navigate = useNavigate()
   const [joiningId, setJoiningId] = useState(null)
@@ -43,12 +50,26 @@ export function OpenCoursePodsPanel({
   }
 
   if (openPods.length === 0) {
+    if (createCourse) {
+      return (
+        <CreatePodPrompt
+          course={createCourse}
+          courseLabel={createCourseLabel}
+          existingGroups={createExistingGroups}
+          canCreate={canJoin}
+          className={className}
+          onCreated={onCreated}
+          onOpenPodsFound={onOpenPodsFound}
+        />
+      )
+    }
+
     return (
       <section className={cn('rounded-xl border border-dashed border-border bg-surface/70 p-5', className)}>
         <p className="text-[13px] font-semibold text-ink">No open pods yet</p>
         <p className="mt-1 text-[12px] text-muted">
-          None of your courses have a pod with free seats. Select a course below and search to start
-          or join matching.
+          None of your courses have a pod with free seats. Select a course below to search — if none
+          exist, you can create one for classmates to join.
         </p>
       </section>
     )
@@ -59,7 +80,7 @@ export function OpenCoursePodsPanel({
       <div>
         <h2 className="text-[14px] font-semibold text-ink">Open pods for your courses</h2>
         <p className="mt-0.5 text-[12px] text-muted">
-          Join an existing group that still has space — no need to search again.
+          Join an existing group that still has space — no need to create another until seats are full.
         </p>
       </div>
 

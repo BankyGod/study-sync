@@ -37,10 +37,17 @@ export function getMatchingErrorMessage(error, { profileReady = true } = {}) {
   }
 
   const status = error?.response?.status
-  const code = error?.response?.data?.error?.code
-  const message = error?.response?.data?.error?.message
+  const code = error?.response?.data?.error?.code ?? error?.code
+  const message = error?.response?.data?.error?.message ?? error?.message
+
+  if (code === 'OPEN_POD_EXISTS') {
+    return message || 'An open pod already exists for this course. Join it instead of creating another.'
+  }
 
   if (status === 409) {
+    if (code === 'OPEN_POD_EXISTS') {
+      return message || 'An open pod already exists for this course. Join it instead of creating another.'
+    }
     return message || 'You are already in a group for this course. Leave it before searching again.'
   }
 

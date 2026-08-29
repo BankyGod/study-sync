@@ -9,80 +9,70 @@ export function AuthLayout({
   title,
   subtitle,
   footer,
-  formClassName = 'w-full max-w-md',
+  formClassName = 'w-full max-w-[22rem]',
   size = 'default',
+  brandHeadline = 'Study together — succeed faster',
+  brandBody = 'Match by course and schedule. Collaborate in focused workspaces built for university cohorts.',
 }) {
   const isWide = size === 'wide'
 
   return (
-    <div
-      className={cn(
-        'min-h-dvh',
-        isWide
-          ? 'lg:grid lg:grid-cols-[minmax(0,0.85fr)_minmax(30rem,1.15fr)] xl:grid-cols-[minmax(0,1fr)_minmax(36rem,48rem)]'
-          : 'lg:grid lg:grid-cols-[minmax(0,1fr)_26rem] xl:grid-cols-[minmax(0,1fr)_28rem]',
-      )}
-    >
-      <div className="relative hidden min-h-dvh overflow-hidden bg-rail lg:block">
+    <div className="flex min-h-dvh bg-[#0c3d36]">
+      {/* Brand panel — dominant left side */}
+      <div className="relative hidden min-h-dvh flex-1 overflow-hidden lg:block">
         <img
           src={AUTH_BACKGROUND_IMAGE}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-30"
+          className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-rail via-rail/80 to-rail/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0c3d36] via-[#0c3d36]/75 to-[#0c3d36]/45" />
 
-        <div className="relative flex h-full flex-col justify-between p-8 text-white">
+        <div className="relative flex h-full flex-col justify-between px-10 py-9 text-white xl:px-14">
           <StudySyncLogo light size="sm" />
 
-          <div className="max-w-md">
-            <p className="font-display text-3xl font-semibold leading-tight tracking-tight xl:text-4xl">
-              StudySync
-            </p>
-            <p className="mt-3 max-w-sm text-[13px] leading-relaxed text-white/70">
-              Match by course and schedule. Collaborate in compact workspaces built for
-              university cohorts.
+          <div className="max-w-lg">
+            <h2 className="font-display text-4xl font-bold uppercase leading-[1.1] tracking-tight xl:text-5xl">
+              {brandHeadline}
+            </h2>
+            <p className="mt-5 max-w-md text-[15px] leading-relaxed text-white/75">
+              {brandBody}
             </p>
           </div>
 
-          <p className="text-[11px] text-white/40">Group formation for modern learning</p>
+          <p className="text-[12px] text-white/40">Group formation for modern learning</p>
         </div>
       </div>
 
-      <div className="flex min-h-dvh flex-col border-l border-border bg-surface pb-[env(safe-area-inset-bottom,0px)]">
-        <div className="border-b border-border px-4 py-3 lg:hidden">
+      {/* Form panel — white card with rounded left edge */}
+      <div
+        className={cn(
+          'relative flex min-h-dvh w-full flex-col bg-white pb-[env(safe-area-inset-bottom,0px)]',
+          'lg:my-0 lg:min-h-dvh lg:rounded-l-[1.75rem] lg:shadow-[-12px_0_40px_rgba(0,0,0,0.18)]',
+          isWide ? 'lg:max-w-[48rem] xl:max-w-[52rem]' : 'lg:max-w-[26rem] xl:max-w-[28rem]',
+        )}
+      >
+        <div className="border-b border-border px-5 py-4 lg:hidden">
           <StudySyncLogo size="sm" />
         </div>
 
         <div
           className={cn(
-            'flex flex-1 justify-center px-4 py-8 sm:px-6 lg:px-8',
-            isWide ? 'items-start overflow-y-auto lg:py-10' : 'items-center',
+            'flex flex-1 justify-center px-6 py-10 sm:px-10',
+            isWide ? 'items-start overflow-y-auto lg:py-12' : 'items-center',
           )}
         >
           <div className={formClassName}>
-            <div className={cn('mb-5', isWide && 'mb-6')}>
-              <h1
-                className={cn(
-                  'font-display font-semibold tracking-tight text-ink',
-                  isWide ? 'text-2xl sm:text-3xl' : 'text-xl',
-                )}
-              >
+            <div className="mb-8">
+              <h1 className="font-display text-[1.75rem] font-bold tracking-tight text-ink sm:text-[2rem]">
                 {title}
               </h1>
               {subtitle ? (
-                <p
-                  className={cn(
-                    'mt-1 leading-snug text-muted',
-                    isWide ? 'text-sm sm:text-[15px]' : 'text-[13px]',
-                  )}
-                >
-                  {subtitle}
-                </p>
+                <p className="mt-1.5 text-[15px] text-muted">{subtitle}</p>
               ) : null}
             </div>
 
-            <div className={cn(isWide ? 'space-y-4' : 'space-y-3')}>{children}</div>
-            {footer ? <div className="mt-1">{footer}</div> : null}
+            <div className="space-y-5">{children}</div>
+            {footer ? <div className="mt-2">{footer}</div> : null}
           </div>
         </div>
       </div>
@@ -90,9 +80,14 @@ export function AuthLayout({
   )
 }
 
-export function AuthFooterLink({ prompt, linkText, to = ROUTES.LOGIN }) {
+export function AuthFooterLink({ prompt, linkText, to = ROUTES.LOGIN, align = 'center' }) {
   return (
-    <p className="mt-5 text-center text-[12px] text-muted">
+    <p
+      className={cn(
+        'mt-6 text-[13px] text-muted',
+        align === 'left' ? 'text-left' : 'text-center',
+      )}
+    >
       {prompt}{' '}
       <Link to={to} className="font-semibold text-brand-700 transition hover:text-brand-800">
         {linkText}

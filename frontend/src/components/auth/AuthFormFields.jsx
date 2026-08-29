@@ -24,14 +24,14 @@ export function AuthSelect({ label, error, className, id, children, size = 'defa
           'focus:border-brand-600 focus:ring-2 focus:ring-brand-100',
           'hover:border-border-heavy',
           error && 'border-red-300 focus:border-red-500 focus:ring-red-100',
-          isLarge ? 'h-11 rounded-xl px-3.5 text-sm' : 'h-9 rounded-md px-2.5 text-[13px]',
+          isLarge ? 'h-12 rounded-xl px-3.5 text-[15px]' : 'h-9 rounded-md px-2.5 text-[13px]',
           className,
         )}
         {...props}
       >
         {children}
       </select>
-      {error ? <p className="text-[11px] font-medium text-red-600">{error}</p> : null}
+      {error ? <p className="text-[12px] font-medium text-red-600">{error}</p> : null}
     </div>
   )
 }
