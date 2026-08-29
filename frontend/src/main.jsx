@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/context/AuthContext'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { SpaPathRecovery } from '@/components/common/SpaPathRecovery'
+import { SeoManager } from '@/components/common/SeoManager'
 import App from '@/App'
 import './index.css'
 
@@ -23,6 +24,7 @@ createRoot(document.getElementById('root')).render(
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <SpaPathRecovery />
+          <SeoManager />
           <ErrorBoundary>
             <App />
           </ErrorBoundary>

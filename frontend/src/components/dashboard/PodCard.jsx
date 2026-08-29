@@ -41,6 +41,7 @@ export function PodCard({ title, members = [], progress = 0, to, compact = false
                   member={member}
                   size="sm"
                   bordered
+                  loadImage={false}
                   refreshKey={avatarVersion}
                   className={cn(memberIndex > 0 && '-ml-1.5', 'relative')}
                   style={{ zIndex: members.length - memberIndex }}

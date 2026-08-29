@@ -25,6 +25,8 @@ export function MemberAvatar({
   refreshKey = 0,
   bordered = false,
   style,
+  /** When false, skip network avatar fetch (initials only) — use on dense lists. */
+  loadImage = true,
 }) {
   const avatarUrl = member?.avatarUrl ?? null
   const [src, setSrc] = useState(null)
@@ -43,6 +45,11 @@ export function MemberAvatar({
       if (objectUrlRef.current) {
         revokeUserAvatarObjectUrl(objectUrlRef.current)
         objectUrlRef.current = null
+      }
+
+      if (!loadImage) {
+        if (!cancelled) setSrc(null)
+        return
       }
 
       const nextUrl =
@@ -82,7 +89,7 @@ export function MemberAvatar({
         objectUrlRef.current = null
       }
     }
-  }, [avatarUrl, member?.id, refreshKey])
+  }, [avatarUrl, member?.id, refreshKey, loadImage])
 
   const avatar = (
     <div
@@ -103,6 +110,10 @@ export function MemberAvatar({
         <img
           src={src}
           alt=""
+          loading="lazy"
+          decoding="async"
+          width={size === 'lg' ? 44 : size === 'sm' ? 32 : 36}
+          height={size === 'lg' ? 44 : size === 'sm' ? 32 : 36}
           className="absolute inset-0 h-full w-full object-cover"
           onError={() => {
             setFailed(true)

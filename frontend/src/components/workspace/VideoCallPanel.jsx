@@ -1,15 +1,10 @@
 import { PhoneOff, Video, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import { Room } from 'livekit-client'
-import {
-  LiveKitRoom,
-  RoomAudioRenderer,
-  VideoConference,
-} from '@livekit/components-react'
-import '@livekit/components-styles'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useWorkspaceCall } from '@/context/WorkspaceCallContext'
 import { canJoinLiveKit, getLiveKitConnectError } from '@/services/workspaceCallService'
+
+const LiveKitCallRoom = lazy(() => import('@/components/workspace/LiveKitCallRoom'))
 
 export function VideoCallPanel() {
   const { user } = useAuth()
@@ -28,27 +23,10 @@ export function VideoCallPanel() {
   const ready = canJoinLiveKit(activeCall)
   const connectHint = getLiveKitConnectError(activeCall)
 
-  const room = useMemo(() => new Room(), [activeCall?.id, activeCall?.token])
-
   const canEndForAll =
     !activeCall?.startedBy ||
     String(activeCall.startedBy) === String(user?.id) ||
     String(activeCall.startedBy?.id) === String(user?.id)
-
-  useEffect(() => {
-    if (!isCallOpen || !ready) {
-      registerRoomDisconnect?.(null)
-      return undefined
-    }
-
-    registerRoomDisconnect?.(() => {
-      room.disconnect()
-    })
-
-    return () => {
-      registerRoomDisconnect?.(null)
-    }
-  }, [isCallOpen, ready, registerRoomDisconnect, room])
 
   useEffect(() => {
     if (!isCallOpen) return undefined
@@ -63,6 +41,12 @@ export function VideoCallPanel() {
   useEffect(() => {
     setRoomError('')
   }, [activeCall?.token, activeCall?.url])
+
+  useEffect(() => {
+    if (!isCallOpen || !ready) {
+      registerRoomDisconnect?.(null)
+    }
+  }, [isCallOpen, ready, registerRoomDisconnect])
 
   if (!isCallOpen || !activeCall) return null
 
@@ -90,22 +74,20 @@ export function VideoCallPanel() {
 
       <div className="relative min-h-0 flex-1 bg-black" data-lk-theme="default">
         {ready ? (
-          <LiveKitRoom
-            key={`${activeCall.id}-${activeCall.token}`}
-            room={room}
-            token={activeCall.token}
-            serverUrl={activeCall.url}
-            connect
-            audio
-            video
-            className="h-full"
-            onError={(err) => {
-              setRoomError(err?.message || 'Unable to connect to the LiveKit room.')
-            }}
+          <Suspense
+            fallback={
+              <div className="flex h-full items-center justify-center text-sm text-surface/70">
+                Connecting video…
+              </div>
+            }
           >
-            <VideoConference />
-            <RoomAudioRenderer />
-          </LiveKitRoom>
+            <LiveKitCallRoom
+              activeCall={activeCall}
+              roomError={roomError}
+              onRoomError={setRoomError}
+              registerRoomDisconnect={registerRoomDisconnect}
+            />
+          </Suspense>
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
             <p className="text-base font-semibold">LiveKit unavailable</p>
@@ -117,12 +99,6 @@ export function VideoCallPanel() {
             </p>
           </div>
         )}
-
-        {roomError && ready ? (
-          <div className="absolute inset-x-0 bottom-0 bg-red-600/90 px-4 py-2 text-center text-xs font-medium">
-            {roomError}
-          </div>
-        ) : null}
       </div>
 
       <footer className="flex flex-wrap items-center justify-center gap-3 border-t border-white/10 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">

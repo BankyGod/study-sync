@@ -26,7 +26,10 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(getInitialUser)
   const [token, setToken] = useState(getInitialToken)
   const [avatarVersion, setAvatarVersion] = useState(0)
-  const [isLoading, setIsLoading] = useState(!DEV_BYPASS_AUTH && Boolean(getStoredToken()))
+  // Only block first paint when we have a token but no cached user to show yet.
+  const [isLoading, setIsLoading] = useState(
+    () => !DEV_BYPASS_AUTH && Boolean(getStoredToken()) && !getStoredUser(),
+  )
 
   useEffect(() => {
     if (DEV_BYPASS_AUTH || !getStoredToken()) {
@@ -35,6 +38,7 @@ export function AuthProvider({ children }) {
     }
 
     let cancelled = false
+    const hasCachedUser = Boolean(getStoredUser())
     const timeoutId = window.setTimeout(() => {
       if (!cancelled) {
         setIsLoading(false)
@@ -60,6 +64,11 @@ export function AuthProvider({ children }) {
           setIsLoading(false)
         }
       }
+    }
+
+    // Background refresh when a cached session already exists — keep UI interactive.
+    if (!hasCachedUser) {
+      setIsLoading(true)
     }
 
     hydrate()

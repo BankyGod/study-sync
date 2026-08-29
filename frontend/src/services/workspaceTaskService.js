@@ -89,7 +89,7 @@ function resolveDevAssignee(assigneeId, members = []) {
     id: member.id,
     name: member.name,
     initials: member.initials ?? getProfileInitials(member.name),
-    color: member.color ?? member.avatarColor ?? 'bg-sky-500',
+    color: member.color ?? member.avatarColor ?? 'bg-sky-700',
   }
 }
 

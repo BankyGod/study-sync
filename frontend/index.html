@@ -3,14 +3,85 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="StudySync helps students form study pods, collaborate in shared workspaces, and stay on track with coursework."
+    />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <meta name="googlebot" content="index,follow" />
+    <meta name="theme-color" content="#0f766e" />
+    <meta name="application-name" content="StudySync" />
+    <meta name="author" content="StudySync" />
+    <meta name="keywords" content="StudySync, study groups, study pods, student collaboration, coursework, campus learning" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="StudySync" />
+    <meta property="og:title" content="StudySync" />
+    <meta
+      property="og:description"
+      content="StudySync helps students form study pods, collaborate in shared workspaces, and stay on track with coursework."
+    />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="/favicon.svg" />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="StudySync" />
+    <meta
+      name="twitter:description"
+      content="StudySync helps students form study pods, collaborate in shared workspaces, and stay on track with coursework."
+    />
+    <meta name="twitter:image" content="/favicon.svg" />
+
     <title>StudySync</title>
+
+    <link rel="dns-prefetch" href="https://studysync-backend-5i2a.onrender.com" />
+    <link rel="preconnect" href="https://studysync-backend-5i2a.onrender.com" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Non-blocking font stylesheet (display=swap + async media swap) -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap"
     />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap"
+      />
+    </noscript>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "name": "StudySync",
+            "applicationCategory": "EducationalApplication",
+            "operatingSystem": "Web",
+            "description": "StudySync helps students form study pods, collaborate in shared workspaces, and stay on track with coursework.",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            }
+          },
+          {
+            "@type": "Organization",
+            "name": "StudySync"
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

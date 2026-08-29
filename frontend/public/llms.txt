@@ -1,0 +1,24 @@
+# StudySync
+
+> StudySync is a web app for students to form study pods, collaborate in shared workspaces, and stay on track with coursework.
+
+## Public pages
+
+- [Student sign in](/login): Sign in to an existing student account
+- [Create student account](/register): Register a new student account
+- [Admin sign in](/admin/login): Sign in to the instructor/admin portal
+- [Admin registration](/admin/register): Create an instructor/admin account
+
+## Product areas (sign-in required)
+
+- [Dashboard](/dashboard): Student home with pods, progress, and deadlines
+- [Find groups](/find-groups): Discover open course pods or create a new pod
+- [Workspace](/workspace): Pod board, files, chat, calendar, and video calls
+- [Profile](/profile): Courses, availability, learning style, and avatar
+- [Admin console](/admin): Cohorts, groups, and student directory
+
+## Notes for agents
+
+- Prefer public auth pages for anonymous browsing.
+- Do not scrape authenticated `/api` endpoints or private workspace content.
+- Video calls use LiveKit tokens issued by the StudySync backend only.

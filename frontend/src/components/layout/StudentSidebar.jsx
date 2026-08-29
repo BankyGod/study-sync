@@ -40,7 +40,9 @@ export function StudentSidebar() {
   const { data: unreadData } = useQuery({
     queryKey: UNREAD_COUNT_QUERY_KEY,
     queryFn: fetchUnreadNotificationCount,
+    staleTime: 60_000,
     refetchInterval: 60_000,
+    refetchOnWindowFocus: false,
   })
   const unreadCount = unreadData?.unreadCount ?? 0
 

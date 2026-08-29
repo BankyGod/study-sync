@@ -13,7 +13,6 @@ import { UpcomingDeadlines } from '@/components/dashboard/UpcomingDeadlines'
 import { CircularProgress } from '@/components/dashboard/CircularProgress'
 import { CompleteStudyPreferencesBanner } from '@/components/onboarding/CompleteStudyPreferencesBanner'
 import { Button } from '@/components/common/Button'
-import { Spinner } from '@/components/common/Spinner'
 import { useAuth } from '@/hooks/useAuth'
 import { fetchUserGroups, getUserGroupsErrorMessage } from '@/services/usersService'
 import { fetchMyReliability } from '@/services/reliabilityService'
@@ -105,8 +104,8 @@ export function StudentDashboardPage() {
 
       {/* Welcome banner */}
       <section className="dash-in relative overflow-hidden rounded-2xl bg-rail text-white shadow-md">
-        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-brand-500/20 blur-2xl" />
-        <div className="absolute -bottom-16 right-20 h-44 w-44 rounded-full bg-brand-400/10 blur-2xl" />
+        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-brand-500/20" />
+        <div className="absolute -bottom-16 right-20 h-44 w-44 rounded-full bg-brand-400/10" />
         <div className="relative flex flex-col gap-4 p-5 sm:flex-row sm:items-end sm:justify-between sm:p-6">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
@@ -176,8 +175,20 @@ export function StudentDashboardPage() {
           ) : null}
 
           {isLoading ? (
-            <div className="dash-card flex min-h-[220px] items-center justify-center">
-              <Spinner size="lg" />
+            <div className="grid gap-3 sm:grid-cols-2" aria-busy="true" aria-label="Loading pods">
+              {[0, 1].map((key) => (
+                <div
+                  key={key}
+                  className="dash-card h-[148px] animate-pulse overflow-hidden rounded-xl border border-border bg-surface"
+                >
+                  <div className="h-1.5 w-full bg-page" />
+                  <div className="space-y-3 p-4">
+                    <div className="h-4 w-3/5 rounded bg-page" />
+                    <div className="h-7 w-24 rounded-full bg-page" />
+                    <div className="h-1.5 w-full rounded-full bg-page" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : groups.length === 0 ? (
             <div className="ss-empty">
