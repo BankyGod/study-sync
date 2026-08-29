@@ -1,8 +1,30 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { StudySyncLogo } from '@/components/layout/StudySyncLogo'
 import { ROUTES } from '@/utils/constants'
-import { AUTH_BACKGROUND_IMAGE } from '@/utils/auth'
+import {
+  AUTH_BACKGROUND_IMAGE,
+  AUTH_BACKGROUND_WIDTH,
+  AUTH_BACKGROUND_HEIGHT,
+} from '@/utils/auth'
 import { cn } from '@/utils/cn'
+
+function useDesktopHero(minWidth = 1024) {
+  const [enabled, setEnabled] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia(`(min-width: ${minWidth}px)`).matches
+  })
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(min-width: ${minWidth}px)`)
+    const sync = () => setEnabled(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [minWidth])
+
+  return enabled
+}
 
 export function AuthLayout({
   children,
@@ -15,16 +37,37 @@ export function AuthLayout({
   brandBody = 'Match by course and schedule. Collaborate in focused workspaces built for university cohorts.',
 }) {
   const isWide = size === 'wide'
+  const showHero = useDesktopHero()
+
+  // Preload LCP hero only when the desktop brand panel is visible
+  useEffect(() => {
+    if (!showHero) return undefined
+    const link = document.createElement('link')
+    link.rel = 'preload'
+    link.as = 'image'
+    link.href = AUTH_BACKGROUND_IMAGE
+    link.setAttribute('fetchpriority', 'high')
+    document.head.appendChild(link)
+    return () => {
+      link.remove()
+    }
+  }, [showHero])
 
   return (
     <div className="flex min-h-dvh bg-[#0c3d36]">
-      {/* Brand panel — dominant left side */}
+      {/* Brand panel — desktop only; skip image download on mobile Lighthouse */}
       <div className="relative hidden min-h-dvh flex-1 overflow-hidden lg:block">
-        <img
-          src={AUTH_BACKGROUND_IMAGE}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        {showHero ? (
+          <img
+            src={AUTH_BACKGROUND_IMAGE}
+            alt=""
+            width={AUTH_BACKGROUND_WIDTH}
+            height={AUTH_BACKGROUND_HEIGHT}
+            decoding="async"
+            fetchPriority="high"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0c3d36] via-[#0c3d36]/75 to-[#0c3d36]/45" />
 
         <div className="relative flex h-full flex-col justify-between px-10 py-9 text-white xl:px-14">

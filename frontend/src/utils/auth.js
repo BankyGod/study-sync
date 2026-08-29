@@ -18,6 +18,9 @@ export const ACADEMIC_PROGRAMS = [
 export const ACADEMIC_LEVELS = ['100', '200', '300', '400']
 
 export const AUTH_BACKGROUND_IMAGE = '/images/auth-campus-study.jpg'
+export const AUTH_BACKGROUND_WIDTH = 1400
+export const AUTH_BACKGROUND_HEIGHT = 933
+
 
 function capitalize(value = '') {
   if (!value) return ''
