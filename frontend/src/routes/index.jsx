@@ -91,6 +91,16 @@ const AdminStudentsPage = lazy(() =>
     default: m.AdminStudentsPage,
   })),
 )
+const AdminReportsPage = lazy(() =>
+  import('@/pages/admin/AdminReportsPage').then((m) => ({
+    default: m.AdminReportsPage,
+  })),
+)
+const AdminTaskProgressPage = lazy(() =>
+  import('@/pages/admin/AdminTaskProgressPage').then((m) => ({
+    default: m.AdminTaskProgressPage,
+  })),
+)
 
 const defaultRoute = DEV_BYPASS_AUTH ? ROUTES.STUDENT_DASHBOARD : ROUTES.LOGIN
 
@@ -156,6 +166,8 @@ export function AppRoutes() {
           <Route path={ROUTES.ADMIN_COHORTS} element={<CohortManagementPage />} />
           <Route path={ROUTES.ADMIN_GROUPS} element={<GroupOverviewPage />} />
           <Route path={ROUTES.ADMIN_STUDENTS} element={<AdminStudentsPage />} />
+          <Route path={ROUTES.ADMIN_TASK_PROGRESS} element={<AdminTaskProgressPage />} />
+          <Route path={ROUTES.ADMIN_REPORTS} element={<AdminReportsPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to={defaultRoute} replace />} />

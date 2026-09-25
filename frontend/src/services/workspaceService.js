@@ -2,12 +2,38 @@ import apiClient from '@/api/client'
 import { endpoints } from '@/api/endpoints'
 import { resolveApiUrl } from '@/utils/apiUrl'
 import { getWorkspaceErrorMessage } from '@/utils/workspaceErrors'
+import { normalizeGroupMembers, getGroupLeader } from '@/utils/groupMembers'
 
 export { getWorkspaceErrorMessage }
 
 export async function fetchWorkspace(groupId) {
   const { data } = await apiClient.get(endpoints.workspace.byGroup(groupId))
-  return data
+  const members = normalizeGroupMembers(
+    data?.members ?? data?.group?.members ?? [],
+    data?.group ?? data,
+  )
+  const leader = getGroupLeader(members)
+  return {
+    ...data,
+    members,
+    leaderId: leader?.id ?? data?.leaderId ?? data?.leader_id ?? null,
+    leader,
+  }
+}
+
+/** Transfer pod leadership to another member. */
+export async function transferWorkspaceLeader(groupId, userId) {
+  const body = { userId, leaderId: userId }
+  try {
+    const { data } = await apiClient.put(endpoints.workspace.leader(groupId), body)
+    return data
+  } catch (error) {
+    if (error?.response?.status !== 404 && error?.response?.status !== 405) {
+      throw error
+    }
+    const { data } = await apiClient.patch(endpoints.workspace.leader(groupId), body)
+    return data
+  }
 }
 
 export async function fetchWorkspaceTasks(groupId) {

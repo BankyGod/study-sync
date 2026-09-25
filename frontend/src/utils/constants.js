@@ -48,6 +48,8 @@ export const ROUTES = {
   ADMIN_COHORTS: '/admin/cohorts',
   ADMIN_GROUPS: '/admin/groups',
   ADMIN_STUDENTS: '/admin/students',
+  ADMIN_REPORTS: '/admin/reports',
+  ADMIN_TASK_PROGRESS: '/admin/task-progress',
 }
 
 export function getHomeRouteForRole(role) {

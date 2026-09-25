@@ -31,11 +31,13 @@ function capitalize(value = '') {
  * Backend register still requires academic fields for all roles.
  * Instructors only enter email/password in the UI; we fill the rest.
  */
-export function buildInstructorRegisterPayload({ email, password }) {
+export function buildInstructorRegisterPayload({ email, password, staffRole = 'instructor' }) {
   const local = String(email).split('@')[0] || 'instructor'
   const parts = local.split(/[._-]+/).filter(Boolean)
   const firstName = capitalize(parts[0]) || 'Instructor'
   const lastName = capitalize(parts.slice(1).join(' ')) || 'Admin'
+  const normalizedStaffRole = String(staffRole || 'instructor').trim().toLowerCase()
+  const authRole = normalizedStaffRole === 'super_admin' ? 'admin' : 'instructor'
 
   return {
     firstName,
@@ -46,7 +48,8 @@ export function buildInstructorRegisterPayload({ email, password }) {
     university: UNIVERSITIES[0],
     program: 'Instructor',
     level: '400',
-    role: 'instructor',
+    role: authRole,
+    staffRole: normalizedStaffRole,
     password,
   }
 }

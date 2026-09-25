@@ -2,12 +2,14 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { TaskCard } from '@/components/kanban/TaskCard'
 import { useAuth } from '@/hooks/useAuth'
+import { useWorkspace } from '@/context/WorkspaceContext'
 import { useWorkspaceTasks } from '@/context/WorkspaceTasksContext'
 import { canManageTask, canProgressTask, getTaskColumnId } from '@/services/workspaceTaskService'
 import { cn } from '@/utils/cn'
 
 export function SortableTaskCard({ task }) {
   const { user } = useAuth()
+  const { leaderId, members } = useWorkspace()
   const {
     columns,
     openEditTaskModal,
@@ -25,8 +27,11 @@ export function SortableTaskCard({ task }) {
     transition,
   }
 
+  const isLeader =
+    String(leaderId) === String(user?.id) ||
+    members.some((member) => member.isLeader && String(member.id) === String(user?.id))
   const status = getTaskColumnId(task, columns)
-  const canManage = canManageTask(task, user?.id)
+  const canManage = canManageTask(task, user?.id, { isLeader })
   const canProgress = canProgressTask(task, user?.id)
   const pending = task.pendingRegressRequest
   const canResolveRegress = Boolean(pending && canManage)

@@ -4,6 +4,7 @@ import { getApiErrorMessage } from '@/utils/apiErrors'
 import { resolveApiUrl } from '@/utils/apiUrl'
 import { getStoredUser } from '@/services/authService'
 import { DEV_BYPASS_AUTH, STORAGE_KEYS } from '@/utils/constants'
+import { getGroupLeader, normalizeGroupMembers } from '@/utils/groupMembers'
 
 // Use 600/700 shades so white initials meet WCAG AA contrast (~4.5:1).
 const AVATAR_COLOR_FALLBACK = 'bg-sky-700'
@@ -207,21 +208,51 @@ const DEV_MOCK_GROUPS = [
     title: 'Demo Study Group',
     progress: 64,
     accent: 'blue',
+    leaderId: 'dev-user-1',
     members: [
-      { id: 'dev-user-1', name: 'Alex Opoku', initials: 'AO', color: 'bg-sky-500' },
+      {
+        id: 'dev-user-1',
+        name: 'Alex Opoku',
+        initials: 'AO',
+        color: 'bg-sky-500',
+        role: 'leader',
+        isLeader: true,
+      },
       { id: 'dev-user-2', name: 'Sarah Mensah', initials: 'SM', color: 'bg-brand-500' },
       { id: 'dev-user-3', name: 'Mike Park', initials: 'MP', color: 'bg-emerald-500' },
     ],
   },
 ]
 
+function normalizeUserGroup(group) {
+  const members = normalizeGroupMembers(
+    group?.members ?? group?.students ?? group?.users ?? [],
+    group,
+  )
+  const leader = getGroupLeader(members)
+  const progress = Math.max(
+    0,
+    Math.min(100, Number(group?.progress ?? group?.completionPercent ?? 0) || 0),
+  )
+  return {
+    ...group,
+    id: group?.id ?? group?.groupId,
+    groupId: group?.groupId ?? group?.id,
+    title: group?.title ?? group?.name ?? 'Study pod',
+    progress,
+    members,
+    leader,
+    leaderId: leader?.id ?? group?.leaderId ?? group?.leader_id ?? null,
+  }
+}
+
 export async function fetchUserGroups() {
   if (DEV_BYPASS_AUTH) {
-    return DEV_MOCK_GROUPS
+    return DEV_MOCK_GROUPS.map(normalizeUserGroup)
   }
 
   const { data } = await apiClient.get(endpoints.users.groups)
-  return data.groups ?? []
+  return (data.groups ?? []).map(normalizeUserGroup)
 }
 
 export const MAX_AVATAR_FILE_SIZE = 5 * 1024 * 1024

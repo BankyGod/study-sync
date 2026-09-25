@@ -49,14 +49,21 @@ export function toKanbanTask(task) {
   }
 }
 
-export function canManageTask(task, userId) {
+export function canManageTask(task, userId, options = {}) {
   if (!userId) return false
-  return task?.createdBy?.id === userId
+  if (task?.createdBy?.id === userId) return true
+  if (options.isLeader) return true
+  return false
 }
 
 export function canProgressTask(task, userId) {
   if (!userId || !task?.assignee?.id) return false
   return task.assignee.id === userId
+}
+
+/** Leaders (and creators) may approve/reject regress requests. */
+export function canModerateTask(task, userId, options = {}) {
+  return canManageTask(task, userId, options)
 }
 
 export function getTaskColumnId(task, columns = EMPTY_COLUMNS) {

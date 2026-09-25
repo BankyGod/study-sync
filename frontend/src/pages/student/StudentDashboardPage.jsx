@@ -219,6 +219,7 @@ export function StudentDashboardPage() {
                   title={pod.title}
                   members={pod.members}
                   progress={pod.progress}
+                  leaderName={pod.leader?.name}
                   index={index}
                 />
               ))}

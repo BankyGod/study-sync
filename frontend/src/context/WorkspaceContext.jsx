@@ -76,8 +76,16 @@ export function WorkspaceProvider({ groupId, children }) {
       title: resolveGroupTitle(groupId, workspace?.title),
       courseLabel: workspace?.courseLabel ?? '',
       members: workspace?.members ?? [],
+      leader: workspace?.leader ?? null,
+      leaderId: workspace?.leaderId ?? null,
+      setWorkspace,
       isLoading,
       error,
+      refresh: async () => {
+        const data = await fetchWorkspace(groupId)
+        setWorkspace(data)
+        return data
+      },
     }),
     [groupId, workspace, isLoading, error],
   )

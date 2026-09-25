@@ -140,6 +140,11 @@ export function WorkspaceHeader({ title, courseLabel }) {
                     <span className="w-full truncate text-[11px] font-medium text-ink">
                       {member.name?.split(' ')[0] ?? 'Member'}
                     </span>
+                    {member.isLeader ? (
+                      <span className="rounded bg-brand-50 px-1 text-[9px] font-semibold uppercase tracking-wide text-brand-700">
+                        Leader
+                      </span>
+                    ) : null}
                   </button>
                 ))}
               </div>

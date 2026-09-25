@@ -168,3 +168,24 @@
 .session-start-btn:hover {
   background-color: var(--color-brand-700);
 }
+
+@media print {
+  @page {
+    margin: 1.25cm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #0b1220 !important;
+  }
+
+  body * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  a[href]::after {
+    content: none !important;
+  }
+}

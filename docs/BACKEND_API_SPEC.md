@@ -59,7 +59,8 @@ These entities map directly to what the frontend expects. Use UUIDs for all prim
 | university | string | see `frontend/src/utils/auth.js` |
 | program | string | |
 | level | enum | `100`, `200`, `300`, `400` |
-| role | enum | `student`, `instructor` |
+| role | enum | `student`, `instructor`, `admin` |
+| staff_role | enum? | Fine-grained staff role when `role` is instructor/admin: `super_admin`, `cohort_manager`, `student_officer`, `reports_viewer`, `instructor`. Returned to the client as `staffRole`. |
 | created_at, updated_at | timestamp | |
 
 ### `user_profiles` (display profile — separate from registration)
@@ -128,9 +129,12 @@ These entities map directly to what the frontend expects. Use UUIDs for all prim
 |--------|------|-------|
 | group_id | UUID | |
 | user_id | UUID | |
+| role | enum | `member` (default) or `leader`. **Exactly one** `leader` per group. |
 | joined_at | timestamp | |
 | initials | string | derived from name, cached for UI |
 | avatar_color | string | Tailwind class e.g. `bg-sky-500` |
+
+**Leader rule:** When assigning a new leader, demote the previous leader to `member` in the same transaction. Workspace and admin APIs may also expose `leaderId` on the group for convenience.
 
 ### `tasks`
 
@@ -1102,14 +1106,27 @@ Validate JWT on connection. Reject unauthenticated sockets.
 
 ---
 
-## 15. Admin API (instructor role)
+## 15. Admin API (instructor / staff roles)
 
-All routes require `role: instructor` (or `admin`). Frontend admin portal wires these endpoints only.
+All routes require `role: instructor` or `admin`. Prefer fine-grained checks via `staff_role` / permissions (see staff roles below). Frontend admin portal wires these endpoints.
 
-### Overview (no dedicated dashboard route)
+### Staff roles (`staff_role`)
+
+| `staff_role` | Typical permissions |
+|--------------|---------------------|
+| `super_admin` | All admin capabilities + manage staff |
+| `instructor` | Cohorts, groups, students, reports, assign leaders, task progress |
+| `cohort_manager` | Cohorts, groups, assign leaders, reports, task progress |
+| `student_officer` | Students directory, reports |
+| `reports_viewer` | Reports, print, task progress |
+
+Register payload may include `staffRole` alongside `role: instructor` (or `admin` for `super_admin`).
+
+### Overview
 
 The Overview page aggregates:
 
+- `GET /admin/dashboard` (optional summary)
 - `GET /admin/cohorts`
 - `GET /admin/groups`
 - `GET /admin/students`
@@ -1156,12 +1173,81 @@ Run batch matching for a cohort or course.
 
 ### `GET /api/admin/groups`
 
-List all study groups with summary stats.
+List all study groups with summary stats. Include `members[]` with `role` / `isLeader`, plus `leaderId`, `progress` (0–100 completion of assigned tasks), `memberCount`, course fields.
+
+### `PUT /api/admin/groups/:groupId/leader` (also accept `PATCH`)
+
+Assign / transfer group leader (staff with `assign_leaders` permission).
+
+**Request:**
+
+```json
+{ "userId": "uuid" }
+```
+
+**Rules:** Target must be a current `group_members` row. Demote previous leader. Response returns updated group (or `{ group }`).
 
 ### `GET /api/admin/students`
 
 List students with onboarding status and group assignments. Support `?cohortId=&courseCode=&page=`.
 
+### `GET /api/admin/reports`
+
+Printable / exportable report bundle. Frontend falls back to composing cohorts + groups + students if this route is missing.
+
+**Response `200`:**
+
+```json
+{
+  "generatedAt": "2026-09-25T12:00:00.000Z",
+  "summary": {
+    "students": 120,
+    "pods": 18,
+    "cohorts": 3,
+    "matched": 96,
+    "podsWithoutLeader": 2,
+    "avgProgress": 54
+  },
+  "cohorts": [],
+  "groups": [],
+  "students": [],
+  "taskProgress": []
+}
+```
+
+### `GET /api/admin/task-progress`
+
+Cross-pod assigned-task completion for staff dashboards. Frontend falls back to report/group composition if missing.
+
+**Response `200`:**
+
+```json
+{
+  "summary": { "pods": 18, "avgProgress": 54, "podsWithoutLeader": 2 },
+  "items": [
+    {
+      "groupId": "uuid",
+      "title": "Biology 101 · Pod 1",
+      "course": "Biology 101",
+      "progress": 62,
+      "memberCount": 5,
+      "leaderName": "Ama Mensah"
+    }
+  ]
+}
+```
+
+### Workspace leadership (student portal)
+
+### `PUT /api/workspaces/:groupId/leader` (also accept `PATCH`)
+
+Current group leader transfers leadership to another member.
+
+**Request:** `{ "userId": "uuid" }`
+
+**Auth:** Caller must be the current leader (or staff via admin route). Target must be a group member.
+
+**Member payload:** Every workspace/admin member object should include `id`, `name`, `role` (`member`|`leader`), and optionally `isLeader`.
 ---
 
 ## 16. Error format

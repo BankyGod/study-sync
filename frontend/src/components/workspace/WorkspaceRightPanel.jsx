@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { Crown, Plus } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { SessionTimerCard } from '@/components/workspace/SessionTimerCard'
 import { MemberAvatarButton } from '@/components/workspace/MemberAvatarButton'
@@ -49,7 +49,15 @@ export function WorkspaceRightPanel() {
                     size="md"
                     refreshKey={avatarVersion}
                   />
-                  <span className="min-w-0 truncate text-sm font-medium text-ink">{member.name}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
+                    {member.name}
+                  </span>
+                  {member.isLeader ? (
+                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded bg-brand-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-brand-700">
+                      <Crown className="h-3 w-3" />
+                      Leader
+                    </span>
+                  ) : null}
                 </button>
               </li>
             ))}

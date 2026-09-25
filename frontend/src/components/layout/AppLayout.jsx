@@ -1,17 +1,63 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { GraduationCap, LayoutDashboard, LogOut, UserRound, Users } from 'lucide-react'
+import {
+  ClipboardList,
+  FileBarChart,
+  GraduationCap,
+  LayoutDashboard,
+  LogOut,
+  UserRound,
+  Users,
+} from 'lucide-react'
 import { StudySyncLogo } from '@/components/layout/StudySyncLogo'
 import { SidebarToggle } from '@/components/layout/SidebarToggle'
 import { useAuth } from '@/hooks/useAuth'
 import { SidebarProvider, useSidebar } from '@/context/SidebarContext'
 import { ROUTES } from '@/utils/constants'
+import {
+  hasPermission,
+  PERMISSIONS,
+  resolveStaffRoleType,
+  STAFF_ROLE_LABELS,
+} from '@/utils/staffPermissions'
 import { cn } from '@/utils/cn'
 
 const adminLinks = [
-  { to: ROUTES.ADMIN_DASHBOARD, label: 'Overview', icon: LayoutDashboard },
-  { to: ROUTES.ADMIN_COHORTS, label: 'Cohorts', icon: GraduationCap },
-  { to: ROUTES.ADMIN_GROUPS, label: 'Groups', icon: Users },
-  { to: ROUTES.ADMIN_STUDENTS, label: 'Students', icon: UserRound },
+  {
+    to: ROUTES.ADMIN_DASHBOARD,
+    label: 'Overview',
+    icon: LayoutDashboard,
+    permission: PERMISSIONS.VIEW_DASHBOARD,
+  },
+  {
+    to: ROUTES.ADMIN_COHORTS,
+    label: 'Cohorts',
+    icon: GraduationCap,
+    permission: PERMISSIONS.MANAGE_COHORTS,
+  },
+  {
+    to: ROUTES.ADMIN_GROUPS,
+    label: 'Groups',
+    icon: Users,
+    permission: PERMISSIONS.MANAGE_GROUPS,
+  },
+  {
+    to: ROUTES.ADMIN_STUDENTS,
+    label: 'Students',
+    icon: UserRound,
+    permission: PERMISSIONS.VIEW_STUDENTS,
+  },
+  {
+    to: ROUTES.ADMIN_TASK_PROGRESS,
+    label: 'Task progress',
+    icon: ClipboardList,
+    permission: PERMISSIONS.VIEW_TASK_PROGRESS,
+  },
+  {
+    to: ROUTES.ADMIN_REPORTS,
+    label: 'Reports',
+    icon: FileBarChart,
+    permission: PERMISSIONS.VIEW_REPORTS,
+  },
 ]
 
 export function AppLayout({ variant = 'admin' }) {
@@ -27,6 +73,9 @@ function AppLayoutShell({ variant = 'admin' }) {
   const { user, logout } = useAuth()
   const { collapsed } = useSidebar()
   const isAdmin = variant === 'admin'
+  const staffRole = resolveStaffRoleType(user)
+  const roleLabel = staffRole ? STAFF_ROLE_LABELS[staffRole] : user?.role
+  const visibleLinks = adminLinks.filter((link) => hasPermission(user, link.permission))
 
   const handleLogout = () => {
     logout()
@@ -37,7 +86,7 @@ function AppLayoutShell({ variant = 'admin' }) {
     <div className="flex min-h-dvh bg-page">
       <aside
         className={cn(
-          'hidden shrink-0 flex-col bg-rail transition-[width] duration-200 ease-out lg:flex',
+          'hidden shrink-0 flex-col bg-rail transition-[width] duration-200 ease-out print:hidden lg:flex',
           collapsed ? 'w-16' : 'w-52',
         )}
       >
@@ -57,12 +106,12 @@ function AppLayoutShell({ variant = 'admin' }) {
           </div>
         ) : (
           <p className="border-b border-rail-line px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-rail-muted">
-            {isAdmin ? 'Instructor' : 'Student'}
+            {isAdmin ? 'Staff portal' : 'Student'}
           </p>
         )}
 
         <nav className={cn('flex-1 space-y-0.5', collapsed ? 'p-2' : 'p-2')}>
-          {adminLinks.map(({ to, label, icon: Icon }) => (
+          {visibleLinks.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
@@ -92,7 +141,7 @@ function AppLayoutShell({ variant = 'admin' }) {
             <>
               <div className="rounded-md bg-white/5 px-2.5 py-2">
                 <p className="truncate text-[12px] font-semibold text-white">{user?.name}</p>
-                <p className="truncate text-[10px] capitalize text-rail-muted">{user?.role}</p>
+                <p className="truncate text-[10px] text-rail-muted">{roleLabel}</p>
               </div>
               <button
                 type="button"
@@ -108,7 +157,7 @@ function AppLayoutShell({ variant = 'admin' }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-11 items-center justify-between border-b border-border bg-surface px-3 lg:hidden">
+        <header className="flex h-11 items-center justify-between border-b border-border bg-surface px-3 print:hidden lg:hidden">
           <StudySyncLogo size="sm" />
           <button
             type="button"

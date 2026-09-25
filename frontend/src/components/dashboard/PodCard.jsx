@@ -12,10 +12,22 @@ const accents = [
   'from-[#145650] to-[#148579]',
 ]
 
-export function PodCard({ title, members = [], progress = 0, to, compact = false, index = 0 }) {
+export function PodCard({
+  title,
+  members = [],
+  progress = 0,
+  to,
+  compact = false,
+  index = 0,
+  leaderName,
+}) {
   const { avatarVersion } = useAuth()
   const safeProgress = Math.max(0, Math.min(100, Number(progress) || 0))
   const accent = accents[index % accents.length]
+  const resolvedLeader =
+    leaderName ??
+    members.find((member) => member.isLeader || member.role === 'leader')?.name ??
+    null
 
   const body = (
     <>
@@ -32,6 +44,10 @@ export function PodCard({ title, members = [], progress = 0, to, compact = false
               </span>
             ) : null}
           </div>
+
+          {resolvedLeader ? (
+            <p className="mt-1 truncate text-[11px] text-muted">Leader · {resolvedLeader}</p>
+          ) : null}
 
           <div className="mt-3 flex items-center gap-2">
             <div className="flex items-center pl-0.5">
@@ -56,7 +72,7 @@ export function PodCard({ title, members = [], progress = 0, to, compact = false
 
           <div className="mt-3">
             <div className="mb-1 flex items-center justify-between text-[11px]">
-              <span className="text-muted">Progress</span>
+              <span className="text-muted">Task progress</span>
               <span className="font-semibold tabular-nums text-ink">{safeProgress}%</span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-page">

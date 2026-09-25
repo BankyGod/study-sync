@@ -4,12 +4,14 @@ import { useAuth } from '@/hooks/useAuth'
 import { useWorkspace } from '@/context/WorkspaceContext'
 import { fetchUserReliability } from '@/services/reliabilityService'
 import { fetchMemberProfile } from '@/services/usersService'
+import { transferWorkspaceLeader } from '@/services/workspaceService'
+import { withTransferredLeader } from '@/utils/groupMembers'
 
 const MemberProfileContext = createContext(null)
 
 export function MemberProfileProvider({ children }) {
   const { user } = useAuth()
-  const { groupId, members } = useWorkspace()
+  const { groupId, members, leaderId, setWorkspace, refresh } = useWorkspace()
   const [memberId, setMemberId] = useState(null)
   const [profile, setProfile] = useState(null)
   const [reliability, setReliability] = useState(null)
@@ -18,6 +20,14 @@ export function MemberProfileProvider({ children }) {
   const member = useMemo(
     () => members.find((item) => item.id === memberId) ?? null,
     [members, memberId],
+  )
+
+  const isCurrentUserLeader =
+    String(leaderId) === String(user?.id) ||
+    members.some((item) => item.isLeader && String(item.id) === String(user?.id))
+
+  const canTransferLeadership = Boolean(
+    isCurrentUserLeader && member && !member.isLeader && String(member.id) !== String(user?.id),
   )
 
   const openMemberProfile = useCallback((id) => {
@@ -31,6 +41,28 @@ export function MemberProfileProvider({ children }) {
     setReliability(null)
     setIsLoading(false)
   }, [])
+
+  const handleTransferLeadership = useCallback(
+    async (nextLeaderId) => {
+      await transferWorkspaceLeader(groupId, nextLeaderId)
+      try {
+        await refresh()
+      } catch {
+        setWorkspace((current) => {
+          if (!current) return current
+          const nextMembers = withTransferredLeader(current.members ?? members, nextLeaderId)
+          const leader = nextMembers.find((item) => item.isLeader) ?? null
+          return {
+            ...current,
+            members: nextMembers,
+            leader,
+            leaderId: leader?.id ?? nextLeaderId,
+          }
+        })
+      }
+    },
+    [groupId, members, refresh, setWorkspace],
+  )
 
   useEffect(() => {
     if (!memberId) return undefined
@@ -90,6 +122,8 @@ export function MemberProfileProvider({ children }) {
         reliability={reliability}
         isLoading={isLoading}
         isOwnProfile={memberId === user?.id}
+        canTransferLeadership={canTransferLeadership}
+        onTransferLeadership={handleTransferLeadership}
       />
     </MemberProfileContext.Provider>
   )

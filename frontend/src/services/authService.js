@@ -16,8 +16,8 @@ export async function register(payload) {
   return data
 }
 
-export async function registerInstructor({ email, password }) {
-  return register(buildInstructorRegisterPayload({ email, password }))
+export async function registerInstructor({ email, password, staffRole }) {
+  return register(buildInstructorRegisterPayload({ email, password, staffRole }))
 }
 
 function buildDevAuthResponse(payload) {
