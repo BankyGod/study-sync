@@ -51,8 +51,8 @@ export function toKanbanTask(task) {
 
 export function canManageTask(task, userId, options = {}) {
   if (!userId) return false
-  if (task?.createdBy?.id === userId) return true
   if (options.isLeader) return true
+  if (task?.createdBy?.id === userId) return true
   return false
 }
 
@@ -61,9 +61,17 @@ export function canProgressTask(task, userId) {
   return task.assignee.id === userId
 }
 
-/** Leaders (and creators) may approve/reject regress requests. */
-export function canModerateTask(task, userId, options = {}) {
-  return canManageTask(task, userId, options)
+/** Only the group leader may approve/reject regress (move-back) requests. */
+export function canModerateTask(_task, userId, options = {}) {
+  if (!userId) return false
+  return Boolean(options.isLeader)
+}
+
+/** Leader may reassign any task; task creator may set assignee on their own cards. */
+export function canReassignTask(task, userId, options = {}) {
+  if (!userId) return false
+  if (options.isLeader) return true
+  return task?.createdBy?.id === userId
 }
 
 export function getTaskColumnId(task, columns = EMPTY_COLUMNS) {

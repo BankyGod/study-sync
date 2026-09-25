@@ -21,6 +21,13 @@ export function isGroupLeader(member) {
   return normalizeMemberRole(member.role) === MEMBER_ROLES.LEADER
 }
 
+/** Whether `userId` is the pod's current group leader. */
+export function isCurrentUserLeader(userId, { leaderId = null, members = [] } = {}) {
+  if (userId == null || userId === '') return false
+  if (leaderId != null && String(leaderId) === String(userId)) return true
+  return members.some((member) => isGroupLeader(member) && String(member.id) === String(userId))
+}
+
 function displayName(person) {
   const fullName = [person?.firstName, person?.lastName].filter(Boolean).join(' ')
   return String(person?.name ?? person?.fullName ?? fullName ?? person?.email ?? 'Member').trim()

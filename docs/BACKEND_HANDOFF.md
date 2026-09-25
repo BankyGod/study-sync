@@ -672,7 +672,7 @@ Always include `error.message` for display.
 | P1 | Chat + files + sessions GET/POST with shapes above |
 | P1 | **Kanban:** creator DELETE, assignee `POST /tasks/:id/progress`, regress requests — see [`BACKEND_TASKS_NOTIFICATIONS.md`](./BACKEND_TASKS_NOTIFICATIONS.md) |
 | P1 | **Notifications:** REST list/read + `notification:new` WebSocket |
-| P1 | **Group leaders:** `group_members.role` (`member`\|`leader`); `PUT /workspaces/:groupId/leader`; `PUT /admin/groups/:groupId/leader`; include `leaderId` / `isLeader` on workspace + admin group payloads |
+| P1 | **Group leaders:** `group_members.role` (`member`\|`leader`); `PUT /workspaces/:groupId/leader`; `PUT /admin/groups/:groupId/leader`; `DELETE /workspaces/:groupId/members/:userId`; include `leaderId` / `isLeader` on workspace + admin group payloads; enforce leader-only: regress approve, schedule create, end call, remove member (no pod rename) |
 | P1 | **Staff RBAC:** persist `users.staff_role`; accept `staffRole` on register; gate admin routes by permission |
 | P1 | **Admin reports:** `GET /admin/reports` + `GET /admin/task-progress` (pod completion %). Frontend composes fallbacks if 404 |
 | P2 | `GET /users/:userId/profile` (pod-scoped) |

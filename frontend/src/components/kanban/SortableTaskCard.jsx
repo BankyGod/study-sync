@@ -4,7 +4,13 @@ import { TaskCard } from '@/components/kanban/TaskCard'
 import { useAuth } from '@/hooks/useAuth'
 import { useWorkspace } from '@/context/WorkspaceContext'
 import { useWorkspaceTasks } from '@/context/WorkspaceTasksContext'
-import { canManageTask, canProgressTask, getTaskColumnId } from '@/services/workspaceTaskService'
+import {
+  canManageTask,
+  canModerateTask,
+  canProgressTask,
+  getTaskColumnId,
+} from '@/services/workspaceTaskService'
+import { isCurrentUserLeader } from '@/utils/groupMembers'
 import { cn } from '@/utils/cn'
 
 export function SortableTaskCard({ task }) {
@@ -27,14 +33,12 @@ export function SortableTaskCard({ task }) {
     transition,
   }
 
-  const isLeader =
-    String(leaderId) === String(user?.id) ||
-    members.some((member) => member.isLeader && String(member.id) === String(user?.id))
+  const isLeader = isCurrentUserLeader(user?.id, { leaderId, members })
   const status = getTaskColumnId(task, columns)
   const canManage = canManageTask(task, user?.id, { isLeader })
   const canProgress = canProgressTask(task, user?.id)
   const pending = task.pendingRegressRequest
-  const canResolveRegress = Boolean(pending && canManage)
+  const canResolveRegress = Boolean(pending && canModerateTask(task, user?.id, { isLeader }))
 
   return (
     <div ref={setNodeRef} style={style} className={cn(isDragging && 'z-10 opacity-40')}>

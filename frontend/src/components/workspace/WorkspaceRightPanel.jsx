@@ -7,6 +7,7 @@ import { useMemberProfile } from '@/context/MemberProfileContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useWorkspace } from '@/context/WorkspaceContext'
 import { useWorkspaceSchedule } from '@/context/WorkspaceScheduleContext'
+import { useWorkspaceLeader } from '@/hooks/useWorkspaceLeader'
 
 function getWorkspaceView(pathname) {
   if (pathname.includes('/files')) return 'files'
@@ -22,6 +23,7 @@ export function WorkspaceRightPanel() {
   const { avatarVersion } = useAuth()
   const { openMemberProfile } = useMemberProfile()
   const { openScheduleModal } = useWorkspaceSchedule()
+  const { isLeader } = useWorkspaceLeader()
 
   return (
     <aside className="hidden w-64 shrink-0 flex-col gap-6 border-l border-border pl-6 xl:flex">
@@ -65,7 +67,7 @@ export function WorkspaceRightPanel() {
         )}
       </section>
 
-      {view === 'calendar' ? (
+      {view === 'calendar' && isLeader ? (
         <Button variant="primary" size="md" className="w-full" onClick={openScheduleModal}>
           <Plus className="h-4 w-4" />
           Schedule session

@@ -1,13 +1,12 @@
 import { PhoneOff, Video, X } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { useAuth } from '@/hooks/useAuth'
 import { useWorkspaceCall } from '@/context/WorkspaceCallContext'
+import { useWorkspaceLeader } from '@/hooks/useWorkspaceLeader'
 import { canJoinLiveKit, getLiveKitConnectError } from '@/services/workspaceCallService'
 
 const LiveKitCallRoom = lazy(() => import('@/components/workspace/LiveKitCallRoom'))
 
 export function VideoCallPanel() {
-  const { user } = useAuth()
   const {
     activeCall,
     isCallOpen,
@@ -18,15 +17,12 @@ export function VideoCallPanel() {
     closeCallPanel,
     registerRoomDisconnect,
   } = useWorkspaceCall()
+  const { isLeader } = useWorkspaceLeader()
   const [roomError, setRoomError] = useState('')
 
   const ready = canJoinLiveKit(activeCall)
   const connectHint = getLiveKitConnectError(activeCall)
-
-  const canEndForAll =
-    !activeCall?.startedBy ||
-    String(activeCall.startedBy) === String(user?.id) ||
-    String(activeCall.startedBy?.id) === String(user?.id)
+  const canEndForAll = isLeader
 
   useEffect(() => {
     if (!isCallOpen) return undefined

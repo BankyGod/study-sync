@@ -1004,6 +1004,8 @@ Sorted ascending by `date` + `startTime`.
 
 ### `POST /api/workspaces/:groupId/sessions`
 
+**Auth:** group leader only.
+
 **Request:**
 
 ```json
@@ -1027,11 +1029,11 @@ Sorted ascending by `date` + `startTime`.
 
 ### `PATCH /api/workspaces/:groupId/sessions/:sessionId`
 
-Partial update. **Response `200`.**
+Partial update. **Auth:** group leader only. **Response `200`.**
 
 ### `DELETE /api/workspaces/:groupId/sessions/:sessionId`
 
-**Response `204`.**
+**Auth:** group leader only. **Response `204`.**
 
 ---
 
@@ -1247,8 +1249,28 @@ Current group leader transfers leadership to another member.
 
 **Auth:** Caller must be the current leader (or staff via admin route). Target must be a group member.
 
+### `DELETE /api/workspaces/:groupId/members/:userId`
+
+(also accept `DELETE /api/matching/groups/:groupId/members/:userId`)
+
+Group leader removes another member from the pod.
+
+**Auth:** Caller must be the current leader. Cannot remove self (use leave). Cannot remove another leader without transferring first. Target must be a group member.
+
 **Member payload:** Every workspace/admin member object should include `id`, `name`, `role` (`member`|`leader`), and optionally `isLeader`.
----
+
+### Leader privileges (enforce server-side)
+
+| Action | Leader | Regular member |
+|--------|--------|----------------|
+| Edit / delete **any** task | Yes | Own created tasks only |
+| Reassign any task | Yes | Own created tasks only |
+| Approve / reject regress (move-back) | **Yes (sole)** | No |
+| Create / edit / delete calendar sessions | Yes | View + join only |
+| End video call for everyone | Yes | Leave own session only |
+| Remove a member from the pod | Yes | No (self-leave only) |
+| Transfer leadership | Yes | No |
+| Rename the pod | **No** | **No** |---
 
 ## 16. Error format
 
@@ -1342,7 +1364,7 @@ On Socket.IO `call:started`, clients refresh active call then join.
 ### Leave / end (StudySync REST)
 
 - `POST .../calls/:id/leave` — then frontend `room.disconnect()`
-- `POST .../calls/:id/end` — end for all, broadcast `call:ended`, frontend disconnects
+- `POST .../calls/:id/end` — **group leader only**; end for all, broadcast `call:ended`, frontend disconnects
 
 ### Sanity
 

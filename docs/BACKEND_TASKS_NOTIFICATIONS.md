@@ -141,7 +141,7 @@ When a regress request is open, `pendingRegressRequest`:
 | Drag forward / reorder within same column | Any group member |
 | **Assignee progress** (`start`, `complete`) | **Current `assignee_id` only** (403 if unassigned) |
 | **Request regress** | Any group member |
-| **Approve / reject regress** | **Task creator (`created_by_id`) only** |
+| **Approve / reject regress** | **Group leader only** |
 | Cancel own pending regress request | Requester only |
 
 All routes: verify JWT + membership in `group_id`. Return `403 FORBIDDEN` with `{ "error": { "code": "FORBIDDEN", "message": "..." } }`.
@@ -206,7 +206,7 @@ Still returns `{ todo, in_progress, completed }` arrays. Each task includes `cre
 
 **WebSocket:** `task:updated`.
 
-### 5.4 `DELETE /tasks/:taskId` — creator only
+### 5.4 `DELETE /tasks/:taskId` — creator or group leader
 
 **Auth:** `created_by_id === current user` else `403` `NOT_TASK_CREATOR`.
 
@@ -297,16 +297,16 @@ Also notify **creator** on `complete` (recommended): `task.completed` to creator
 }
 ```
 
-**Notifications:** `task.regress_requested` → **task creator only**.
+**Notifications:** `task.regress_requested` → **group leader** (and optionally the task creator).
 
 **WebSocket:**
 
 - `task:updated` (task now shows `pendingRegressRequest`)
-- `notification:new` to creator's `user:{userId}` room
+- `notification:new` to leader's `user:{userId}` room
 
 #### `POST /tasks/:taskId/regress-requests/:requestId/approve`
 
-**Auth:** creator only.
+**Auth:** group leader only.
 
 **Effect:**
 
@@ -322,7 +322,7 @@ Also notify **creator** on `complete` (recommended): `task.completed` to creator
 
 #### `POST /tasks/:taskId/regress-requests/:requestId/reject`
 
-**Auth:** creator only.
+**Auth:** group leader only.
 
 **Request body (optional):**
 

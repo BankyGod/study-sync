@@ -27,6 +27,7 @@ export const endpoints = {
     createGroup: '/matching/groups',
     joinGroup: (groupId) => `/matching/groups/${groupId}/join`,
     leaveGroup: (groupId) => `/matching/groups/${groupId}/leave`,
+    removeMember: (groupId, userId) => `/matching/groups/${groupId}/members/${userId}`,
   },
   admin: {
     dashboard: '/admin/dashboard',
@@ -43,6 +44,7 @@ export const endpoints = {
   workspace: {
     byGroup: (groupId) => `/workspaces/${groupId}`,
     leader: (groupId) => `/workspaces/${groupId}/leader`,
+    member: (groupId, userId) => `/workspaces/${groupId}/members/${userId}`,
     tasks: (groupId) => `/workspaces/${groupId}/tasks`,
     task: (groupId, taskId) => `/workspaces/${groupId}/tasks/${taskId}`,
     taskReorder: (groupId) => `/workspaces/${groupId}/tasks/reorder`,

@@ -4,8 +4,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { useWorkspace } from '@/context/WorkspaceContext'
 import { fetchUserReliability } from '@/services/reliabilityService'
 import { fetchMemberProfile } from '@/services/usersService'
-import { transferWorkspaceLeader } from '@/services/workspaceService'
-import { withTransferredLeader } from '@/utils/groupMembers'
+import { removeWorkspaceMember, transferWorkspaceLeader } from '@/services/workspaceService'
+import { isCurrentUserLeader, withTransferredLeader } from '@/utils/groupMembers'
 
 const MemberProfileContext = createContext(null)
 
@@ -22,12 +22,14 @@ export function MemberProfileProvider({ children }) {
     [members, memberId],
   )
 
-  const isCurrentUserLeader =
-    String(leaderId) === String(user?.id) ||
-    members.some((item) => item.isLeader && String(item.id) === String(user?.id))
+  const isLeader = isCurrentUserLeader(user?.id, { leaderId, members })
 
   const canTransferLeadership = Boolean(
-    isCurrentUserLeader && member && !member.isLeader && String(member.id) !== String(user?.id),
+    isLeader && member && !member.isLeader && String(member.id) !== String(user?.id),
+  )
+
+  const canRemoveMember = Boolean(
+    isLeader && member && !member.isLeader && String(member.id) !== String(user?.id),
   )
 
   const openMemberProfile = useCallback((id) => {
@@ -58,6 +60,24 @@ export function MemberProfileProvider({ children }) {
             leader,
             leaderId: leader?.id ?? nextLeaderId,
           }
+        })
+      }
+    },
+    [groupId, members, refresh, setWorkspace],
+  )
+
+  const handleRemoveMember = useCallback(
+    async (targetUserId) => {
+      await removeWorkspaceMember(groupId, targetUserId)
+      try {
+        await refresh()
+      } catch {
+        setWorkspace((current) => {
+          if (!current) return current
+          const nextMembers = (current.members ?? members).filter(
+            (item) => String(item.id) !== String(targetUserId),
+          )
+          return { ...current, members: nextMembers }
         })
       }
     },
@@ -124,6 +144,8 @@ export function MemberProfileProvider({ children }) {
         isOwnProfile={memberId === user?.id}
         canTransferLeadership={canTransferLeadership}
         onTransferLeadership={handleTransferLeadership}
+        canRemoveMember={canRemoveMember}
+        onRemoveMember={handleRemoveMember}
       />
     </MemberProfileContext.Provider>
   )

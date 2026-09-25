@@ -1,5 +1,6 @@
 import { Video } from 'lucide-react'
 import { useWorkspaceCall } from '@/context/WorkspaceCallContext'
+import { useWorkspaceLeader } from '@/hooks/useWorkspaceLeader'
 import { canJoinLiveKit } from '@/services/workspaceCallService'
 import { cn } from '@/utils/cn'
 
@@ -15,6 +16,7 @@ export function ActiveCallBanner({ className }) {
     leaveCall,
     endCall,
   } = useWorkspaceCall()
+  const { isLeader } = useWorkspaceLeader()
 
   if (!activeCall && !error) return null
 
@@ -65,14 +67,16 @@ export function ActiveCallBanner({ className }) {
                   Leave
                 </button>
               ) : null}
-              <button
-                type="button"
-                disabled={isBusy}
-                onClick={endCall}
-                className="min-h-10 rounded-lg border border-border bg-surface px-3 text-sm font-semibold text-ink transition hover:bg-page disabled:opacity-60"
-              >
-                End
-              </button>
+              {isLeader ? (
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={endCall}
+                  className="min-h-10 rounded-lg border border-border bg-surface px-3 text-sm font-semibold text-ink transition hover:bg-page disabled:opacity-60"
+                >
+                  End for all
+                </button>
+              ) : null}
             </>
           ) : null}
         </div>

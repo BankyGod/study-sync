@@ -20,6 +20,9 @@ import { VideoCallPanel } from '@/components/workspace/VideoCallPanel'
 import { ScheduleSessionModal } from '@/components/workspace/ScheduleSessionModal'
 import { AddTaskModal } from '@/components/kanban/AddTaskModal'
 import { Spinner } from '@/components/common/Spinner'
+import { useAuth } from '@/hooks/useAuth'
+import { canReassignTask } from '@/services/workspaceTaskService'
+import { isCurrentUserLeader } from '@/utils/groupMembers'
 import { cn } from '@/utils/cn'
 
 function WorkspaceScheduleModal() {
@@ -49,8 +52,11 @@ function WorkspaceAddTaskModal() {
 }
 
 function WorkspaceEditTaskModal() {
-  const { members } = useWorkspace()
+  const { members, leaderId } = useWorkspace()
+  const { user } = useAuth()
   const { editingTask, closeEditTaskModal, updateTask } = useWorkspaceTasks()
+  const isLeader = isCurrentUserLeader(user?.id, { leaderId, members })
+  const canChangeAssignee = canReassignTask(editingTask, user?.id, { isLeader })
 
   return (
     <AddTaskModal
@@ -62,6 +68,7 @@ function WorkspaceEditTaskModal() {
         return updateTask(editingTask.id, values)
       }}
       members={members}
+      canChangeAssignee={canChangeAssignee}
     />
   )
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Crown, GraduationCap, MapPin } from 'lucide-react'
+import { Crown, GraduationCap, MapPin, UserMinus } from 'lucide-react'
 import { Button } from '@/components/common/Button'
 import { Modal } from '@/components/common/Modal'
 import { Spinner } from '@/components/common/Spinner'
@@ -18,9 +18,11 @@ export function MemberProfileModal({
   isOwnProfile,
   canTransferLeadership = false,
   onTransferLeadership,
+  canRemoveMember = false,
+  onRemoveMember,
 }) {
-  const [isTransferring, setIsTransferring] = useState(false)
-  const [transferError, setTransferError] = useState('')
+  const [isBusy, setIsBusy] = useState(false)
+  const [actionError, setActionError] = useState('')
 
   const displayName = profile?.fullName || member?.name || 'Pod member'
   const role = profile?.studentRole || member?.major || 'Study group member'
@@ -30,28 +32,22 @@ export function MemberProfileModal({
   const location = profile?.location
   const email = profile?.email
 
-  const handleTransfer = async () => {
-    if (!onTransferLeadership || !member?.id) return
-    if (
-      !window.confirm(
-        `Make ${displayName} the group leader? You will lose leader permissions until leadership is transferred again.`,
-      )
-    ) {
-      return
-    }
-    setIsTransferring(true)
-    setTransferError('')
+  const runAction = async (action, confirmMessage) => {
+    if (!action || !member?.id) return
+    if (confirmMessage && !window.confirm(confirmMessage)) return
+    setIsBusy(true)
+    setActionError('')
     try {
-      await onTransferLeadership(member.id)
+      await action(member.id)
       onClose()
     } catch (error) {
-      setTransferError(
+      setActionError(
         error?.response?.data?.error?.message ||
           error?.message ||
-          'Unable to transfer leadership. Backend may need PUT /api/workspaces/:groupId/leader.',
+          'Unable to complete that action.',
       )
     } finally {
-      setIsTransferring(false)
+      setIsBusy(false)
     }
   }
 
@@ -107,9 +103,9 @@ export function MemberProfileModal({
             <ReliabilityPanel reliability={reliability} scopeLabel="In this pod" />
           ) : null}
 
-          {transferError ? (
+          {actionError ? (
             <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-800">
-              {transferError}
+              {actionError}
             </p>
           ) : null}
 
@@ -118,11 +114,34 @@ export function MemberProfileModal({
               type="button"
               variant="secondary"
               className="w-full"
-              disabled={isTransferring}
-              onClick={handleTransfer}
+              disabled={isBusy}
+              onClick={() =>
+                runAction(
+                  onTransferLeadership,
+                  `Make ${displayName} the group leader? You will lose leader permissions until leadership is transferred again.`,
+                )
+              }
             >
               <Crown className="h-4 w-4" />
-              {isTransferring ? 'Transferring…' : 'Make group leader'}
+              {isBusy ? 'Working…' : 'Make group leader'}
+            </Button>
+          ) : null}
+
+          {canRemoveMember ? (
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full border-red-200 text-red-700 hover:bg-red-50"
+              disabled={isBusy}
+              onClick={() =>
+                runAction(
+                  onRemoveMember,
+                  `Remove ${displayName} from this study pod? They can rejoin later if seats remain.`,
+                )
+              }
+            >
+              <UserMinus className="h-4 w-4" />
+              {isBusy ? 'Working…' : 'Remove from pod'}
             </Button>
           ) : null}
 

@@ -43,7 +43,9 @@ export function WorkspaceScheduleProvider({ groupId, children }) {
     }
   }, [groupId])
 
-  const openScheduleModal = useCallback(() => setIsScheduleModalOpen(true), [])
+  const openScheduleModal = useCallback(() => {
+    setIsScheduleModalOpen(true)
+  }, [])
   const closeScheduleModal = useCallback(() => setIsScheduleModalOpen(false), [])
 
   const scheduleSession = useCallback(

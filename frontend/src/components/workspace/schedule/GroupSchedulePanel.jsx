@@ -3,11 +3,13 @@ import { ScheduleSessionList } from '@/components/workspace/ScheduleSessionList'
 import { ActiveCallBanner } from '@/components/workspace/ActiveCallBanner'
 import { useWorkspaceSchedule } from '@/context/WorkspaceScheduleContext'
 import { useWorkspaceCall } from '@/context/WorkspaceCallContext'
+import { useWorkspaceLeader } from '@/hooks/useWorkspaceLeader'
 import { formatSessionMeta } from '@/services/scheduleSessionService'
 
 export function GroupSchedulePanel() {
   const { sessions, listItems, openScheduleModal } = useWorkspaceSchedule()
   const { startOrJoinCall, isBusy } = useWorkspaceCall()
+  const { isLeader } = useWorkspaceLeader()
   const nextSession = sessions[0]
   const nextMeta = nextSession ? formatSessionMeta(nextSession).split(' | ') : []
 
@@ -68,17 +70,21 @@ export function GroupSchedulePanel() {
           <div>
             <h2 className="font-display text-xl font-semibold text-ink">Group schedule</h2>
             <p className="mt-1 text-sm text-muted">
-              Upcoming study sessions and meetings for your pod
+              {isLeader
+                ? 'Schedule and manage study sessions for your pod.'
+                : 'Upcoming study sessions set by your group leader.'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={openScheduleModal}
-            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-surface transition hover:bg-brand-700"
-          >
-            <Plus className="h-4 w-4" />
-            Schedule a session
-          </button>
+          {isLeader ? (
+            <button
+              type="button"
+              onClick={openScheduleModal}
+              className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-surface transition hover:bg-brand-700"
+            >
+              <Plus className="h-4 w-4" />
+              Schedule a session
+            </button>
+          ) : null}
         </div>
 
         <ScheduleSessionList
@@ -86,6 +92,11 @@ export function GroupSchedulePanel() {
           items={listItems}
           showJoin
           onJoin={handleJoinCall}
+          emptyMessage={
+            isLeader
+              ? 'Use Schedule a Session to plan your next group study.'
+              : 'Ask your group leader to schedule the next study session.'
+          }
         />
 
         {listItems.length > 0 ? (

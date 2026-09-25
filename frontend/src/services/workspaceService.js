@@ -36,6 +36,20 @@ export async function transferWorkspaceLeader(groupId, userId) {
   }
 }
 
+/** Leader removes another member from the pod. */
+export async function removeWorkspaceMember(groupId, userId) {
+  try {
+    const { data } = await apiClient.delete(endpoints.workspace.member(groupId, userId))
+    return data
+  } catch (error) {
+    if (error?.response?.status !== 404 && error?.response?.status !== 405) {
+      throw error
+    }
+    const { data } = await apiClient.delete(endpoints.matching.removeMember(groupId, userId))
+    return data
+  }
+}
+
 export async function fetchWorkspaceTasks(groupId) {
   const { data } = await apiClient.get(endpoints.workspace.tasks(groupId))
   return data

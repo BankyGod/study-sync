@@ -39,7 +39,14 @@ function Select({ label, error, className, id, children, ...props }) {
   )
 }
 
-export function AddTaskModal({ open, onClose, onSave, members = [], task = null }) {
+export function AddTaskModal({
+  open,
+  onClose,
+  onSave,
+  members = [],
+  task = null,
+  canChangeAssignee = true,
+}) {
   const isEdit = Boolean(task)
 
   const {
@@ -92,8 +99,12 @@ export function AddTaskModal({ open, onClose, onSave, members = [], task = null 
           {...register('dueDate')}
         />
 
-        {members.length > 0 && (
-          <Select label="Assign to" error={errors.assigneeId?.message} {...register('assigneeId')}>
+        {members.length > 0 && canChangeAssignee ? (
+          <Select
+            label={isEdit ? 'Reassign to' : 'Assign to'}
+            error={errors.assigneeId?.message}
+            {...register('assigneeId')}
+          >
             <option value="">Unassigned</option>
             {members.map((member) => (
               <option key={member.id} value={member.id}>
@@ -101,7 +112,7 @@ export function AddTaskModal({ open, onClose, onSave, members = [], task = null 
               </option>
             ))}
           </Select>
-        )}
+        ) : null}
 
         <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
           <Button type="button" variant="secondary" onClick={onClose}>
