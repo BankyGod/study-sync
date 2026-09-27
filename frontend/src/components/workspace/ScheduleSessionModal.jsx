@@ -57,7 +57,8 @@ function Select({ label, error, className, id, children, ...props }) {
   )
 }
 
-export function ScheduleSessionModal({ open, onClose, onSave }) {
+export function ScheduleSessionModal({ open, onClose, onSave, session = null }) {
+  const isEdit = Boolean(session)
   const {
     register,
     handleSubmit,
@@ -70,14 +71,27 @@ export function ScheduleSessionModal({ open, onClose, onSave }) {
 
   useEffect(() => {
     if (!open) return
+    if (session) {
+      reset({
+        title: session.title ?? '',
+        date: session.date ?? '',
+        startTime: session.startTime ?? defaultValues.startTime,
+        endTime: session.endTime ?? defaultValues.endTime,
+        meetingType: MEETING_TYPES.includes(session.meetingType)
+          ? session.meetingType
+          : MEETING_TYPES[0],
+        agenda: session.agenda ?? '',
+      })
+      return
+    }
     reset({
       ...defaultValues,
       date: new Date().toISOString().slice(0, 10),
     })
-  }, [open, reset])
+  }, [open, reset, session])
 
   const onSubmit = async (values) => {
-    onSave({
+    await onSave({
       title: values.title.trim(),
       date: values.date,
       startTime: values.startTime,
@@ -89,7 +103,7 @@ export function ScheduleSessionModal({ open, onClose, onSave }) {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Schedule a Session">
+    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Session' : 'Schedule a Session'}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <Input
           label="Session title"
@@ -146,7 +160,13 @@ export function ScheduleSessionModal({ open, onClose, onSave }) {
             Cancel
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Scheduling...' : 'Schedule Session'}
+            {isSubmitting
+              ? isEdit
+                ? 'Saving...'
+                : 'Scheduling...'
+              : isEdit
+                ? 'Save changes'
+                : 'Schedule Session'}
           </Button>
         </div>
       </form>

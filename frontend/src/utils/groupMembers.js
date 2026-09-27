@@ -82,6 +82,17 @@ export function normalizeGroupMembers(members = [], group = {}) {
   })
 }
 
+/**
+ * A leader must hand leadership to someone else before leaving a pod that still has members.
+ * Returns a blocking message, or null when leaving is allowed.
+ */
+export function getLeaveBlockedReason(userId, { leaderId = null, members = [] } = {}) {
+  if (!isCurrentUserLeader(userId, { leaderId, members })) return null
+  const others = members.filter((member) => String(member.id) !== String(userId))
+  if (others.length === 0) return null
+  return 'You are the group leader. Open a member’s profile and choose “Make group leader” before leaving this pod.'
+}
+
 export function getGroupLeader(members = []) {
   return normalizeGroupMembers(members).find((member) => member.isLeader) ?? null
 }

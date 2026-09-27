@@ -702,6 +702,33 @@ The dashboard (`/dashboard`) shows active pods with progress and members. Curren
 
 **`accent`:** UI theme token — `blue`, `green`, `purple`, `amber` (rotate or hash from group id).
 
+### `GET /api/users/me/tasks` (recommended)
+
+Every task assigned to the current user across all their groups, for the **My tasks** page (`/my-tasks`) and dashboard deadlines. Until this exists the frontend loads each group's board separately (one request per pod).
+
+**Query (optional):** `?status=todo|in_progress|completed&groupId=`
+
+**Response `200`:**
+
+```json
+{
+  "tasks": [
+    {
+      "id": "uuid",
+      "groupId": "biology-101-1",
+      "groupTitle": "Biology 101 · Pod 1",
+      "title": "Summarise chapter 4",
+      "status": "in_progress",
+      "dueDate": "2026-10-02",
+      "startedAt": "2026-09-26T10:00:00.000Z",
+      "completedAt": null,
+      "assignee": { "id": "uuid", "name": "Ama Mensah" },
+      "pendingRegressRequest": null
+    }
+  ]
+}
+```
+
 ---
 
 ## 8. Workspaces
@@ -1193,6 +1220,20 @@ Assign / transfer group leader (staff with `assign_leaders` permission).
 
 List students with onboarding status and group assignments. Support `?cohortId=&courseCode=&page=`.
 
+### `GET /api/admin/users?scope=staff`
+
+List staff accounts (`role` = `instructor` or `admin`) for the Staff page. **Auth:** `manage_staff` (super admin).
+
+**Response `200`:** `{ "users": [{ "id", "name", "email", "role", "staffRole" }] }`
+
+### `PATCH /api/admin/users/:userId`
+
+Change a staff member's role. **Auth:** `manage_staff`. Reject changing your own role (`403`).
+
+**Request:** `{ "staffRole": "cohort_manager", "role": "instructor" }` — `role` is `admin` only when `staffRole` is `super_admin`.
+
+**Response `200`:** `{ "user": { ... } }`
+
 ### `GET /api/admin/reports`
 
 Printable / exportable report bundle. Frontend falls back to composing cohorts + groups + students if this route is missing.
@@ -1270,6 +1311,7 @@ Group leader removes another member from the pod.
 | End video call for everyone | Yes | Leave own session only |
 | Remove a member from the pod | Yes | No (self-leave only) |
 | Transfer leadership | Yes | No |
+| Leave the pod | Only after transferring leadership (unless last member) | Yes |
 | Rename the pod | **No** | **No** |---
 
 ## 16. Error format

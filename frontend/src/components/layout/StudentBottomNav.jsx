@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Bell, Home, LayoutGrid, Search, User } from 'lucide-react'
+import { Bell, ClipboardCheck, Home, LayoutGrid, Search, User } from 'lucide-react'
 import { UNREAD_COUNT_QUERY_KEY } from '@/hooks/useNotificationSocket'
 import { fetchUnreadNotificationCount } from '@/services/notificationsService'
 import { ROUTES } from '@/utils/constants'
@@ -25,6 +25,12 @@ const tabs = [
     label: 'Space',
     icon: LayoutGrid,
     match: (path) => isWorkspaceRoute(path),
+  },
+  {
+    to: ROUTES.MY_TASKS,
+    label: 'Tasks',
+    icon: ClipboardCheck,
+    match: (path) => path === ROUTES.MY_TASKS,
   },
   {
     to: ROUTES.NOTIFICATIONS,

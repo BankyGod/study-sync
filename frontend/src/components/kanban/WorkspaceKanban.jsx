@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -9,20 +9,32 @@ import {
 } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { KanbanColumn } from '@/components/kanban/KanbanColumn'
+import { MyTaskProgress } from '@/components/kanban/MyTaskProgress'
 import { TaskCard } from '@/components/kanban/TaskCard'
 import { Spinner } from '@/components/common/Spinner'
+import { useAuth } from '@/hooks/useAuth'
 import { useWorkspaceTasks } from '@/context/WorkspaceTasksContext'
 import {
   COLUMN_IDS,
   findTaskContainer,
+  isAssignedTo,
   normalizeTaskForColumn,
+  summarizeMyTasks,
   toKanbanTask,
 } from '@/services/workspaceTaskService'
 
 export function WorkspaceKanban() {
+  const { user } = useAuth()
   const { columns, setColumns, commitColumns, reloadColumns, openAddTaskModal, isLoading } =
     useWorkspaceTasks()
   const [activeTask, setActiveTask] = useState(null)
+  const [showMineOnly, setShowMineOnly] = useState(false)
+
+  const summary = useMemo(() => summarizeMyTasks(columns, user?.id), [columns, user?.id])
+  const visibleTasks = (columnId) =>
+    showMineOnly
+      ? columns[columnId].filter((task) => isAssignedTo(task, user?.id))
+      : columns[columnId]
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -127,16 +139,23 @@ export function WorkspaceKanban() {
           <Spinner size="lg" />
         </div>
       ) : (
-        <div className="flex flex-col gap-6 lg:grid lg:grid-cols-3 lg:gap-5">
-        <KanbanColumn
-          columnId="todo"
-          tasks={columns.todo}
-          showAddTask
-          onAddTask={openAddTaskModal}
-        />
-        <KanbanColumn columnId="in_progress" tasks={columns.in_progress} />
-        <KanbanColumn columnId="completed" tasks={columns.completed} />
-        </div>
+        <>
+          <MyTaskProgress
+            summary={summary}
+            showMineOnly={showMineOnly}
+            onToggleMineOnly={() => setShowMineOnly((value) => !value)}
+          />
+          <div className="flex flex-col gap-6 lg:grid lg:grid-cols-3 lg:gap-5">
+            <KanbanColumn
+              columnId="todo"
+              tasks={visibleTasks('todo')}
+              showAddTask
+              onAddTask={openAddTaskModal}
+            />
+            <KanbanColumn columnId="in_progress" tasks={visibleTasks('in_progress')} />
+            <KanbanColumn columnId="completed" tasks={visibleTasks('completed')} />
+          </div>
+        </>
       )}
 
       <DragOverlay dropAnimation={null}>

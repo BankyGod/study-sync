@@ -89,6 +89,7 @@ function seoStaticPlugin(siteUrl) {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, '')
   const siteUrl = normalizeSiteUrl(env.VITE_SITE_URL)
+  const proxyTarget = normalizeSiteUrl(env.VITE_PROXY_TARGET) || 'http://localhost:3000'
 
   return {
     plugins: [react(), tailwindcss(), seoStaticPlugin(siteUrl)],
@@ -126,11 +127,14 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       proxy: {
         '/api': {
-          target: 'http://localhost:3000',
+          target: proxyTarget,
           changeOrigin: true,
+          secure: true,
         },
         '/socket.io': {
-          target: 'http://localhost:3000',
+          target: proxyTarget,
+          changeOrigin: true,
+          secure: true,
           ws: true,
         },
       },

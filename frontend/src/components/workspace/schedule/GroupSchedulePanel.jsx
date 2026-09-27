@@ -7,7 +7,8 @@ import { useWorkspaceLeader } from '@/hooks/useWorkspaceLeader'
 import { formatSessionMeta } from '@/services/scheduleSessionService'
 
 export function GroupSchedulePanel() {
-  const { sessions, listItems, openScheduleModal } = useWorkspaceSchedule()
+  const { sessions, listItems, openScheduleModal, openEditSessionModal, deleteSession } =
+    useWorkspaceSchedule()
   const { startOrJoinCall, isBusy } = useWorkspaceCall()
   const { isLeader } = useWorkspaceLeader()
   const nextSession = sessions[0]
@@ -17,6 +18,15 @@ export function GroupSchedulePanel() {
     startOrJoinCall({
       title: nextSession?.title ? `${nextSession.title} call` : 'Pod study call',
     }).catch(() => {})
+  }
+
+  const handleDeleteSession = async (item) => {
+    if (!window.confirm(`Delete “${item.title}” for everyone in this pod?`)) return
+    try {
+      await deleteSession(item.id)
+    } catch (error) {
+      window.alert(error?.message || 'Unable to delete this session.')
+    }
   }
 
   return (
@@ -92,6 +102,9 @@ export function GroupSchedulePanel() {
           items={listItems}
           showJoin
           onJoin={handleJoinCall}
+          canManage={isLeader}
+          onEdit={(item) => openEditSessionModal(item.session)}
+          onDelete={handleDeleteSession}
           emptyMessage={
             isLeader
               ? 'Use Schedule a Session to plan your next group study.'

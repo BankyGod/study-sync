@@ -97,6 +97,44 @@ export async function createAdminCohort(payload) {
   return data?.cohort ?? data
 }
 
+/** Batch-match students into pods for a cohort and/or course. */
+export async function runAdminMatching({ cohortId, courseCode } = {}) {
+  const { data } = await apiClient.post(endpoints.admin.matchingRun, {
+    cohortId: cohortId || undefined,
+    courseCode: courseCode?.trim() || undefined,
+  })
+  return data
+}
+
+export async function fetchAdminMatchingJob(jobId) {
+  const { data } = await apiClient.get(endpoints.admin.matchingJob(jobId))
+  return data
+}
+
+function normalizeStaffUser(user) {
+  return {
+    ...user,
+    id: user?.id ?? user?._id ?? user?.userId,
+    name: displayName(user) || 'Staff member',
+    email: user?.email ?? '',
+    role: user?.role ?? 'instructor',
+    staffRole: user?.staffRole ?? user?.staff_role ?? null,
+  }
+}
+
+export async function fetchAdminStaff() {
+  const { data } = await apiClient.get(endpoints.admin.users, { params: { scope: 'staff' } })
+  return asList(data, ['users', 'staff', 'data'])
+    .map(normalizeStaffUser)
+    .filter((user) => user.role === 'instructor' || user.role === 'admin')
+}
+
+export async function updateAdminStaffRole(userId, staffRole) {
+  const role = staffRole === 'super_admin' ? 'admin' : 'instructor'
+  const { data } = await apiClient.patch(endpoints.admin.user(userId), { staffRole, role })
+  return normalizeStaffUser(data?.user ?? data ?? { id: userId, staffRole, role })
+}
+
 export async function fetchAdminGroups(params = {}) {
   const { data } = await apiClient.get(endpoints.admin.groups, { params })
   const groups = asList(data, ['groups', 'data', 'pods'])
@@ -173,12 +211,34 @@ export async function fetchAdminReportBundle() {
   try {
     const { data } = await apiClient.get(endpoints.admin.reports)
     if (data) {
+      const groups = asList(data, ['groups', 'pods']).map((group) => {
+        const members = normalizeAdminMembers(group)
+        const leader =
+          group.leader ??
+          members.find((m) => m.isLeader) ??
+          (group.leaderId
+            ? members.find((m) => String(m.id) === String(group.leaderId))
+            : null)
+        return {
+          ...group,
+          id: group.id ?? group.groupId,
+          title: groupTitle(group),
+          course: group.course ?? groupCourse(group),
+          cohortName: group.cohortName ?? null,
+          memberCount: members.length || group.memberCount || 0,
+          members,
+          leader,
+          progress: Number(group.progress ?? group.completionPercent ?? group.completionRate ?? 0) || 0,
+          hasLeader: Boolean(leader || group.leaderId),
+        }
+      })
+
       return {
         source: 'api',
         generatedAt: data.generatedAt ?? new Date().toISOString(),
         summary: data.summary ?? {},
         cohorts: asList(data, ['cohorts']),
-        groups: asList(data, ['groups', 'pods']),
+        groups,
         students: filterRealUsers(asList(data, ['students', 'users'])),
         taskProgress: asList(data, ['taskProgress', 'progress']),
         raw: data,

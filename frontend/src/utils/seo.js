@@ -56,6 +56,14 @@ const PAGE_SEO = [
     ogType: 'website',
   },
   {
+    match: (path) => path === ROUTES.MY_TASKS,
+    path: ROUTES.MY_TASKS,
+    title: 'My tasks · StudySync',
+    description: 'Track every task assigned to you across your study pods.',
+    robots: PAGE_ROBOTS,
+    ogType: 'website',
+  },
+  {
     match: (path) => path === ROUTES.PROFILE,
     path: ROUTES.PROFILE,
     title: 'Profile · StudySync',

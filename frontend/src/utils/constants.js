@@ -41,6 +41,7 @@ export const ROUTES = {
   NOTIFICATIONS: '/notifications',
   STUDENT_DASHBOARD: '/dashboard',
   FIND_GROUPS: '/find-groups',
+  MY_TASKS: '/my-tasks',
   WORKSPACE: '/workspace/:groupId',
   WORKSPACE_LIST: '/workspace',
   MY_GROUPS: '/my-groups',
@@ -50,6 +51,7 @@ export const ROUTES = {
   ADMIN_STUDENTS: '/admin/students',
   ADMIN_REPORTS: '/admin/reports',
   ADMIN_TASK_PROGRESS: '/admin/task-progress',
+  ADMIN_STAFF: '/admin/staff',
 }
 
 export function getHomeRouteForRole(role) {

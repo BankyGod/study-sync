@@ -186,6 +186,105 @@ export async function loadGroupTasks(groupId) {
   return mapBoardResponse(data)
 }
 
+function describeDueDate(dueDate) {
+  const due = new Date(`${dueDate}T23:59:59`)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const days = Math.floor((due.getTime() - today.getTime()) / 86_400_000)
+  if (days < 0) return { tag: 'Overdue', tagVariant: 'urgent' }
+  if (days === 0) return { tag: 'Today', tagVariant: 'urgent' }
+  if (days <= 3) return { tag: `${days}d left`, tagVariant: 'soon' }
+  return { tag: format(due, 'MMM d'), tagVariant: 'later' }
+}
+
+export function isAssignedTo(task, userId) {
+  return userId != null && String(task?.assignee?.id) === String(userId)
+}
+
+function isPastDue(dueDate) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return new Date(`${dueDate}T23:59:59`).getTime() < today.getTime()
+}
+
+/** Counts of the tasks assigned to `userId` on one pod board. */
+export function summarizeMyTasks(columns = EMPTY_COLUMNS, userId) {
+  const mine = (columnId) =>
+    (columns[columnId] ?? []).filter((task) => isAssignedTo(task, userId))
+  const todo = mine('todo')
+  const inProgress = mine('in_progress')
+  const completed = mine('completed')
+  const total = todo.length + inProgress.length + completed.length
+  const overdue = [...todo, ...inProgress].filter(
+    (task) => task.dueDate && isPastDue(task.dueDate),
+  ).length
+
+  return {
+    todo: todo.length,
+    inProgress: inProgress.length,
+    completed: completed.length,
+    total,
+    overdue,
+    percent: total === 0 ? 0 : Math.round((completed.length / total) * 100),
+  }
+}
+
+/** Every task assigned to `userId` across the user's pods, tagged with its pod. */
+export async function loadMyAssignedTasks(groups = [], userId) {
+  if (!userId || groups.length === 0) return []
+
+  const results = await Promise.all(
+    groups.map(async (group) => {
+      const groupId = group.groupId ?? group.id
+      try {
+        const columns = await loadGroupTasks(groupId)
+        return COLUMN_IDS.flatMap((columnId) =>
+          (columns[columnId] ?? [])
+            .filter((task) => isAssignedTo(task, userId))
+            .map((task) => {
+              const due = task.dueDate && columnId !== 'completed' ? describeDueDate(task.dueDate) : null
+              return {
+                ...task,
+                status: columnId,
+                groupId,
+                groupTitle: group.title ?? 'Study pod',
+                dueTag: due?.tag ?? null,
+                dueTagVariant: due?.tagVariant ?? null,
+                isOverdue: Boolean(task.dueDate && columnId !== 'completed' && isPastDue(task.dueDate)),
+              }
+            }),
+        )
+      } catch {
+        return []
+      }
+    }),
+  )
+
+  return results.flat().sort((a, b) => {
+    if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate)
+    if (a.dueDate) return -1
+    if (b.dueDate) return 1
+    return String(a.title).localeCompare(String(b.title))
+  })
+}
+
+/** Open tasks assigned to `userId` with a due date, across all of the user's pods. */
+export async function loadMyUpcomingDeadlines(groups = [], userId, limit = 5) {
+  const tasks = await loadMyAssignedTasks(groups, userId)
+  return tasks
+    .filter((task) => task.dueDate && task.status !== 'completed')
+    .slice(0, limit)
+    .map((task) => ({
+      id: `${task.groupId}:${task.id}`,
+      title: task.title,
+      course: task.groupTitle,
+      dueDate: task.dueDate,
+      datetime: format(new Date(`${task.dueDate}T12:00:00`), 'EEE, d MMM yyyy'),
+      tag: task.dueTag,
+      tagVariant: task.dueTagVariant,
+    }))
+}
+
 export async function saveGroupTasks(groupId, columns) {
   if (DEV_BYPASS_AUTH) {
     writeLocalTasks(groupId, columns)

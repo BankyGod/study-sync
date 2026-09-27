@@ -250,7 +250,7 @@ export function WorkspaceTasksProvider({ groupId, members = [], children }) {
           }
 
           const confirmed = window.confirm(
-            'Moving this task backward needs creator approval. Send a move-back request?',
+            'Moving this task backward needs the group leader’s approval. Send a move-back request?',
           )
           if (confirmed && taskId && targetStatus) {
             await requestRegress(taskId, targetStatus)

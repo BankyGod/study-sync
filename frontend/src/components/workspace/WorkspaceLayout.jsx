@@ -26,13 +26,22 @@ import { isCurrentUserLeader } from '@/utils/groupMembers'
 import { cn } from '@/utils/cn'
 
 function WorkspaceScheduleModal() {
-  const { isScheduleModalOpen, closeScheduleModal, scheduleSession } = useWorkspaceSchedule()
+  const {
+    isScheduleModalOpen,
+    closeScheduleModal,
+    scheduleSession,
+    updateSession,
+    editingSession,
+  } = useWorkspaceSchedule()
 
   return (
     <ScheduleSessionModal
       open={isScheduleModalOpen}
       onClose={closeScheduleModal}
-      onSave={scheduleSession}
+      session={editingSession}
+      onSave={(values) =>
+        editingSession ? updateSession(editingSession.id, values) : scheduleSession(values)
+      }
     />
   )
 }

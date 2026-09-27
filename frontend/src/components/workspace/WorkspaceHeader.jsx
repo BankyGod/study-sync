@@ -10,6 +10,7 @@ import { useWorkspace } from '@/context/WorkspaceContext'
 import { useWorkspaceCall } from '@/context/WorkspaceCallContext'
 import { leaveStudyGroup } from '@/services/matchingService'
 import { getMatchingErrorMessage } from '@/utils/matchingErrors'
+import { getLeaveBlockedReason } from '@/utils/groupMembers'
 import { cn } from '@/utils/cn'
 import { ROUTES } from '@/utils/constants'
 
@@ -24,8 +25,8 @@ export function WorkspaceHeader({ title, courseLabel }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { groupId } = useParams()
-  const { members } = useWorkspace()
-  const { avatarVersion } = useAuth()
+  const { members, leaderId } = useWorkspace()
+  const { user, avatarVersion } = useAuth()
   const { openMemberProfile } = useMemberProfile()
   const { activeCall, isBusy, startOrJoinCall } = useWorkspaceCall()
   const [isLeaving, setIsLeaving] = useState(false)
@@ -40,6 +41,11 @@ export function WorkspaceHeader({ title, courseLabel }) {
 
   const handleLeavePod = async () => {
     if (!groupId) return
+    const blockedReason = getLeaveBlockedReason(user?.id, { leaderId, members })
+    if (blockedReason) {
+      window.alert(blockedReason)
+      return
+    }
     if (
       !window.confirm(
         'Leave this study pod? You can search again later if there is still space.',

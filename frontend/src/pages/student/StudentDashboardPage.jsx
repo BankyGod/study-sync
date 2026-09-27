@@ -16,6 +16,7 @@ import { Button } from '@/components/common/Button'
 import { useAuth } from '@/hooks/useAuth'
 import { fetchUserGroups, getUserGroupsErrorMessage } from '@/services/usersService'
 import { fetchMyReliability } from '@/services/reliabilityService'
+import { loadMyUpcomingDeadlines } from '@/services/workspaceTaskService'
 import {
   isOnboardingProfileSaved,
   loadOnboardingProfile,
@@ -42,6 +43,7 @@ export function StudentDashboardPage() {
   const { user } = useAuth()
   const [groups, setGroups] = useState([])
   const [reliability, setReliability] = useState(null)
+  const [deadlines, setDeadlines] = useState([])
   const [hasSavedProfile, setHasSavedProfile] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -75,6 +77,20 @@ export function StudentDashboardPage() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    loadMyUpcomingDeadlines(groups, user?.id)
+      .then((items) => {
+        if (!cancelled) setDeadlines(items)
+      })
+      .catch(() => {
+        if (!cancelled) setDeadlines([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [groups, user?.id])
 
   const memberCount = useMemo(
     () => groups.reduce((sum, g) => sum + (g.members?.length ?? 0), 0),
@@ -238,7 +254,7 @@ export function StudentDashboardPage() {
             />
           </div>
 
-          <UpcomingDeadlines deadlines={[]} />
+          <UpcomingDeadlines deadlines={deadlines} />
 
           <div className="dash-card space-y-2 p-4">
             <p className="text-[13px] font-semibold text-ink">Quick actions</p>

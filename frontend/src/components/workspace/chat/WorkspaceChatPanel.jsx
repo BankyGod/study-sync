@@ -17,6 +17,7 @@ import {
 } from '@/services/workspaceChatService'
 import { leaveStudyGroup } from '@/services/matchingService'
 import { getMatchingErrorMessage } from '@/utils/matchingErrors'
+import { getLeaveBlockedReason } from '@/utils/groupMembers'
 import { getWorkspaceErrorMessage } from '@/utils/workspaceErrors'
 import { DEV_BYPASS_AUTH, ROUTES } from '@/utils/constants'
 import { Spinner } from '@/components/common/Spinner'
@@ -25,7 +26,7 @@ export function WorkspaceChatPanel() {
   const { groupId } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { title, members } = useWorkspace()
+  const { title, members, leaderId } = useWorkspace()
   const { activeCall, isBusy, startOrJoinCall } = useWorkspaceCall()
   const [messages, setMessages] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -120,6 +121,11 @@ export function WorkspaceChatPanel() {
 
   const handleLeavePod = async () => {
     if (!groupId) return
+    const blockedReason = getLeaveBlockedReason(user?.id, { leaderId, members })
+    if (blockedReason) {
+      window.alert(blockedReason)
+      return
+    }
     if (
       !window.confirm(
         'Leave this study pod? You can search again later if there is still space.',

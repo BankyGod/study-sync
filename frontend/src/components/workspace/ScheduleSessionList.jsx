@@ -1,4 +1,4 @@
-import { CalendarDays } from 'lucide-react'
+import { CalendarDays, Pencil, Trash2 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 
 export function ScheduleSessionList({
@@ -7,6 +7,9 @@ export function ScheduleSessionList({
   showJoin = false,
   onJoin,
   emptyMessage,
+  canManage = false,
+  onEdit,
+  onDelete,
 }) {
   const content =
     items.length === 0 ? (
@@ -33,15 +36,37 @@ export function ScheduleSessionList({
                 <p className="mt-1 text-sm text-muted">{item.meta}</p>
               </div>
             </div>
-            {showJoin ? (
-              <button
-                type="button"
-                onClick={() => onJoin?.(item)}
-                className="min-h-10 shrink-0 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-surface transition hover:bg-brand-700"
-              >
-                Join call
-              </button>
-            ) : null}
+            <div className="flex shrink-0 items-center gap-2">
+              {canManage ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => onEdit?.(item)}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border text-muted transition hover:bg-page hover:text-ink"
+                    aria-label={`Edit ${item.title}`}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDelete?.(item)}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border text-muted transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                    aria-label={`Delete ${item.title}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </>
+              ) : null}
+              {showJoin ? (
+                <button
+                  type="button"
+                  onClick={() => onJoin?.(item)}
+                  className="min-h-10 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-surface transition hover:bg-brand-700"
+                >
+                  Join call
+                </button>
+              ) : null}
+            </div>
           </li>
         ))}
       </ul>

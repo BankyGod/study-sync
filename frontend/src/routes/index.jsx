@@ -33,6 +33,9 @@ const StudentDashboardPage = lazy(() =>
     default: m.StudentDashboardPage,
   })),
 )
+const MyTasksPage = lazy(() =>
+  import('@/pages/student/MyTasksPage').then((m) => ({ default: m.MyTasksPage })),
+)
 const FindGroupsPage = lazy(() =>
   import('@/pages/student/FindGroupsPage').then((m) => ({ default: m.FindGroupsPage })),
 )
@@ -101,6 +104,11 @@ const AdminTaskProgressPage = lazy(() =>
     default: m.AdminTaskProgressPage,
   })),
 )
+const AdminStaffPage = lazy(() =>
+  import('@/pages/admin/AdminStaffPage').then((m) => ({
+    default: m.AdminStaffPage,
+  })),
+)
 
 const defaultRoute = DEV_BYPASS_AUTH ? ROUTES.STUDENT_DASHBOARD : ROUTES.LOGIN
 
@@ -142,6 +150,7 @@ export function AppRoutes() {
           <Route path={ROUTES.NOTIFICATIONS} element={<NotificationsPage />} />
           <Route path={ROUTES.STUDENT_DASHBOARD} element={<StudentDashboardPage />} />
           <Route path={ROUTES.FIND_GROUPS} element={<FindGroupsPage />} />
+          <Route path={ROUTES.MY_TASKS} element={<MyTasksPage />} />
           <Route path={ROUTES.MY_GROUPS} element={<Navigate to={ROUTES.STUDENT_DASHBOARD} replace />} />
           <Route path={ROUTES.WORKSPACE_LIST} element={<Outlet />}>
             <Route index element={<WorkspacePodsPage />} />
@@ -168,6 +177,7 @@ export function AppRoutes() {
           <Route path={ROUTES.ADMIN_STUDENTS} element={<AdminStudentsPage />} />
           <Route path={ROUTES.ADMIN_TASK_PROGRESS} element={<AdminTaskProgressPage />} />
           <Route path={ROUTES.ADMIN_REPORTS} element={<AdminReportsPage />} />
+          <Route path={ROUTES.ADMIN_STAFF} element={<AdminStaffPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to={defaultRoute} replace />} />

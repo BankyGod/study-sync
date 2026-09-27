@@ -5,6 +5,7 @@ import {
   GraduationCap,
   LayoutDashboard,
   LogOut,
+  ShieldCheck,
   UserRound,
   Users,
 } from 'lucide-react'
@@ -57,6 +58,12 @@ const adminLinks = [
     label: 'Reports',
     icon: FileBarChart,
     permission: PERMISSIONS.VIEW_REPORTS,
+  },
+  {
+    to: ROUTES.ADMIN_STAFF,
+    label: 'Staff',
+    icon: ShieldCheck,
+    permission: PERMISSIONS.MANAGE_STAFF,
   },
 ]
 

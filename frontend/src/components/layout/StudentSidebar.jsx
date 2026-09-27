@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
   Bell,
+  ClipboardCheck,
   Home,
   LayoutGrid,
   LogOut,
@@ -28,6 +29,7 @@ const navLinks = [
     icon: LayoutGrid,
     match: (p) => isWorkspaceRoute(p),
   },
+  { to: ROUTES.MY_TASKS, label: 'My tasks', icon: ClipboardCheck, match: (p) => p === ROUTES.MY_TASKS },
   { to: ROUTES.NOTIFICATIONS, label: 'Alerts', icon: Bell, match: (p) => p === ROUTES.NOTIFICATIONS, badge: true },
   { to: ROUTES.PROFILE, label: 'Profile', icon: User, match: (p) => p === ROUTES.PROFILE },
 ]

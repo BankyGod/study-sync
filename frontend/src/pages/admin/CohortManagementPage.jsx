@@ -8,7 +8,85 @@ import {
   createAdminCohort,
   fetchAdminCohorts,
   getAdminErrorMessage,
+  runAdminMatching,
 } from '@/services/adminService'
+
+function MatchingRunCard({ cohorts, onComplete }) {
+  const [cohortId, setCohortId] = useState('')
+  const [courseCode, setCourseCode] = useState('')
+  const [isRunning, setIsRunning] = useState(false)
+  const [result, setResult] = useState(null)
+  const [error, setError] = useState('')
+
+  const handleRun = async (event) => {
+    event.preventDefault()
+    if (!cohortId && !courseCode.trim()) return
+    setIsRunning(true)
+    setError('')
+    setResult(null)
+    try {
+      const data = await runAdminMatching({ cohortId, courseCode })
+      setResult(data ?? {})
+      onComplete?.()
+    } catch (runError) {
+      setError(getAdminErrorMessage(runError, 'Unable to run matching.'))
+    } finally {
+      setIsRunning(false)
+    }
+  }
+
+  return (
+    <Card
+      title="Run batch matching"
+      description="Group unmatched students into pods by cohort and/or course."
+    >
+      <form
+        onSubmit={handleRun}
+        className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+      >
+        <label className="block space-y-1.5">
+          <span className="block text-sm font-medium text-slate-700">Cohort</span>
+          <select
+            className="h-10 w-full rounded-lg border border-border bg-surface px-2.5 text-sm"
+            value={cohortId}
+            onChange={(event) => setCohortId(event.target.value)}
+          >
+            <option value="">Any cohort</option>
+            {cohorts.map((cohort) => (
+              <option key={cohort.id} value={cohort.id}>
+                {cohort.name ?? cohort.id}
+              </option>
+            ))}
+          </select>
+        </label>
+        <Input
+          label="Course code (optional)"
+          placeholder="computer-science-401"
+          value={courseCode}
+          onChange={(event) => setCourseCode(event.target.value)}
+        />
+        <Button
+          type="submit"
+          size="sm"
+          disabled={isRunning || (!cohortId && !courseCode.trim())}
+        >
+          {isRunning ? 'Running…' : 'Run matching'}
+        </Button>
+      </form>
+
+      {error ? <p className="mt-3 text-[12px] text-red-600">{error}</p> : null}
+      {result ? (
+        <p className="mt-3 rounded-lg bg-brand-50 px-3 py-2 text-[12px] text-brand-800">
+          {result.status === 'running' || result.status === 'pending'
+            ? 'Matching started. Pods will appear under Groups when the job finishes.'
+            : `Matching complete: ${result.groupsCreated ?? 0} pod(s) created, ${
+                result.studentsMatched ?? 0
+              } student(s) matched.`}
+        </p>
+      ) : null}
+    </Card>
+  )
+}
 
 export function CohortManagementPage() {
   const [cohorts, setCohorts] = useState([])
@@ -93,6 +171,8 @@ export function CohortManagementPage() {
           </Button>
         </form>
       </Card>
+
+      <MatchingRunCard cohorts={cohorts} onComplete={loadCohorts} />
 
       <Card title="Active cohorts" description="GET /api/admin/cohorts — real student & pod counts">
         {isLoading ? (
