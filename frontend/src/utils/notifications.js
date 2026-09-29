@@ -1,9 +1,13 @@
 import {
   ArrowLeft,
   Bell,
+  BellRing,
   CheckCircle2,
+  ClipboardCheck,
+  Megaphone,
   MessageSquare,
   Play,
+  RotateCcw,
   Trash2,
   UserMinus,
   UserPlus,
@@ -47,6 +51,31 @@ const TYPE_META = {
     label: 'Request declined',
     icon: XCircle,
     accent: 'bg-red-50 text-red-800',
+  },
+  'task.review_requested': {
+    label: 'Needs review',
+    icon: ClipboardCheck,
+    accent: 'bg-sky-50 text-sky-700',
+  },
+  'task.review_approved': {
+    label: 'Work accepted',
+    icon: CheckCircle2,
+    accent: 'bg-brand-100 text-brand-800',
+  },
+  'task.changes_requested': {
+    label: 'Sent back',
+    icon: RotateCcw,
+    accent: 'bg-ochre-soft text-ochre',
+  },
+  'task.nudge': {
+    label: 'Reminder from leader',
+    icon: BellRing,
+    accent: 'bg-ochre-soft text-ochre',
+  },
+  'announcement.updated': {
+    label: 'Announcement',
+    icon: Megaphone,
+    accent: 'bg-brand-50 text-brand-700',
   },
   'task.deleted': {
     label: 'Task deleted',

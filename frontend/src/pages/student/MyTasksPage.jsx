@@ -5,7 +5,10 @@ import { Button } from '@/components/common/Button'
 import { useAuth } from '@/hooks/useAuth'
 import { fetchUserGroups, getUserGroupsErrorMessage } from '@/services/usersService'
 import {
+  REVIEW_STATUS,
   formatTaskFooter,
+  isAwaitingReview,
+  isTaskDone,
   loadMyAssignedTasks,
   progressGroupTask,
 } from '@/services/workspaceTaskService'
@@ -61,7 +64,17 @@ function MyTaskRow({ task, isBusy, onProgress }) {
               {task.dueTag}
             </span>
           ) : null}
+          {isAwaitingReview(task) ? (
+            <span className="rounded-md bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700">
+              Awaiting leader review
+            </span>
+          ) : null}
         </p>
+        {task.status !== 'completed' && task.reviewStatus === REVIEW_STATUS.CHANGES_REQUESTED ? (
+          <p className="mt-1.5 rounded-md bg-ochre-soft/60 px-2 py-1 text-xs text-ochre">
+            Sent back by the leader{task.reviewNote ? `: ${task.reviewNote}` : '.'}
+          </p>
+        ) : null}
       </div>
 
       {task.status !== 'completed' && !task.pendingRegressRequest ? (
@@ -141,7 +154,11 @@ export function MyTasksPage() {
   const handleProgress = async (task, action) => {
     setBusyTaskId(task.id)
     try {
-      await progressGroupTask(task.groupId, task.id, action)
+      const group = groups.find((item) => String(item.groupId ?? item.id) === String(task.groupId))
+      const leaderId = group?.leaderId ?? group?.leader?.id ?? null
+      await progressGroupTask(task.groupId, task.id, action, {
+        requiresReview: Boolean(leaderId) && String(leaderId) !== String(user?.id),
+      })
       await reloadTasks(groups)
     } catch (progressError) {
       window.alert(getWorkspaceErrorMessage(progressError, 'Unable to update task progress.'))
@@ -157,7 +174,7 @@ export function MyTasksPage() {
 
   const summary = useMemo(() => {
     const count = (status) => visibleTasks.filter((task) => task.status === status).length
-    const completed = count('completed')
+    const completed = visibleTasks.filter(isTaskDone).length
     const total = visibleTasks.length
     return {
       todo: count('todo'),

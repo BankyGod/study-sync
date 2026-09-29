@@ -478,6 +478,20 @@ Creates in `todo`. Response `201`: full task object.
 
 Task objects should include `createdBy`, `startedAt`, and `pendingRegressRequest` when applicable.
 
+**Leader authority & accountability (new — full contract in [`BACKEND_API_SPEC.md`](./BACKEND_API_SPEC.md) → "Accountability & progress tracking"):**
+
+| Feature | Backend work |
+|---------|--------------|
+| Leader reviews Done work | On assignee complete (non-leader) set `reviewStatus: "pending"`; add `POST /workspaces/:groupId/tasks/:taskId/review` `{ decision: "approved" \| "changes_requested", note }` (leader only). Send back → `in_progress` + `reviewNote` |
+| Leader-only due date / priority | Accept `priority` (`low`/`medium`/`high`) on create/update; ignore on create and `403` on change for non-leaders |
+| Activity history | Return `activity[]` and `lastActivityAt` on every task |
+| Stalled flag | Frontend-computed (in progress, no activity for 3 days) — just keep `lastActivityAt` accurate |
+| Nudge | `POST /workspaces/:groupId/nudges` `{ userId, taskId?, message }` (leader only, rate-limited) → `task.nudge` notification |
+| Pinned announcement | `announcement` on `GET /workspaces/:groupId`; `PUT` / `DELETE /workspaces/:groupId/announcement` (leader only) |
+| Team progress panel | No endpoint — every member already receives the full board; visibility is pod-wide by design |
+
+Until these exist the frontend degrades gracefully: review/priority fields default to `null`, history is rebuilt from timestamps, and nudge/announcement calls surface the API error.
+
 ---
 
 ### 4.7 Notifications
@@ -498,6 +512,8 @@ Task objects should include `createdBy`, `startedAt`, and `pendingRegressRequest
 - Regress approved → **all pod members**
 - Regress rejected → **requester**
 - Task deleted → **assignee** if any
+- Review requested → **leader**; review approved / changes requested → **assignee**
+- Nudge → **target member**; announcement updated → **all members except the leader**
 
 WebSocket: `notification:new` → room `user:{userId}` with full notification object.
 

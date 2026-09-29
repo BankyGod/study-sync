@@ -11,11 +11,14 @@ import { arrayMove } from '@dnd-kit/sortable'
 import { KanbanColumn } from '@/components/kanban/KanbanColumn'
 import { MyTaskProgress } from '@/components/kanban/MyTaskProgress'
 import { TaskCard } from '@/components/kanban/TaskCard'
+import { TeamProgressPanel } from '@/components/kanban/TeamProgressPanel'
 import { Spinner } from '@/components/common/Spinner'
 import { useAuth } from '@/hooks/useAuth'
+import { useWorkspaceLeader } from '@/hooks/useWorkspaceLeader'
 import { useWorkspaceTasks } from '@/context/WorkspaceTasksContext'
 import {
   COLUMN_IDS,
+  REVIEW_STATUS,
   findTaskContainer,
   isAssignedTo,
   normalizeTaskForColumn,
@@ -25,6 +28,8 @@ import {
 
 export function WorkspaceKanban() {
   const { user } = useAuth()
+  const { isLeader, leaderId } = useWorkspaceLeader()
+  const requiresReview = Boolean(leaderId) && !isLeader
   const { columns, setColumns, commitColumns, reloadColumns, openAddTaskModal, isLoading } =
     useWorkspaceTasks()
   const [activeTask, setActiveTask] = useState(null)
@@ -69,7 +74,13 @@ export function WorkspaceKanban() {
       if (activeIndex === -1) return prev
 
       const [movedTask] = activeItems.splice(activeIndex, 1)
-      const normalizedTask = toKanbanTask(normalizeTaskForColumn(movedTask, overContainer))
+      const reviewPatch =
+        overContainer === 'completed'
+          ? { reviewStatus: requiresReview ? REVIEW_STATUS.PENDING : REVIEW_STATUS.APPROVED }
+          : {}
+      const normalizedTask = toKanbanTask(
+        normalizeTaskForColumn({ ...movedTask, ...reviewPatch }, overContainer),
+      )
 
       let insertIndex = overItems.length
       if (overIndex >= 0) {
@@ -145,6 +156,7 @@ export function WorkspaceKanban() {
             showMineOnly={showMineOnly}
             onToggleMineOnly={() => setShowMineOnly((value) => !value)}
           />
+          <TeamProgressPanel />
           <div className="flex flex-col gap-6 lg:grid lg:grid-cols-3 lg:gap-5">
             <KanbanColumn
               columnId="todo"

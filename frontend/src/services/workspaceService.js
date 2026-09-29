@@ -50,16 +50,47 @@ export async function removeWorkspaceMember(groupId, userId) {
   }
 }
 
+/** Leader pins (or replaces) the pod announcement. Empty text clears it. */
+export async function saveWorkspaceAnnouncement(groupId, text) {
+  const trimmed = String(text ?? '').trim()
+  if (!trimmed) {
+    await apiClient.delete(endpoints.workspace.announcement(groupId))
+    return null
+  }
+  const { data } = await apiClient.put(endpoints.workspace.announcement(groupId), { text: trimmed })
+  return data?.announcement ?? data
+}
+
+/** Leader sends a reminder notification to a member, optionally about one task. */
+export async function sendWorkspaceNudge(groupId, { userId, taskId, message }) {
+  const { data } = await apiClient.post(endpoints.workspace.nudges(groupId), {
+    userId,
+    taskId: taskId || undefined,
+    message: message?.trim() || undefined,
+  })
+  return data
+}
+
+/** Leader accepts completed work or sends it back with a note. */
+export async function reviewWorkspaceTask(groupId, taskId, { decision, note }) {
+  const { data } = await apiClient.post(endpoints.workspace.taskReview(groupId, taskId), {
+    decision,
+    note: note?.trim() || undefined,
+  })
+  return data
+}
+
 export async function fetchWorkspaceTasks(groupId) {
   const { data } = await apiClient.get(endpoints.workspace.tasks(groupId))
   return data
 }
 
-export async function createWorkspaceTask(groupId, { title, dueDate, assigneeId }) {
+export async function createWorkspaceTask(groupId, { title, dueDate, assigneeId, priority }) {
   const { data } = await apiClient.post(endpoints.workspace.tasks(groupId), {
     title: title?.trim(),
     dueDate: dueDate || undefined,
     assigneeId: assigneeId || undefined,
+    priority: priority || undefined,
   })
   return data
 }

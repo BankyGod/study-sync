@@ -67,6 +67,7 @@ export const STORAGE_KEYS = {
   USER_AVATAR: 'studysync_user_avatar',
   GROUP_SCHEDULES: 'studysync_group_schedules',
   GROUP_TASKS: 'studysync_group_tasks',
+  GROUP_ANNOUNCEMENTS: 'studysync_group_announcements',
   GROUP_CHAT: 'studysync_group_chat',
   GROUP_FILES: 'studysync_group_files',
   PENDING_REGISTRATION: 'studysync_pending_registration',

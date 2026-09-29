@@ -5,12 +5,14 @@ import { z } from 'zod'
 import { Modal } from '@/components/common/Modal'
 import { Input } from '@/components/common/Input'
 import { Button } from '@/components/common/Button'
+import { TASK_PRIORITIES } from '@/services/workspaceTaskService'
 import { cn } from '@/utils/cn'
 
 const taskSchema = z.object({
   title: z.string().min(3, 'Task title is required'),
   dueDate: z.string().optional(),
   assigneeId: z.string().optional(),
+  priority: z.string().optional(),
 })
 
 function Select({ label, error, className, id, children, ...props }) {
@@ -46,6 +48,7 @@ export function AddTaskModal({
   members = [],
   task = null,
   canChangeAssignee = true,
+  canSetSchedule = true,
 }) {
   const isEdit = Boolean(task)
 
@@ -60,6 +63,7 @@ export function AddTaskModal({
       title: '',
       dueDate: '',
       assigneeId: '',
+      priority: '',
     },
   })
 
@@ -70,6 +74,7 @@ export function AddTaskModal({
       title: task?.title ?? '',
       dueDate: task?.dueDate ?? '',
       assigneeId: task?.assignee?.id ?? members[0]?.id ?? '',
+      priority: task?.priority ?? '',
     })
   }, [open, reset, task, members])
 
@@ -78,6 +83,7 @@ export function AddTaskModal({
       title: values.title,
       dueDate: values.dueDate || null,
       assigneeId: values.assigneeId || null,
+      priority: values.priority || null,
     })
     onClose()
   }
@@ -92,12 +98,26 @@ export function AddTaskModal({
           {...register('title')}
         />
 
-        <Input
-          label="Due date (optional)"
-          type="date"
-          error={errors.dueDate?.message}
-          {...register('dueDate')}
-        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input
+            label="Due date (optional)"
+            type="date"
+            disabled={!canSetSchedule}
+            error={errors.dueDate?.message}
+            {...register('dueDate')}
+          />
+          <Select label="Priority" disabled={!canSetSchedule} {...register('priority')}>
+            <option value="">None</option>
+            {TASK_PRIORITIES.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        </div>
+        {!canSetSchedule ? (
+          <p className="-mt-2 text-xs text-muted">Only the group leader sets due dates and priority.</p>
+        ) : null}
 
         {members.length > 0 && canChangeAssignee ? (
           <Select

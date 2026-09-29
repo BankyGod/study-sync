@@ -4,6 +4,7 @@ import { ArrowLeft, LogOut, Video } from 'lucide-react'
 import { MemberAvatarButton } from '@/components/workspace/MemberAvatarButton'
 import { SessionTimerCard } from '@/components/workspace/SessionTimerCard'
 import { ActiveCallBanner } from '@/components/workspace/ActiveCallBanner'
+import { PinnedAnnouncement } from '@/components/workspace/PinnedAnnouncement'
 import { useAuth } from '@/hooks/useAuth'
 import { useMemberProfile } from '@/context/MemberProfileContext'
 import { useWorkspace } from '@/context/WorkspaceContext'
@@ -117,6 +118,8 @@ export function WorkspaceHeader({ title, courseLabel }) {
       </div>
 
       <ActiveCallBanner className="mt-4" />
+
+      {view !== 'chat' ? <PinnedAnnouncement className="mt-4" /> : null}
 
       {view !== 'chat' ? (
         <div className="mt-4 space-y-4 xl:hidden">

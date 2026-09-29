@@ -1,10 +1,35 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { fetchWorkspace } from '@/services/workspaceService'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { fetchWorkspace, saveWorkspaceAnnouncement } from '@/services/workspaceService'
+import { getStoredUser } from '@/services/authService'
 import { getWorkspaceErrorMessage } from '@/utils/workspaceErrors'
 import { buildStudyGroupTitle, courseToGroupId } from '@/utils/onboarding'
 import { getActiveMatchingCourse } from '@/services/onboardingProfileService'
+import { DEV_BYPASS_AUTH, DEV_MOCK_USER, STORAGE_KEYS } from '@/utils/constants'
 
 const WorkspaceContext = createContext(null)
+
+function normalizeAnnouncement(value) {
+  if (!value) return null
+  if (typeof value === 'string') return value.trim() ? { text: value.trim() } : null
+  const text = String(value.text ?? value.message ?? '').trim()
+  if (!text) return null
+  return { ...value, text }
+}
+
+function readLocalAnnouncements() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.GROUP_ANNOUNCEMENTS) ?? '{}')
+  } catch {
+    return {}
+  }
+}
+
+function writeLocalAnnouncement(groupId, announcement) {
+  const all = readLocalAnnouncements()
+  if (announcement) all[groupId] = announcement
+  else delete all[groupId]
+  localStorage.setItem(STORAGE_KEYS.GROUP_ANNOUNCEMENTS, JSON.stringify(all))
+}
 
 const groupTitles = {}
 
@@ -70,6 +95,38 @@ export function WorkspaceProvider({ groupId, children }) {
     }
   }, [groupId])
 
+  const announcement = useMemo(() => {
+    if (DEV_BYPASS_AUTH) {
+      return normalizeAnnouncement(workspace?.announcement ?? readLocalAnnouncements()[groupId])
+    }
+    return normalizeAnnouncement(workspace?.announcement)
+  }, [groupId, workspace])
+
+  const saveAnnouncement = useCallback(
+    async (text) => {
+      const trimmed = String(text ?? '').trim()
+      let next = null
+
+      if (DEV_BYPASS_AUTH) {
+        const user = getStoredUser() ?? DEV_MOCK_USER
+        next = trimmed
+          ? {
+              text: trimmed,
+              updatedAt: new Date().toISOString(),
+              author: { id: user.id, name: user.name },
+            }
+          : null
+        writeLocalAnnouncement(groupId, next)
+      } else {
+        next = normalizeAnnouncement(await saveWorkspaceAnnouncement(groupId, trimmed))
+      }
+
+      setWorkspace((prev) => ({ ...(prev ?? { groupId }), announcement: next }))
+      return next
+    },
+    [groupId],
+  )
+
   const value = useMemo(
     () => ({
       groupId,
@@ -78,6 +135,8 @@ export function WorkspaceProvider({ groupId, children }) {
       members: workspace?.members ?? [],
       leader: workspace?.leader ?? null,
       leaderId: workspace?.leaderId ?? null,
+      announcement,
+      saveAnnouncement,
       setWorkspace,
       isLoading,
       error,
@@ -87,7 +146,7 @@ export function WorkspaceProvider({ groupId, children }) {
         return data
       },
     }),
-    [groupId, workspace, isLoading, error],
+    [groupId, workspace, announcement, saveAnnouncement, isLoading, error],
   )
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>

@@ -42,9 +42,14 @@ export function MyTaskProgress({ summary, showMineOnly, onToggleMineOnly }) {
 
       {hasTasks ? (
         <>
-          <div className="mt-3 grid grid-cols-4 gap-3">
+          <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-5">
             <Stat label="To do" value={summary.todo} />
             <Stat label="In progress" value={summary.inProgress} />
+            <Stat
+              label="In review"
+              value={summary.inReview ?? 0}
+              tone={summary.inReview > 0 ? 'text-sky-700' : undefined}
+            />
             <Stat label="Done" value={summary.completed} tone="text-brand-700" />
             <Stat
               label="Overdue"
@@ -65,6 +70,13 @@ export function MyTaskProgress({ summary, showMineOnly, onToggleMineOnly }) {
             <p className="mt-2 flex items-center gap-1.5 text-xs text-red-600">
               <AlertTriangle className="h-3.5 w-3.5" />
               {summary.overdue} of your task{summary.overdue === 1 ? ' is' : 's are'} past due.
+            </p>
+          ) : null}
+          {summary.stalled > 0 ? (
+            <p className="mt-2 flex items-center gap-1.5 text-xs text-ochre">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {summary.stalled} in-progress task{summary.stalled === 1 ? ' has' : 's have'} had no
+              activity for a few days. Update or finish {summary.stalled === 1 ? 'it' : 'them'}.
             </p>
           ) : null}
         </>

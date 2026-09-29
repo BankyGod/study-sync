@@ -11,10 +11,27 @@ import {
   rejectTaskRegress,
   reorderWorkspaceTasks,
   requestTaskRegress,
+  reviewWorkspaceTask,
+  sendWorkspaceNudge,
   updateWorkspaceTask,
 } from '@/services/workspaceService'
 
 export const COLUMN_IDS = ['todo', 'in_progress', 'completed']
+
+/** A started task with no activity for this many days is flagged as stalled. */
+export const STALL_DAYS = 3
+
+export const TASK_PRIORITIES = [
+  { value: 'high', label: 'High' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'low', label: 'Low' },
+]
+
+export const REVIEW_STATUS = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  CHANGES_REQUESTED: 'changes_requested',
+}
 
 const COLUMN_ORDER = {
   todo: 0,
@@ -46,7 +63,121 @@ export function toKanbanTask(task) {
     createdBy: task.createdBy ?? null,
     pendingRegressRequest: task.pendingRegressRequest ?? null,
     status: task.status ?? undefined,
+    priority: task.priority ?? null,
+    reviewStatus: task.reviewStatus ?? task.review_status ?? null,
+    reviewNote: task.reviewNote ?? task.review_note ?? null,
   }
+}
+
+export function isAwaitingReview(task) {
+  return task?.reviewStatus === REVIEW_STATUS.PENDING
+}
+
+/** Completed and not waiting on the leader's review. */
+export function isTaskDone(task) {
+  return getTaskStatus(task) === 'completed' && !isAwaitingReview(task)
+}
+
+function getTaskStatus(task) {
+  return task?.status ?? 'todo'
+}
+
+function toTime(value) {
+  if (!value) return 0
+  const text = String(value)
+  const time = new Date(/^\d{4}-\d{2}-\d{2}$/.test(text) ? `${text}T12:00:00` : text).getTime()
+  return Number.isFinite(time) ? time : 0
+}
+
+export function getLastActivityAt(task) {
+  const activityTimes = Array.isArray(task?.activity)
+    ? task.activity.filter((entry) => entry.type !== 'nudged').map((entry) => toTime(entry.at))
+    : []
+  const latest = Math.max(
+    toTime(task?.lastActivityAt),
+    toTime(task?.updatedAt),
+    toTime(task?.reviewedAt),
+    toTime(task?.completedAt),
+    toTime(task?.startedAt),
+    toTime(task?.createdAt),
+    ...activityTimes,
+  )
+  return latest > 0 ? new Date(latest) : null
+}
+
+export function isTaskStalled(task, now = Date.now()) {
+  if (getTaskStatus(task) !== 'in_progress') return false
+  const last = getLastActivityAt(task)
+  if (!last) return false
+  return now - last.getTime() > STALL_DAYS * 86_400_000
+}
+
+/** Leader reviews completed work from other members. */
+export function canReviewTask(task, userId, options = {}) {
+  if (!userId || !options.isLeader) return false
+  return isAwaitingReview(task)
+}
+
+/** Leader reminds the assignee about unfinished work. */
+export function canNudgeTask(task, userId, options = {}) {
+  if (!userId || !options.isLeader || !task?.assignee?.id) return false
+  if (String(task.assignee.id) === String(userId)) return false
+  return getTaskStatus(task) !== 'completed'
+}
+
+/** Only the leader sets due dates and priority. */
+export function canSetTaskSchedule(options = {}) {
+  return Boolean(options.isLeader)
+}
+
+const ACTIVITY_LABELS = {
+  created: 'created the task',
+  assigned: 'assigned it',
+  started: 'started working',
+  completed: 'marked it done',
+  review_requested: 'submitted it for review',
+  approved: 'accepted the work',
+  changes_requested: 'sent it back',
+  nudged: 'sent a reminder',
+  regress_requested: 'asked to move it back',
+  updated: 'updated the task',
+}
+
+export function describeActivity(entry) {
+  return ACTIVITY_LABELS[entry?.type] ?? 'updated the task'
+}
+
+/** Task history from the API, or rebuilt from the timestamps the task already has. */
+export function getTaskActivity(task) {
+  if (Array.isArray(task?.activity) && task.activity.length > 0) {
+    return [...task.activity].sort((a, b) => toTime(b.at) - toTime(a.at))
+  }
+
+  const entries = []
+  if (task?.createdAt) {
+    entries.push({ id: 'created', type: 'created', at: task.createdAt, actor: task.createdBy })
+  }
+  if (task?.startedAt) {
+    entries.push({ id: 'started', type: 'started', at: task.startedAt, actor: task.assignee })
+  }
+  if (task?.completedAt) {
+    entries.push({
+      id: 'completed',
+      type: isAwaitingReview(task) ? 'review_requested' : 'completed',
+      at: task.completedAt,
+      actor: task.assignee,
+    })
+  }
+  if (task?.reviewedAt && task?.reviewStatus && task.reviewStatus !== REVIEW_STATUS.PENDING) {
+    entries.push({
+      id: 'reviewed',
+      type: task.reviewStatus === REVIEW_STATUS.APPROVED ? 'approved' : 'changes_requested',
+      at: task.reviewedAt,
+      actor: task.reviewedBy,
+      note: task.reviewNote,
+    })
+  }
+  return entries.sort((a, b) => toTime(b.at) - toTime(a.at))
 }
 
 export function canManageTask(task, userId, options = {}) {
@@ -130,6 +261,18 @@ export function normalizeTaskForColumn(task, columnId) {
     status: columnId,
     variant: base.variant === 'completed' ? 'default' : base.variant,
     completedAt: undefined,
+    reviewStatus: base.reviewStatus === REVIEW_STATUS.PENDING ? null : base.reviewStatus,
+  }
+}
+
+function withActivity(task, type, note) {
+  const now = new Date().toISOString()
+  const entry = { id: crypto.randomUUID(), type, at: now, actor: buildDevCreator() }
+  if (note) entry.note = note
+  return {
+    ...task,
+    lastActivityAt: now,
+    activity: [...(Array.isArray(task.activity) ? task.activity : []), entry],
   }
 }
 
@@ -207,26 +350,66 @@ function isPastDue(dueDate) {
   return new Date(`${dueDate}T23:59:59`).getTime() < today.getTime()
 }
 
-/** Counts of the tasks assigned to `userId` on one pod board. */
-export function summarizeMyTasks(columns = EMPTY_COLUMNS, userId) {
-  const mine = (columnId) =>
-    (columns[columnId] ?? []).filter((task) => isAssignedTo(task, userId))
-  const todo = mine('todo')
-  const inProgress = mine('in_progress')
-  const completed = mine('completed')
-  const total = todo.length + inProgress.length + completed.length
-  const overdue = [...todo, ...inProgress].filter(
-    (task) => task.dueDate && isPastDue(task.dueDate),
-  ).length
+function summarizeTasks(tasks) {
+  const now = Date.now()
+  const byStatus = (status) => tasks.filter((task) => getTaskStatus(task) === status)
+  const todo = byStatus('todo')
+  const inProgress = byStatus('in_progress')
+  const completedColumn = byStatus('completed')
+  const inReview = completedColumn.filter(isAwaitingReview)
+  const done = completedColumn.length - inReview.length
+  const total = tasks.length
+  const lastActivity = tasks.reduce((latest, task) => {
+    const at = getLastActivityAt(task)
+    return at && (!latest || at > latest) ? at : latest
+  }, null)
 
   return {
     todo: todo.length,
     inProgress: inProgress.length,
-    completed: completed.length,
+    inReview: inReview.length,
+    completed: done,
     total,
-    overdue,
-    percent: total === 0 ? 0 : Math.round((completed.length / total) * 100),
+    overdue: [...todo, ...inProgress].filter((task) => task.dueDate && isPastDue(task.dueDate))
+      .length,
+    stalled: inProgress.filter((task) => isTaskStalled(task, now)).length,
+    percent: total === 0 ? 0 : Math.round((done / total) * 100),
+    lastActivityAt: lastActivity,
   }
+}
+
+function allTasks(columns = EMPTY_COLUMNS) {
+  return COLUMN_IDS.flatMap((columnId) =>
+    (columns[columnId] ?? []).map((task) => ({ ...task, status: columnId })),
+  )
+}
+
+/** Counts of the tasks assigned to `userId` on one pod board. */
+export function summarizeMyTasks(columns = EMPTY_COLUMNS, userId) {
+  return summarizeTasks(allTasks(columns).filter((task) => isAssignedTo(task, userId)))
+}
+
+/** Per-member task progress for the whole pod, most at-risk members first. */
+export function summarizeTeamProgress(columns = EMPTY_COLUMNS, members = []) {
+  const tasks = allTasks(columns)
+  return members
+    .map((member) => {
+      const memberTasks = tasks.filter((task) => isAssignedTo(task, member.id))
+      const summary = summarizeTasks(memberTasks)
+      const urgentTask =
+        memberTasks.find((task) => isTaskStalled(task)) ??
+        memberTasks.find(
+          (task) => task.status !== 'completed' && task.dueDate && isPastDue(task.dueDate),
+        ) ??
+        null
+      return { member, ...summary, urgentTaskId: urgentTask?.id ?? null }
+    })
+    .sort(
+      (a, b) =>
+        b.overdue + b.stalled - (a.overdue + a.stalled) ||
+        a.percent - b.percent ||
+        String(a.member.name).localeCompare(String(b.member.name)),
+    )
 }
 
 /** Every task assigned to `userId` across the user's pods, tagged with its pod. */
@@ -302,26 +485,43 @@ export async function saveGroupTasks(groupId, columns) {
   return mapBoardResponse(data)
 }
 
-export async function addGroupTask(groupId, { title, dueDate, assigneeId }, members = []) {
+/**
+ * `canSetSchedule` is false for non-leaders: due date and priority are then left out
+ * of the request so the existing values are kept.
+ */
+export async function addGroupTask(
+  groupId,
+  { title, dueDate, assigneeId, priority },
+  members = [],
+  { canSetSchedule = true } = {},
+) {
+  const schedule = canSetSchedule
+    ? { dueDate: dueDate || null, priority: priority || null }
+    : { dueDate: null, priority: null }
+
   if (DEV_BYPASS_AUTH) {
     const columns = readLocalTasks(groupId)
-    const task = {
-      id: crypto.randomUUID(),
-      title: title.trim(),
-      dueDate: dueDate || null,
-      status: 'todo',
-      variant: 'default',
-      assignee: resolveDevAssignee(assigneeId, members),
-      createdBy: buildDevCreator(),
-      createdAt: new Date().toISOString(),
-      pendingRegressRequest: null,
-    }
+    const task = withActivity(
+      {
+        id: crypto.randomUUID(),
+        title: title.trim(),
+        ...schedule,
+        status: 'todo',
+        variant: 'default',
+        assignee: resolveDevAssignee(assigneeId, members),
+        createdBy: buildDevCreator(),
+        createdAt: new Date().toISOString(),
+        pendingRegressRequest: null,
+        reviewStatus: null,
+      },
+      'created',
+    )
     columns.todo = [...columns.todo, toKanbanTask(task)]
     writeLocalTasks(groupId, columns)
     return readLocalTasks(groupId)
   }
 
-  await createWorkspaceTask(groupId, { title, dueDate, assigneeId })
+  await createWorkspaceTask(groupId, { title, assigneeId, ...schedule })
 
   return loadGroupTasks(groupId)
 }
@@ -329,21 +529,29 @@ export async function addGroupTask(groupId, { title, dueDate, assigneeId }, memb
 export async function updateGroupTask(
   groupId,
   taskId,
-  { title, dueDate, assigneeId },
+  { title, dueDate, assigneeId, priority },
   members = [],
+  { canSetSchedule = true } = {},
 ) {
+  const schedule = canSetSchedule ? { dueDate: dueDate || null, priority: priority || null } : {}
+
   if (DEV_BYPASS_AUTH) {
     const columns = readLocalTasks(groupId)
     const nextColumns = COLUMN_IDS.reduce((acc, columnId) => {
       acc[columnId] = columns[columnId].map((task) => {
         if (task.id !== taskId) return task
 
-        const updated = {
-          ...stripKanbanFields(task),
-          title: title.trim(),
-          dueDate: dueDate || null,
-          assignee: resolveDevAssignee(assigneeId, members),
-        }
+        const nextAssignee = resolveDevAssignee(assigneeId, members)
+        const reassigned = String(nextAssignee?.id ?? '') !== String(task.assignee?.id ?? '')
+        const updated = withActivity(
+          {
+            ...stripKanbanFields(task),
+            title: title.trim(),
+            ...schedule,
+            assignee: nextAssignee,
+          },
+          reassigned ? 'assigned' : 'updated',
+        )
         return toKanbanTask(updated)
       })
       return acc
@@ -355,11 +563,83 @@ export async function updateGroupTask(
 
   await updateWorkspaceTask(groupId, taskId, {
     title: title.trim(),
-    dueDate: dueDate || null,
     assigneeId: assigneeId || null,
+    ...schedule,
   })
 
   return loadGroupTasks(groupId)
+}
+
+/** Leader accepts completed work or sends it back to In progress with a note. */
+export async function reviewGroupTask(groupId, taskId, decision, note = '') {
+  const trimmedNote = String(note ?? '').trim()
+
+  if (DEV_BYPASS_AUTH) {
+    const columns = readLocalTasks(groupId)
+    const fromStatus = getTaskColumnId({ id: taskId }, columns)
+    const task = columns[fromStatus].find((item) => item.id === taskId)
+    if (!task) throw new Error('Task not found.')
+
+    const reviewer = buildDevCreator()
+    const reviewedAt = new Date().toISOString()
+    const approved = decision === REVIEW_STATUS.APPROVED
+    const targetStatus = approved ? 'completed' : 'in_progress'
+    const reviewed = withActivity(
+      {
+        ...stripKanbanFields(task),
+        reviewStatus: approved ? REVIEW_STATUS.APPROVED : REVIEW_STATUS.CHANGES_REQUESTED,
+        reviewNote: trimmedNote || null,
+        reviewedAt,
+        reviewedBy: reviewer,
+      },
+      approved ? 'approved' : 'changes_requested',
+      trimmedNote,
+    )
+
+    const nextColumns = COLUMN_IDS.reduce(
+      (acc, columnId) => {
+        acc[columnId] = columns[columnId].filter((item) => item.id !== taskId)
+        return acc
+      },
+      { ...EMPTY_COLUMNS },
+    )
+    nextColumns[targetStatus] = [
+      ...nextColumns[targetStatus],
+      toKanbanTask(normalizeTaskForColumn(reviewed, targetStatus)),
+    ]
+    writeLocalTasks(groupId, nextColumns)
+    return readLocalTasks(groupId)
+  }
+
+  await reviewWorkspaceTask(groupId, taskId, { decision, note: trimmedNote })
+  return loadGroupTasks(groupId)
+}
+
+/** Leader sends the assignee a reminder about a task. */
+export async function nudgeGroupMember(groupId, { userId, taskId, message }) {
+  const trimmed = String(message ?? '').trim()
+
+  if (DEV_BYPASS_AUTH) {
+    if (!taskId) return null
+    const columns = readLocalTasks(groupId)
+    const nextColumns = COLUMN_IDS.reduce((acc, columnId) => {
+      acc[columnId] = columns[columnId].map((task) =>
+        task.id === taskId
+          ? toKanbanTask({
+              ...withActivity(stripKanbanFields(task), 'nudged', trimmed),
+              lastActivityAt: task.lastActivityAt ?? null,
+              updatedAt: task.updatedAt ?? null,
+            })
+          : task,
+      )
+      return acc
+    }, {})
+    writeLocalTasks(groupId, nextColumns)
+    return readLocalTasks(groupId)
+  }
+
+  await sendWorkspaceNudge(groupId, { userId, taskId, message: trimmed })
+  return taskId ? loadGroupTasks(groupId) : null
 }
 
 export async function removeGroupTask(groupId, taskId) {
@@ -401,7 +681,8 @@ export async function removeGroupTask(groupId, taskId) {
   return loadGroupTasks(groupId)
 }
 
-export async function progressGroupTask(groupId, taskId, action) {
+/** `requiresReview` is only used in dev mode; the API decides this server-side. */
+export async function progressGroupTask(groupId, taskId, action, { requiresReview = false } = {}) {
   if (DEV_BYPASS_AUTH) {
     const columns = readLocalTasks(groupId)
     const fromStatus = getTaskColumnId({ id: taskId }, columns)
@@ -421,13 +702,22 @@ export async function progressGroupTask(groupId, taskId, action) {
       ...nextColumns[nextStatus],
       toKanbanTask(
         normalizeTaskForColumn(
-          {
-            ...stripKanbanFields(task),
-            startedAt:
-              action === 'start'
-                ? new Date().toISOString()
-                : (task.startedAt ?? new Date().toISOString()),
-          },
+          withActivity(
+            {
+              ...stripKanbanFields(task),
+              startedAt:
+                action === 'start'
+                  ? new Date().toISOString()
+                  : (task.startedAt ?? new Date().toISOString()),
+              ...(action === 'complete'
+                ? {
+                    completedAt: new Date().toISOString().slice(0, 10),
+                    reviewStatus: requiresReview ? REVIEW_STATUS.PENDING : REVIEW_STATUS.APPROVED,
+                  }
+                : {}),
+            },
+            action === 'start' ? 'started' : requiresReview ? 'review_requested' : 'completed',
+          ),
           nextStatus,
         ),
       ),

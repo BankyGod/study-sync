@@ -1,17 +1,21 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import {
+  COLUMN_IDS,
   addGroupTask,
   approveGroupTaskRegress,
   loadGroupTasks,
+  nudgeGroupMember,
   progressGroupTask,
   rejectGroupTaskRegress,
   removeGroupTask,
   requestGroupTaskRegress,
+  reviewGroupTask,
   saveGroupTasks,
   updateGroupTask,
 } from '@/services/workspaceTaskService'
 import { getWorkspaceErrorMessage } from '@/utils/workspaceErrors'
 import { useWebSocket } from '@/hooks/useWebSocket'
+import { useWorkspaceLeader } from '@/hooks/useWorkspaceLeader'
 import { DEV_BYPASS_AUTH } from '@/utils/constants'
 
 const WorkspaceTasksContext = createContext(null)
@@ -27,7 +31,10 @@ export function WorkspaceTasksProvider({ groupId, members = [], children }) {
   const [isLoading, setIsLoading] = useState(true)
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
+  const [detailsTaskId, setDetailsTaskId] = useState(null)
   const [taskActionError, setTaskActionError] = useState('')
+  const { isLeader, leaderId } = useWorkspaceLeader()
+  const scheduleOptions = useMemo(() => ({ canSetSchedule: isLeader }), [isLeader])
 
   const reloadColumns = useCallback(async () => {
     const nextColumns = await loadGroupTasks(groupId)
@@ -59,6 +66,7 @@ export function WorkspaceTasksProvider({ groupId, members = [], children }) {
       setIsLoading(true)
       setIsAddTaskModalOpen(false)
       setEditingTask(null)
+      setDetailsTaskId(null)
       try {
         const nextColumns = await loadGroupTasks(groupId)
         if (!cancelled) {
@@ -90,10 +98,21 @@ export function WorkspaceTasksProvider({ groupId, members = [], children }) {
   }, [])
   const closeEditTaskModal = useCallback(() => setEditingTask(null), [])
 
+  const openTaskDetails = useCallback((taskId) => setDetailsTaskId(taskId), [])
+  const closeTaskDetails = useCallback(() => setDetailsTaskId(null), [])
+  const detailsTask = useMemo(() => {
+    if (!detailsTaskId) return null
+    for (const columnId of COLUMN_IDS) {
+      const task = columns[columnId]?.find((item) => item.id === detailsTaskId)
+      if (task) return { ...task, status: columnId }
+    }
+    return null
+  }, [columns, detailsTaskId])
+
   const createTask = useCallback(
     async (taskInput) => {
       try {
-        const nextColumns = await addGroupTask(groupId, taskInput, members)
+        const nextColumns = await addGroupTask(groupId, taskInput, members, scheduleOptions)
         setColumns(nextColumns)
         setTaskActionError('')
         return nextColumns
@@ -103,13 +122,19 @@ export function WorkspaceTasksProvider({ groupId, members = [], children }) {
         throw error
       }
     },
-    [groupId, members],
+    [groupId, members, scheduleOptions],
   )
 
   const updateTask = useCallback(
     async (taskId, taskInput) => {
       try {
-        const nextColumns = await updateGroupTask(groupId, taskId, taskInput, members)
+        const nextColumns = await updateGroupTask(
+          groupId,
+          taskId,
+          taskInput,
+          members,
+          scheduleOptions,
+        )
         setColumns(nextColumns)
         setEditingTask(null)
         setTaskActionError('')
@@ -120,7 +145,7 @@ export function WorkspaceTasksProvider({ groupId, members = [], children }) {
         throw error
       }
     },
-    [groupId, members],
+    [groupId, members, scheduleOptions],
   )
 
   const deleteTask = useCallback(
@@ -146,7 +171,9 @@ export function WorkspaceTasksProvider({ groupId, members = [], children }) {
   const markProgress = useCallback(
     async (taskId, action) => {
       try {
-        const nextColumns = await progressGroupTask(groupId, taskId, action)
+        const nextColumns = await progressGroupTask(groupId, taskId, action, {
+          requiresReview: Boolean(leaderId) && !isLeader,
+        })
         setColumns(nextColumns)
         setTaskActionError('')
         return nextColumns
@@ -154,6 +181,39 @@ export function WorkspaceTasksProvider({ groupId, members = [], children }) {
         const message = getWorkspaceErrorMessage(error, 'Unable to update task progress.')
         setTaskActionError(message)
         window.alert(message)
+      }
+    },
+    [groupId, isLeader, leaderId],
+  )
+
+  const reviewTask = useCallback(
+    async (taskId, decision, note) => {
+      try {
+        const nextColumns = await reviewGroupTask(groupId, taskId, decision, note)
+        setColumns(nextColumns)
+        setTaskActionError('')
+        return nextColumns
+      } catch (error) {
+        const message = getWorkspaceErrorMessage(error, 'Unable to review this task.')
+        setTaskActionError(message)
+        window.alert(message)
+      }
+    },
+    [groupId],
+  )
+
+  const nudgeMember = useCallback(
+    async ({ userId, taskId, message }) => {
+      try {
+        const nextColumns = await nudgeGroupMember(groupId, { userId, taskId, message })
+        if (nextColumns) setColumns(nextColumns)
+        setTaskActionError('')
+        return true
+      } catch (error) {
+        const errorMessage = getWorkspaceErrorMessage(error, 'Unable to send the reminder.')
+        setTaskActionError(errorMessage)
+        window.alert(errorMessage)
+        return false
       }
     },
     [groupId],
@@ -287,6 +347,11 @@ export function WorkspaceTasksProvider({ groupId, members = [], children }) {
     requestRegress,
     approveRegress,
     rejectRegress,
+    reviewTask,
+    nudgeMember,
+    detailsTask,
+    openTaskDetails,
+    closeTaskDetails,
     taskActionError,
     clearTaskActionError: () => setTaskActionError(''),
   }

@@ -1312,7 +1312,91 @@ Group leader removes another member from the pod.
 | Remove a member from the pod | Yes | No (self-leave only) |
 | Transfer leadership | Yes | No |
 | Leave the pod | Only after transferring leadership (unless last member) | Yes |
-| Rename the pod | **No** | **No** |---
+| Rename the pod | **No** | **No** |
+| Set / change task **due date** and **priority** | **Yes (sole)** | No (fields ignored or `403`) |
+| Accept or send back completed work (review) | **Yes (sole)** | No |
+| Nudge (remind) a member | **Yes (sole)** | No |
+| Pin / edit / remove the pod announcement | **Yes (sole)** | View only |
+
+### Accountability & progress tracking
+
+Every pod member can see every other member's task progress (full transparency). The frontend computes the team panel from the board, so the backend only has to return the fields below on **every** task in `GET /api/workspaces/:groupId/tasks`.
+
+#### New task fields
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `priority` | `"low" \| "medium" \| "high" \| null` | Leader-only write |
+| `reviewStatus` | `null \| "pending" \| "approved" \| "changes_requested"` | See review flow |
+| `reviewNote` | `string \| null` | Leader's note when sending work back |
+| `reviewedAt` | ISO datetime \| null | |
+| `reviewedBy` | `{ id, name } \| null` | |
+| `startedAt` | ISO datetime \| null | Already specified; required for stall detection |
+| `lastActivityAt` | ISO datetime | Bump on create, start, complete, review, edit, reassignment. **Not** on nudge |
+| `activity` | array (newest last or first — frontend sorts) | See below |
+
+`activity[]` entry: `{ "id", "type", "at", "actor": { "id", "name" }, "note"? }` where `type` is one of `created`, `assigned`, `updated`, `started`, `completed`, `review_requested`, `approved`, `changes_requested`, `nudged`, `regress_requested`. Cap to the latest ~50 entries per task. If `activity` is omitted, the frontend builds a minimal history from `createdAt` / `startedAt` / `completedAt` / `reviewedAt`.
+
+#### Due date and priority (leader-only)
+
+`POST /api/workspaces/:groupId/tasks` and `PATCH /api/workspaces/:groupId/tasks/:taskId` accept `priority`. If the caller is **not** the leader:
+
+- on create: ignore `dueDate` / `priority` (store `null`);
+- on update: reject a change to either with `403 FORBIDDEN` (`"Only the group leader can set due dates and priority."`). The frontend omits both fields for non-leaders, so any change is intentional.
+
+#### Review flow (Done → Awaiting review → accept / send back)
+
+1. When the **assignee** completes a task (`POST .../progress { "action": "complete" }` **or** a reorder/PATCH into `completed`):
+   - If the pod has a leader and the completer is **not** the leader → `status = completed`, `reviewStatus = "pending"`. Notify the leader: `task.review_requested`.
+   - If the completer is the leader (or the pod has no leader) → `reviewStatus = "approved"` immediately.
+2. `POST /api/workspaces/:groupId/tasks/:taskId/review` — **leader only**, task must have `reviewStatus = "pending"`.
+
+   ```json
+   { "decision": "approved" | "changes_requested", "note": "optional, max 500 chars" }
+   ```
+
+   - `approved` → stays in `completed`, `reviewStatus = "approved"`, set `reviewedAt` / `reviewedBy`. Notify assignee: `task.review_approved`.
+   - `changes_requested` → move to `in_progress`, clear `completedAt`, `reviewStatus = "changes_requested"`, store `reviewNote`. Notify assignee: `task.changes_requested` (include note).
+   - Response: full task object (or full board). Broadcast `task:updated` to the pod room.
+   - Errors: `403` not leader, `409 TASK_NOT_AWAITING_REVIEW` if not pending.
+3. Moving a task out of `completed` by any other route clears a `pending` review.
+4. Pod progress percentages count only **approved** completions as done.
+
+#### Stalled tasks
+
+No endpoint needed. The frontend flags a task as **stalled** when it is `in_progress` and `lastActivityAt` (falls back to `updatedAt` / `startedAt`) is older than **3 days**. Keep `lastActivityAt` accurate. Optional: a daily job that notifies the assignee and leader about stalled tasks.
+
+#### `POST /api/workspaces/:groupId/nudges`
+
+Leader sends a reminder to a member.
+
+```json
+{ "userId": "uuid", "taskId": "uuid | null", "message": "optional, max 300 chars" }
+```
+
+- **Auth:** caller is the leader; `userId` is a pod member and not the caller; if `taskId` is set, the task belongs to the pod.
+- Creates notification `task.nudge` for `userId` with `data: { groupId, taskId, message, from: { id, name } }`, pushes `notification:new`.
+- If `taskId` is set, append a `nudged` entry to the task's `activity` (do **not** bump `lastActivityAt`).
+- Rate-limit: max 1 nudge per leader → member → task per hour (`429 NUDGE_RATE_LIMITED`).
+- Response `201`: `{ "ok": true }`.
+
+#### Pinned announcement
+
+- `GET /api/workspaces/:groupId` includes `announcement: { "text", "updatedAt", "author": { "id", "name" } } | null`.
+- `PUT /api/workspaces/:groupId/announcement` `{ "text": "max 500 chars" }` → **leader only**. Response: `{ "announcement": { ... } }`. Notify all other members: `announcement.updated`. Broadcast `workspace:updated` to the pod room.
+- `DELETE /api/workspaces/:groupId/announcement` → **leader only**, `204`.
+
+#### New notification types
+
+| Type | Recipient | `data` |
+|------|-----------|--------|
+| `task.review_requested` | Leader | `groupId`, `taskId`, `taskTitle`, `from` |
+| `task.review_approved` | Assignee | `groupId`, `taskId`, `taskTitle` |
+| `task.changes_requested` | Assignee | `groupId`, `taskId`, `taskTitle`, `note` |
+| `task.nudge` | Target member | `groupId`, `taskId?`, `message`, `from` |
+| `announcement.updated` | All members except leader | `groupId`, `text` |
+
+---
 
 ## 16. Error format
 

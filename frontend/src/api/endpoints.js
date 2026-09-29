@@ -48,10 +48,13 @@ export const endpoints = {
     byGroup: (groupId) => `/workspaces/${groupId}`,
     leader: (groupId) => `/workspaces/${groupId}/leader`,
     member: (groupId, userId) => `/workspaces/${groupId}/members/${userId}`,
+    announcement: (groupId) => `/workspaces/${groupId}/announcement`,
+    nudges: (groupId) => `/workspaces/${groupId}/nudges`,
     tasks: (groupId) => `/workspaces/${groupId}/tasks`,
     task: (groupId, taskId) => `/workspaces/${groupId}/tasks/${taskId}`,
     taskReorder: (groupId) => `/workspaces/${groupId}/tasks/reorder`,
     taskProgress: (groupId, taskId) => `/workspaces/${groupId}/tasks/${taskId}/progress`,
+    taskReview: (groupId, taskId) => `/workspaces/${groupId}/tasks/${taskId}/review`,
     taskRegressRequests: (groupId, taskId) =>
       `/workspaces/${groupId}/tasks/${taskId}/regress-requests`,
     taskRegressApprove: (groupId, taskId, requestId) =>

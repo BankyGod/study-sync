@@ -1,21 +1,21 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { TaskCard } from '@/components/kanban/TaskCard'
-import { useAuth } from '@/hooks/useAuth'
-import { useWorkspace } from '@/context/WorkspaceContext'
+import { useWorkspaceLeader } from '@/hooks/useWorkspaceLeader'
 import { useWorkspaceTasks } from '@/context/WorkspaceTasksContext'
 import {
+  REVIEW_STATUS,
   canManageTask,
   canModerateTask,
   canProgressTask,
+  canReviewTask,
   getTaskColumnId,
+  isTaskStalled,
 } from '@/services/workspaceTaskService'
-import { isCurrentUserLeader } from '@/utils/groupMembers'
 import { cn } from '@/utils/cn'
 
 export function SortableTaskCard({ task }) {
-  const { user } = useAuth()
-  const { leaderId, members } = useWorkspace()
+  const { isLeader, userId } = useWorkspaceLeader()
   const {
     columns,
     openEditTaskModal,
@@ -23,6 +23,8 @@ export function SortableTaskCard({ task }) {
     markProgress,
     approveRegress,
     rejectRegress,
+    reviewTask,
+    openTaskDetails,
   } = useWorkspaceTasks()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
@@ -33,12 +35,17 @@ export function SortableTaskCard({ task }) {
     transition,
   }
 
-  const isLeader = isCurrentUserLeader(user?.id, { leaderId, members })
   const status = getTaskColumnId(task, columns)
-  const canManage = canManageTask(task, user?.id, { isLeader })
-  const canProgress = canProgressTask(task, user?.id)
+  const canManage = canManageTask(task, userId, { isLeader })
+  const canProgress = canProgressTask(task, userId)
   const pending = task.pendingRegressRequest
-  const canResolveRegress = Boolean(pending && canModerateTask(task, user?.id, { isLeader }))
+  const canResolveRegress = Boolean(pending && canModerateTask(task, userId, { isLeader }))
+
+  const handleRequestChanges = () => {
+    const note = window.prompt('What needs to change? The assignee will see this note.')
+    if (note === null) return
+    reviewTask(task.id, REVIEW_STATUS.CHANGES_REQUESTED, note)
+  }
 
   return (
     <div ref={setNodeRef} style={style} className={cn(isDragging && 'z-10 opacity-40')}>
@@ -48,6 +55,11 @@ export function SortableTaskCard({ task }) {
         assignee={task.assignee}
         variant={task.variant}
         status={status}
+        priority={task.priority}
+        reviewStatus={task.reviewStatus}
+        reviewNote={task.reviewNote}
+        isStalled={isTaskStalled({ ...task, status })}
+        canReview={canReviewTask(task, userId, { isLeader })}
         isDragging={isDragging}
         canManage={canManage}
         canProgress={canProgress}
@@ -59,6 +71,9 @@ export function SortableTaskCard({ task }) {
         onComplete={() => markProgress(task.id, 'complete')}
         onApproveRegress={() => approveRegress(task.id, pending.id)}
         onRejectRegress={() => rejectRegress(task.id, pending.id)}
+        onApproveReview={() => reviewTask(task.id, REVIEW_STATUS.APPROVED)}
+        onRequestChanges={handleRequestChanges}
+        onOpenDetails={() => openTaskDetails(task.id)}
         dragHandleProps={{ ...attributes, ...listeners }}
       />
     </div>

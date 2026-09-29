@@ -19,10 +19,10 @@ import { WorkspaceHeader } from '@/components/workspace/WorkspaceHeader'
 import { VideoCallPanel } from '@/components/workspace/VideoCallPanel'
 import { ScheduleSessionModal } from '@/components/workspace/ScheduleSessionModal'
 import { AddTaskModal } from '@/components/kanban/AddTaskModal'
+import { TaskDetailsModal } from '@/components/kanban/TaskDetailsModal'
 import { Spinner } from '@/components/common/Spinner'
-import { useAuth } from '@/hooks/useAuth'
-import { canReassignTask } from '@/services/workspaceTaskService'
-import { isCurrentUserLeader } from '@/utils/groupMembers'
+import { useWorkspaceLeader } from '@/hooks/useWorkspaceLeader'
+import { canReassignTask, canSetTaskSchedule } from '@/services/workspaceTaskService'
 import { cn } from '@/utils/cn'
 
 function WorkspaceScheduleModal() {
@@ -48,6 +48,7 @@ function WorkspaceScheduleModal() {
 
 function WorkspaceAddTaskModal() {
   const { members } = useWorkspace()
+  const { isLeader } = useWorkspaceLeader()
   const { isAddTaskModalOpen, closeAddTaskModal, createTask } = useWorkspaceTasks()
 
   return (
@@ -56,16 +57,16 @@ function WorkspaceAddTaskModal() {
       onClose={closeAddTaskModal}
       onSave={createTask}
       members={members}
+      canSetSchedule={canSetTaskSchedule({ isLeader })}
     />
   )
 }
 
 function WorkspaceEditTaskModal() {
-  const { members, leaderId } = useWorkspace()
-  const { user } = useAuth()
+  const { members } = useWorkspace()
+  const { isLeader, userId } = useWorkspaceLeader()
   const { editingTask, closeEditTaskModal, updateTask } = useWorkspaceTasks()
-  const isLeader = isCurrentUserLeader(user?.id, { leaderId, members })
-  const canChangeAssignee = canReassignTask(editingTask, user?.id, { isLeader })
+  const canChangeAssignee = canReassignTask(editingTask, userId, { isLeader })
 
   return (
     <AddTaskModal
@@ -78,6 +79,7 @@ function WorkspaceEditTaskModal() {
       }}
       members={members}
       canChangeAssignee={canChangeAssignee}
+      canSetSchedule={canSetTaskSchedule({ isLeader })}
     />
   )
 }
@@ -148,6 +150,7 @@ function WorkspaceShell() {
         <WorkspaceScheduleModal />
         <WorkspaceAddTaskModal />
         <WorkspaceEditTaskModal />
+        <TaskDetailsModal />
         <VideoCallPanel />
         </WorkspaceCallProvider>
       </WorkspaceTasksProvider>
