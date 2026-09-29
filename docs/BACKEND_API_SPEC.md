@@ -1337,7 +1337,7 @@ Every pod member can see every other member's task progress (full transparency).
 | `lastActivityAt` | ISO datetime | Bump on create, start, complete, review, edit, reassignment. **Not** on nudge |
 | `activity` | array (newest last or first — frontend sorts) | See below |
 
-`activity[]` entry: `{ "id", "type", "at", "actor": { "id", "name" }, "note"? }` where `type` is one of `created`, `assigned`, `updated`, `started`, `completed`, `start_requested`, `completion_requested`, `approved`, `changes_requested`, `nudged`, `regress_requested`. Cap to the latest ~50 entries per task. If `activity` is omitted, the frontend builds a minimal history from `createdAt` / `startedAt` / `completedAt` / `reviewedAt`.
+`activity[]` entry: `{ "id", "type", "at", "actor": { "id", "name" }, "note"? }` where `type` is one of `created`, `assigned`, `updated`, `started`, `completed`, `start_requested`, `completion_requested`, `approved`, `changes_requested`, `nudged`, `document_uploaded`, `regress_requested`. Cap to the latest ~50 entries per task. If `activity` is omitted, the frontend builds a minimal history from `createdAt` / `startedAt` / `completedAt` / `reviewedAt`.
 
 #### Due date and priority (leader-only)
 
@@ -1387,6 +1387,33 @@ New task field `pendingAdvanceRequest`:
    - Errors: `403` not leader, `409 TASK_NOT_AWAITING_REVIEW` if no pending request.
 4. If the leader drags a task that has a pending request, the move wins. Clear the request.
 5. Because tasks only reach `completed` with leader approval, progress percentages simply count the `completed` column.
+
+#### Task types: normal vs document upload
+
+Every task has `taskType: "standard" | "document"` (default `"standard"`).
+
+- **Create** (`POST .../tasks`): accept `taskType`. The creator picks it.
+- **Update** (`PATCH .../tasks/:taskId`): only the **leader** may change `taskType` (`403` otherwise).
+- Task payload adds `submissions: [{ id, fileId, fileName, fileSize, fileType, uploadedAt, uploadedBy: { id, name } }]` (empty array for standard tasks).
+
+**`POST /api/workspaces/:groupId/tasks/:taskId/submissions`** (multipart, field `file`, max 10 MB)
+
+- **Auth:** caller is the task's assignee. The task is `taskType: "document"` and `status: "in_progress"`, with no pending step request. Otherwise return `403` or `409 TASK_NOT_ACCEPTING_UPLOADS`.
+- Store the file as a normal **pod file** (same storage and table as `POST /workspaces/:groupId/files`) with `source: "task"`, `taskId`, `taskTitle`. It must then appear in `GET /workspaces/:groupId/files`, including `taskId` / `taskTitle` / `source` in each file object.
+- Append the file to `task.submissions`, add a `document_uploaded` activity entry (note = file name), and bump `lastActivityAt`.
+- Emit `file:uploaded` (pod room) and `task:updated`. Optionally notify the leader (`task.document_uploaded`).
+- Response `201`: the updated task (or the full board).
+- Multiple uploads are allowed (new versions). All of them stay in the list.
+
+**Completion rule:** a document task cannot move to `completed` without at least one submission. Enforce it on:
+
+- `POST .../progress { action: "complete" }`, both a direct move by the leader and a completion request by a member;
+- reorder / PATCH into `completed`;
+- leader approval of a completion request (re-check it).
+
+Error: `409 TASK_DOCUMENT_REQUIRED` with the message `"Upload the document before finishing this task."`
+
+Deleting a pod file that is a task submission should remove it from `task.submissions`. The frontend lets only the uploader delete a file.
 
 #### Stalled tasks
 

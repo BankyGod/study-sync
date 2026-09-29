@@ -1,4 +1,13 @@
-import { AlertTriangle, Check, Clock, GripVertical, History, Play } from 'lucide-react'
+import {
+  AlertTriangle,
+  Check,
+  Clock,
+  FileText,
+  FileUp,
+  GripVertical,
+  History,
+  Play,
+} from 'lucide-react'
 import { TaskCardActionsMenu } from '@/components/kanban/TaskCardActionsMenu'
 import { cn } from '@/utils/cn'
 
@@ -22,6 +31,10 @@ export function TaskCard({
   reviewNote = null,
   pendingAdvanceRequest = null,
   needsApproval = false,
+  isDocument = false,
+  submissions = [],
+  completionBlocker = null,
+  onOpenSubmission,
   isStalled = false,
   canReview = false,
   pendingRegressRequest = null,
@@ -86,8 +99,14 @@ export function TaskCard({
             </div>
           </div>
 
-          {priority || isStalled || awaitingReview ? (
+          {priority || isStalled || awaitingReview || isDocument ? (
             <div className="mt-2 flex flex-wrap gap-1.5">
+              {isDocument ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+                  <FileUp className="h-3 w-3" />
+                  Document
+                </span>
+              ) : null}
               {priority ? (
                 <span
                   className={cn(
@@ -127,6 +146,24 @@ export function TaskCard({
               </div>
             ) : null}
           </div>
+
+          {isDocument && submissions.length > 0 ? (
+            <ul className="mt-3 space-y-1">
+              {submissions.map((submission) => (
+                <li key={submission.id ?? submission.fileId}>
+                  <button
+                    type="button"
+                    onClick={() => onOpenSubmission?.(submission)}
+                    className="flex w-full min-w-0 items-center gap-1.5 rounded-md bg-page px-2 py-1.5 text-left text-xs text-ink transition hover:bg-brand-50"
+                    title={`Download ${submission.fileName}`}
+                  >
+                    <FileText className="h-3.5 w-3.5 shrink-0 text-violet-700" />
+                    <span className="truncate">{submission.fileName}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
 
           {sentBack ? (
             <div className="mt-3 rounded-lg border border-ochre/30 bg-ochre-soft/50 px-3 py-2">
@@ -212,13 +249,24 @@ export function TaskCard({
                 <button
                   type="button"
                   onClick={onComplete}
-                  className="inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-md bg-brand-600 px-2 text-xs font-semibold text-surface transition hover:bg-brand-700"
+                  disabled={Boolean(completionBlocker)}
+                  title={completionBlocker ?? undefined}
+                  className="inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-md bg-brand-600 px-2 text-xs font-semibold text-surface transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <Check className="h-3.5 w-3.5" />
-                  {needsApproval ? 'Ask to finish' : 'Done'}
+                  {isDocument ? <FileUp className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
+                  {isDocument
+                    ? needsApproval
+                      ? 'Submit document'
+                      : 'Upload & finish'
+                    : needsApproval
+                      ? 'Ask to finish'
+                      : 'Done'}
                 </button>
               ) : null}
             </div>
+          ) : null}
+          {canProgress && completionBlocker && status !== 'completed' && !awaitingReview ? (
+            <p className="mt-1.5 text-[11px] text-muted">{completionBlocker}</p>
           ) : null}
         </div>
       </div>

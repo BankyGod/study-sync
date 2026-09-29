@@ -21,6 +21,7 @@ import {
   REVIEW_STATUS,
   canProgressTask,
   findTaskContainer,
+  getCompletionBlocker,
   isAssignedTo,
   isBackwardMove,
   normalizeTaskForColumn,
@@ -44,6 +45,7 @@ export function WorkspaceKanban() {
     reloadColumns,
     openAddTaskModal,
     markProgress,
+    openDocumentSubmit,
     isLoading,
   } = useWorkspaceTasks()
   const dragOriginRef = useRef(null)
@@ -133,6 +135,19 @@ export function WorkspaceKanban() {
     }
 
     const destination = findTaskContainer(columns, active.id)
+    if (destination === 'completed' && origin && origin !== 'completed') {
+      const task = columns.completed.find((item) => item.id === active.id)
+      const blocker = getCompletionBlocker({ ...task, status: origin })
+      if (blocker) {
+        reloadColumns()
+        if (origin === 'in_progress' && canProgressTask(task, user?.id)) {
+          openDocumentSubmit(active.id)
+        } else {
+          window.alert(blocker)
+        }
+        return
+      }
+    }
     if (requiresReview && origin && destination && isForwardMove(origin, destination)) {
       const task = columns[destination].find((item) => item.id === active.id)
       reloadColumns()

@@ -46,6 +46,8 @@ function normalizeFile(groupId, file) {
     uploadedById: file.uploadedById ?? file.uploaded_by_id,
     uploadedAt: file.uploadedAt ?? file.uploaded_at,
     source: file.source,
+    taskId: file.taskId ?? file.task_id ?? null,
+    taskTitle: file.taskTitle ?? file.task_title ?? null,
     downloadUrl: buildFileDownloadUrl(groupId, { ...file, id, fileName }),
   }
 }
@@ -126,6 +128,19 @@ export async function deleteGroupFile(groupId, fileId) {
 
 export function getTotalFileSize(files = []) {
   return files.reduce((total, file) => total + file.fileSize, 0)
+}
+
+/** Downloads a document attached to a task; it is stored as a regular pod file. */
+export function downloadTaskSubmission(groupId, submission) {
+  if (DEV_BYPASS_AUTH) {
+    window.alert('Dev mode keeps only file details. Open the Files tab to see this upload.')
+    return
+  }
+  const id = submission.fileId ?? submission.id
+  downloadGroupFile({
+    fileName: submission.fileName,
+    downloadUrl: buildFileDownloadUrl(groupId, { ...submission, id }),
+  })
 }
 
 export function downloadGroupFile(file) {

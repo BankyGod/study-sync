@@ -5,7 +5,12 @@ import { z } from 'zod'
 import { Modal } from '@/components/common/Modal'
 import { Input } from '@/components/common/Input'
 import { Button } from '@/components/common/Button'
-import { TASK_PRIORITIES } from '@/services/workspaceTaskService'
+import { FileUp, ListChecks } from 'lucide-react'
+import {
+  TASK_PRIORITIES,
+  TASK_TYPES,
+  TASK_TYPE_OPTIONS,
+} from '@/services/workspaceTaskService'
 import { cn } from '@/utils/cn'
 
 const taskSchema = z.object({
@@ -13,6 +18,7 @@ const taskSchema = z.object({
   dueDate: z.string().optional(),
   assigneeId: z.string().optional(),
   priority: z.string().optional(),
+  taskType: z.string().optional(),
 })
 
 function Select({ label, error, className, id, children, ...props }) {
@@ -51,11 +57,13 @@ export function AddTaskModal({
   canSetSchedule = true,
 }) {
   const isEdit = Boolean(task)
+  const canChooseType = !isEdit || canSetSchedule
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(taskSchema),
@@ -64,6 +72,7 @@ export function AddTaskModal({
       dueDate: '',
       assigneeId: '',
       priority: '',
+      taskType: TASK_TYPES.STANDARD,
     },
   })
 
@@ -75,8 +84,11 @@ export function AddTaskModal({
       dueDate: task?.dueDate ?? '',
       assigneeId: task?.assignee?.id ?? members[0]?.id ?? '',
       priority: task?.priority ?? '',
+      taskType: task?.taskType ?? TASK_TYPES.STANDARD,
     })
   }, [open, reset, task, members])
+
+  const selectedType = watch('taskType')
 
   const onSubmit = async (values) => {
     await onSave({
@@ -84,6 +96,7 @@ export function AddTaskModal({
       dueDate: values.dueDate || null,
       assigneeId: values.assigneeId || null,
       priority: values.priority || null,
+      taskType: canChooseType ? values.taskType || TASK_TYPES.STANDARD : undefined,
     })
     onClose()
   }
@@ -97,6 +110,48 @@ export function AddTaskModal({
           error={errors.title?.message}
           {...register('title')}
         />
+
+        <fieldset disabled={!canChooseType}>
+          <legend className="mb-1.5 block text-sm font-medium text-slate-700">Task type</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {TASK_TYPE_OPTIONS.map((option) => {
+              const Icon = option.value === TASK_TYPES.DOCUMENT ? FileUp : ListChecks
+              const selected = selectedType === option.value
+              return (
+                <label
+                  key={option.value}
+                  className={cn(
+                    'flex cursor-pointer gap-2.5 rounded-lg border p-3 transition',
+                    selected
+                      ? 'border-brand-500 bg-brand-50/60 ring-2 ring-brand-100'
+                      : 'border-slate-200 hover:bg-slate-50',
+                    !canChooseType && 'cursor-not-allowed opacity-70',
+                  )}
+                >
+                  <input
+                    type="radio"
+                    value={option.value}
+                    className="sr-only"
+                    {...register('taskType')}
+                  />
+                  <Icon
+                    className={cn(
+                      'mt-0.5 h-4 w-4 shrink-0',
+                      selected ? 'text-brand-700' : 'text-slate-400',
+                    )}
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-ink">{option.label}</span>
+                    <span className="mt-0.5 block text-xs text-muted">{option.description}</span>
+                  </span>
+                </label>
+              )
+            })}
+          </div>
+          {!canChooseType ? (
+            <p className="mt-1.5 text-xs text-muted">Only the group leader can change the task type.</p>
+          ) : null}
+        </fieldset>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Input

@@ -9,9 +9,11 @@ import {
   rejectGroupTaskRegress,
   removeGroupTask,
   requestGroupTaskRegress,
+  requiresLeaderApproval,
   reviewGroupTask,
   saveGroupTasks,
   updateGroupTask,
+  uploadGroupTaskDocument,
 } from '@/services/workspaceTaskService'
 import { getWorkspaceErrorMessage } from '@/utils/workspaceErrors'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -21,6 +23,20 @@ import { DEV_BYPASS_AUTH } from '@/utils/constants'
 const WorkspaceTasksContext = createContext(null)
 
 const EMPTY_COLUMNS = { todo: [], in_progress: [], completed: [] }
+
+let hasWarnedAboutApproval = false
+
+/** The deployed API may still move tasks directly; tell the user once per session. */
+function warnIfServerSkippedApproval(columns, taskId, action) {
+  if (hasWarnedAboutApproval) return
+  const target = action === 'complete' ? 'completed' : 'in_progress'
+  const task = columns?.[target]?.find((item) => item.id === taskId)
+  if (!task || task.pendingAdvanceRequest) return
+  hasWarnedAboutApproval = true
+  window.alert(
+    'The server moved this task without waiting for the group leader. Leader approval needs the backend update described in docs/BACKEND_API_SPEC.md ("Step approval").',
+  )
+}
 
 function getErrorCode(error) {
   return error?.response?.data?.error?.code ?? error?.code ?? null
@@ -32,6 +48,7 @@ export function WorkspaceTasksProvider({ groupId, members = [], children }) {
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
   const [detailsTaskId, setDetailsTaskId] = useState(null)
+  const [submitTaskId, setSubmitTaskId] = useState(null)
   const [taskActionError, setTaskActionError] = useState('')
   const { isLeader, leaderId } = useWorkspaceLeader()
   const scheduleOptions = useMemo(() => ({ canSetSchedule: isLeader }), [isLeader])
@@ -67,6 +84,7 @@ export function WorkspaceTasksProvider({ groupId, members = [], children }) {
       setIsAddTaskModalOpen(false)
       setEditingTask(null)
       setDetailsTaskId(null)
+      setSubmitTaskId(null)
       try {
         const nextColumns = await loadGroupTasks(groupId)
         if (!cancelled) {
@@ -100,14 +118,22 @@ export function WorkspaceTasksProvider({ groupId, members = [], children }) {
 
   const openTaskDetails = useCallback((taskId) => setDetailsTaskId(taskId), [])
   const closeTaskDetails = useCallback(() => setDetailsTaskId(null), [])
-  const detailsTask = useMemo(() => {
-    if (!detailsTaskId) return null
-    for (const columnId of COLUMN_IDS) {
-      const task = columns[columnId]?.find((item) => item.id === detailsTaskId)
-      if (task) return { ...task, status: columnId }
-    }
-    return null
-  }, [columns, detailsTaskId])
+  const findTask = useCallback(
+    (taskId) => {
+      if (!taskId) return null
+      for (const columnId of COLUMN_IDS) {
+        const task = columns[columnId]?.find((item) => item.id === taskId)
+        if (task) return { ...task, status: columnId }
+      }
+      return null
+    },
+    [columns],
+  )
+  const detailsTask = useMemo(() => findTask(detailsTaskId), [findTask, detailsTaskId])
+
+  const openDocumentSubmit = useCallback((taskId) => setSubmitTaskId(taskId), [])
+  const closeDocumentSubmit = useCallback(() => setSubmitTaskId(null), [])
+  const submitTask = useMemo(() => findTask(submitTaskId), [findTask, submitTaskId])
 
   const createTask = useCallback(
     async (taskInput) => {
@@ -171,11 +197,11 @@ export function WorkspaceTasksProvider({ groupId, members = [], children }) {
   const markProgress = useCallback(
     async (taskId, action) => {
       try {
-        const nextColumns = await progressGroupTask(groupId, taskId, action, {
-          requiresReview: Boolean(leaderId) && !isLeader,
-        })
+        const requiresReview = requiresLeaderApproval({ isLeader, leaderId })
+        const nextColumns = await progressGroupTask(groupId, taskId, action, { requiresReview })
         setColumns(nextColumns)
         setTaskActionError('')
+        if (requiresReview && !DEV_BYPASS_AUTH) warnIfServerSkippedApproval(nextColumns, taskId, action)
         return nextColumns
       } catch (error) {
         const message = getWorkspaceErrorMessage(error, 'Unable to update task progress.')
@@ -197,6 +223,23 @@ export function WorkspaceTasksProvider({ groupId, members = [], children }) {
         const message = getWorkspaceErrorMessage(error, 'Unable to review this task.')
         setTaskActionError(message)
         window.alert(message)
+      }
+    },
+    [groupId],
+  )
+
+  const uploadTaskDocument = useCallback(
+    async (taskId, file) => {
+      try {
+        const nextColumns = await uploadGroupTaskDocument(groupId, taskId, file)
+        setColumns(nextColumns)
+        setTaskActionError('')
+        return true
+      } catch (error) {
+        const message = getWorkspaceErrorMessage(error, 'Unable to upload the document.')
+        setTaskActionError(message)
+        window.alert(message)
+        return false
       }
     },
     [groupId],
@@ -349,6 +392,10 @@ export function WorkspaceTasksProvider({ groupId, members = [], children }) {
     rejectRegress,
     reviewTask,
     nudgeMember,
+    uploadTaskDocument,
+    submitTask,
+    openDocumentSubmit,
+    closeDocumentSubmit,
     detailsTask,
     openTaskDetails,
     closeTaskDetails,

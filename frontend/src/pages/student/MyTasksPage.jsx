@@ -1,17 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowUpRight, Check, ClipboardCheck, Play } from 'lucide-react'
+import { ArrowUpRight, Check, ClipboardCheck, FileUp, Play } from 'lucide-react'
 import { Button } from '@/components/common/Button'
+import { DocumentSubmitModal } from '@/components/kanban/DocumentSubmitModal'
 import { useAuth } from '@/hooks/useAuth'
 import { fetchUserGroups, getUserGroupsErrorMessage } from '@/services/usersService'
 import {
   REVIEW_STATUS,
   formatTaskFooter,
+  getCompletionBlocker,
   getPendingStep,
+  getTaskSubmissions,
   isAwaitingApproval,
+  isDocumentTask,
   isTaskDone,
   loadMyAssignedTasks,
   progressGroupTask,
+  uploadGroupTaskDocument,
 } from '@/services/workspaceTaskService'
 import { getWorkspaceErrorMessage } from '@/utils/workspaceErrors'
 import { ROUTES } from '@/utils/constants'
@@ -41,7 +46,11 @@ function SummaryTile({ label, value, tone }) {
   )
 }
 
-function MyTaskRow({ task, isBusy, onProgress }) {
+function MyTaskRow({ task, isBusy, onProgress, onOpenSubmit }) {
+  const isDocument = isDocumentTask(task)
+  const blocker = isDocument && task.status === 'todo' ? getCompletionBlocker(task) : null
+  const uploads = getTaskSubmissions(task)
+
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 py-3">
       <div className="min-w-0 flex-1">
@@ -65,6 +74,11 @@ function MyTaskRow({ task, isBusy, onProgress }) {
               {task.dueTag}
             </span>
           ) : null}
+          {isDocumentTask(task) ? (
+            <span className="rounded-md bg-violet-50 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700">
+              Document · {uploads.length} uploaded
+            </span>
+          ) : null}
           {isAwaitingApproval(task) ? (
             <span className="rounded-md bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700">
               Waiting for leader to approve {getPendingStep(task) === 'complete' ? 'Done' : 'start'}
@@ -77,6 +91,9 @@ function MyTaskRow({ task, isBusy, onProgress }) {
           <p className="mt-1.5 rounded-md bg-ochre-soft/60 px-2 py-1 text-xs text-ochre">
             Leader declined the last step{task.reviewNote ? `: ${task.reviewNote}` : '.'}
           </p>
+        ) : null}
+        {blocker && task.status !== 'completed' && !isAwaitingApproval(task) ? (
+          <p className="mt-1 text-[11px] text-muted">{blocker}</p>
         ) : null}
       </div>
 
@@ -95,12 +112,13 @@ function MyTaskRow({ task, isBusy, onProgress }) {
           ) : null}
           <button
             type="button"
-            disabled={isBusy}
-            onClick={() => onProgress(task, 'complete')}
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-md bg-brand-600 px-3 text-xs font-semibold text-surface transition hover:bg-brand-700 disabled:opacity-60"
+            disabled={isBusy || Boolean(blocker)}
+            title={blocker ?? undefined}
+            onClick={() => (isDocument ? onOpenSubmit(task) : onProgress(task, 'complete'))}
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-md bg-brand-600 px-3 text-xs font-semibold text-surface transition hover:bg-brand-700 disabled:opacity-50"
           >
-            <Check className="h-3.5 w-3.5" />
-            Done
+            {isDocument ? <FileUp className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
+            {isDocument ? 'Submit document' : 'Done'}
           </button>
         </div>
       ) : null}
@@ -154,21 +172,48 @@ export function MyTasksPage() {
     }
   }, [user?.id])
 
+  const [submitKey, setSubmitKey] = useState(null)
+
+  const needsApprovalFor = (groupId) => {
+    const group = groups.find((item) => String(item.groupId ?? item.id) === String(groupId))
+    const leaderId = group?.leaderId ?? group?.leader?.id ?? null
+    return Boolean(leaderId) && String(leaderId) !== String(user?.id)
+  }
+
   const handleProgress = async (task, action) => {
     setBusyTaskId(task.id)
     try {
-      const group = groups.find((item) => String(item.groupId ?? item.id) === String(task.groupId))
-      const leaderId = group?.leaderId ?? group?.leader?.id ?? null
       await progressGroupTask(task.groupId, task.id, action, {
-        requiresReview: Boolean(leaderId) && String(leaderId) !== String(user?.id),
+        requiresReview: needsApprovalFor(task.groupId),
       })
       await reloadTasks(groups)
+      return true
     } catch (progressError) {
       window.alert(getWorkspaceErrorMessage(progressError, 'Unable to update task progress.'))
+      return false
     } finally {
       setBusyTaskId(null)
     }
   }
+
+  const handleUpload = async (task, file) => {
+    try {
+      await uploadGroupTaskDocument(task.groupId, task.id, file)
+      await reloadTasks(groups)
+      return true
+    } catch (uploadError) {
+      window.alert(getWorkspaceErrorMessage(uploadError, 'Unable to upload the document.'))
+      return false
+    }
+  }
+
+  const submitTask = submitKey
+    ? (tasks.find(
+        (task) =>
+          String(task.groupId) === String(submitKey.groupId) &&
+          String(task.id) === String(submitKey.id),
+      ) ?? null)
+    : null
 
   const visibleTasks = useMemo(
     () => (podFilter ? tasks.filter((task) => String(task.groupId) === podFilter) : tasks),
@@ -284,6 +329,7 @@ export function MyTasksPage() {
                         task={task}
                         isBusy={busyTaskId === task.id}
                         onProgress={handleProgress}
+                        onOpenSubmit={(item) => setSubmitKey({ groupId: item.groupId, id: item.id })}
                       />
                     ))}
                   </ul>
@@ -293,6 +339,16 @@ export function MyTasksPage() {
           })}
         </>
       )}
+
+      {submitTask ? (
+        <DocumentSubmitModal
+          task={submitTask}
+          needsApproval={needsApprovalFor(submitTask.groupId)}
+          onUpload={(file) => handleUpload(submitTask, file)}
+          onSubmit={() => handleProgress(submitTask, 'complete')}
+          onClose={() => setSubmitKey(null)}
+        />
+      ) : null}
     </div>
   )
 }

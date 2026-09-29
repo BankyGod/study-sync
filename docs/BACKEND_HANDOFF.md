@@ -483,6 +483,7 @@ Task objects should include `createdBy`, `startedAt`, and `pendingRegressRequest
 | Feature | Backend work |
 |---------|--------------|
 | Leader approves **every** step | Non-leader `progress` start/complete does **not** move the task. It stores `pendingAdvanceRequest` and notifies the leader. `POST /workspaces/:groupId/tasks/:taskId/review` `{ decision: "approved" \| "changes_requested", note }` (leader only). Approve moves it to the requested column. Decline keeps it in place with `reviewNote`. Forward reorder/PATCH by non-leaders → `409 ADVANCE_REQUIRES_APPROVAL` |
+| Document tasks | `taskType: "standard" \| "document"` on create (leader-only change later). `POST /workspaces/:groupId/tasks/:taskId/submissions` (multipart `file`, assignee, task in progress) saves the file as a pod file (`source: "task"`, `taskId`, `taskTitle`) and appends it to `task.submissions`. Block completion without a submission → `409 TASK_DOCUMENT_REQUIRED` |
 | Leader-only due date / priority | Accept `priority` (`low`/`medium`/`high`) on create/update; ignore on create and `403` on change for non-leaders |
 | Activity history | Return `activity[]` and `lastActivityAt` on every task |
 | Stalled flag | Frontend-computed (in progress, no activity for 3 days) — just keep `lastActivityAt` accurate |

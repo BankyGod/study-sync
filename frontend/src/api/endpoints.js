@@ -55,6 +55,7 @@ export const endpoints = {
     taskReorder: (groupId) => `/workspaces/${groupId}/tasks/reorder`,
     taskProgress: (groupId, taskId) => `/workspaces/${groupId}/tasks/${taskId}/progress`,
     taskReview: (groupId, taskId) => `/workspaces/${groupId}/tasks/${taskId}/review`,
+    taskSubmissions: (groupId, taskId) => `/workspaces/${groupId}/tasks/${taskId}/submissions`,
     taskRegressRequests: (groupId, taskId) =>
       `/workspaces/${groupId}/tasks/${taskId}/regress-requests`,
     taskRegressApprove: (groupId, taskId, requestId) =>

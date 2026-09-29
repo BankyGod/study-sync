@@ -191,6 +191,11 @@ export function SharedFilesPanel() {
                   </div>
                   <div className="min-w-0">
                     <p className="truncate font-semibold text-ink">{file.fileName}</p>
+                    {file.source === 'task' || file.taskId ? (
+                      <p className="mt-0.5 inline-flex max-w-full items-center gap-1 truncate rounded bg-violet-50 px-1.5 py-0.5 text-[11px] font-medium text-violet-700">
+                        Task submission{file.taskTitle ? `: ${file.taskTitle}` : ''}
+                      </p>
+                    ) : null}
                     <p className="mt-0.5 truncate text-sm text-muted">
                       {formatFileSize(file.fileSize)} · {file.uploadedBy} ·{' '}
                       {formatUploadedAt(file.uploadedAt)}

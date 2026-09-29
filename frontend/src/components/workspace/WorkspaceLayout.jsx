@@ -20,9 +20,14 @@ import { VideoCallPanel } from '@/components/workspace/VideoCallPanel'
 import { ScheduleSessionModal } from '@/components/workspace/ScheduleSessionModal'
 import { AddTaskModal } from '@/components/kanban/AddTaskModal'
 import { TaskDetailsModal } from '@/components/kanban/TaskDetailsModal'
+import { DocumentSubmitModal } from '@/components/kanban/DocumentSubmitModal'
 import { Spinner } from '@/components/common/Spinner'
 import { useWorkspaceLeader } from '@/hooks/useWorkspaceLeader'
-import { canReassignTask, canSetTaskSchedule } from '@/services/workspaceTaskService'
+import {
+  canReassignTask,
+  canSetTaskSchedule,
+  requiresLeaderApproval,
+} from '@/services/workspaceTaskService'
 import { cn } from '@/utils/cn'
 
 function WorkspaceScheduleModal() {
@@ -80,6 +85,23 @@ function WorkspaceEditTaskModal() {
       members={members}
       canChangeAssignee={canChangeAssignee}
       canSetSchedule={canSetTaskSchedule({ isLeader })}
+    />
+  )
+}
+
+function WorkspaceDocumentSubmitModal() {
+  const { isLeader, leaderId } = useWorkspaceLeader()
+  const { submitTask, closeDocumentSubmit, uploadTaskDocument, markProgress } = useWorkspaceTasks()
+
+  if (!submitTask) return null
+
+  return (
+    <DocumentSubmitModal
+      task={submitTask}
+      needsApproval={requiresLeaderApproval({ isLeader, leaderId })}
+      onUpload={(file) => uploadTaskDocument(submitTask.id, file)}
+      onSubmit={async () => Boolean(await markProgress(submitTask.id, 'complete'))}
+      onClose={closeDocumentSubmit}
     />
   )
 }
@@ -151,6 +173,7 @@ function WorkspaceShell() {
         <WorkspaceAddTaskModal />
         <WorkspaceEditTaskModal />
         <TaskDetailsModal />
+        <WorkspaceDocumentSubmitModal />
         <VideoCallPanel />
         </WorkspaceCallProvider>
       </WorkspaceTasksProvider>

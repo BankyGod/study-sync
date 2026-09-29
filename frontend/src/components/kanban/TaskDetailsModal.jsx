@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { format, formatDistanceToNow } from 'date-fns'
-import { AlertTriangle, BellRing } from 'lucide-react'
+import { AlertTriangle, BellRing, Download, FileText } from 'lucide-react'
 import { Modal } from '@/components/common/Modal'
+import { useWorkspace } from '@/context/WorkspaceContext'
 import { useWorkspaceLeader } from '@/hooks/useWorkspaceLeader'
 import { useWorkspaceTasks } from '@/context/WorkspaceTasksContext'
 import {
@@ -10,9 +11,12 @@ import {
   describeActivity,
   getLastActivityAt,
   getTaskActivity,
+  getTaskSubmissions,
   getPendingStep,
+  isDocumentTask,
   isTaskStalled,
 } from '@/services/workspaceTaskService'
+import { downloadTaskSubmission, formatFileSize } from '@/services/workspaceFileService'
 
 const STATUS_LABELS = {
   todo: 'To do',
@@ -38,6 +42,7 @@ function DetailRow({ label, children }) {
 }
 
 export function TaskDetailsModal() {
+  const { groupId } = useWorkspace()
   const { isLeader, userId } = useWorkspaceLeader()
   const { detailsTask: task, closeTaskDetails, nudgeMember } = useWorkspaceTasks()
   const [isNudging, setIsNudging] = useState(false)
@@ -89,7 +94,51 @@ export function TaskDetailsModal() {
           {lastActivity ? formatDistanceToNow(lastActivity, { addSuffix: true }) : 'None yet'}
         </DetailRow>
         <DetailRow label="Created by">{task.createdBy?.name ?? 'Unknown'}</DetailRow>
+        <DetailRow label="Type">{isDocumentTask(task) ? 'Document upload' : 'Normal task'}</DetailRow>
       </dl>
+
+      {isDocumentTask(task) ? (
+        <div className="mt-4">
+          <h4 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+            Submitted documents
+          </h4>
+          {getTaskSubmissions(task).length === 0 ? (
+            <p className="mt-1.5 text-sm text-muted">Nothing uploaded yet.</p>
+          ) : (
+            <ul className="mt-1.5 space-y-1.5">
+              {getTaskSubmissions(task).map((submission) => (
+                <li
+                  key={submission.id ?? submission.fileId}
+                  className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2"
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <FileText className="h-4 w-4 shrink-0 text-violet-700" />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-ink">{submission.fileName}</p>
+                      <p className="text-[11px] text-muted">
+                        {submission.fileSize ? `${formatFileSize(submission.fileSize)} · ` : ''}
+                        {typeof submission.uploadedBy === 'string'
+                          ? submission.uploadedBy
+                          : (submission.uploadedBy?.name ?? 'Member')}
+                        {submission.uploadedAt ? ` · ${formatWhen(submission.uploadedAt)}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => downloadTaskSubmission(groupId, submission)}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted hover:bg-page hover:text-ink"
+                    aria-label={`Download ${submission.fileName}`}
+                  >
+                    <Download className="h-4 w-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-1.5 text-[11px] text-muted">Uploads are also saved in the pod&apos;s Files tab.</p>
+        </div>
+      ) : null}
 
       {task.reviewNote ? (
         <div className="mt-4 rounded-lg border border-ochre/30 bg-ochre-soft/50 px-3 py-2">

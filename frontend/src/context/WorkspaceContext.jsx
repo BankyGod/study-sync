@@ -5,6 +5,7 @@ import { getWorkspaceErrorMessage } from '@/utils/workspaceErrors'
 import { buildStudyGroupTitle, courseToGroupId } from '@/utils/onboarding'
 import { getActiveMatchingCourse } from '@/services/onboardingProfileService'
 import { DEV_BYPASS_AUTH, DEV_MOCK_USER, STORAGE_KEYS } from '@/utils/constants'
+import { getGroupLeader, normalizeGroupMembers } from '@/utils/groupMembers'
 
 const WorkspaceContext = createContext(null)
 
@@ -14,6 +15,27 @@ function normalizeAnnouncement(value) {
   const text = String(value.text ?? value.message ?? '').trim()
   if (!text) return null
   return { ...value, text }
+}
+
+const DEV_LEADER_KEY = 'studysync_dev_pod_leader'
+const DEV_OTHER_LEADER_ID = 'dev-leader-1'
+
+/** Dev-only pod so leader features (approvals, nudges, review) can be tried without the API. */
+function buildDevWorkspace(groupId, title) {
+  const leaderId = localStorage.getItem(DEV_LEADER_KEY) || DEV_OTHER_LEADER_ID
+  const rawMembers = [
+    { id: DEV_MOCK_USER.id, name: DEV_MOCK_USER.name, initials: 'AO', color: 'bg-brand-600' },
+    { id: DEV_OTHER_LEADER_ID, name: 'Ama Mensah', initials: 'AM', color: 'bg-violet-600' },
+    { id: 'dev-member-2', name: 'Kofi Asante', initials: 'KA', color: 'bg-sky-700' },
+  ]
+  const members = normalizeGroupMembers(rawMembers, { leaderId })
+  return {
+    groupId,
+    title: resolveGroupTitle(groupId, title),
+    members,
+    leaderId,
+    leader: getGroupLeader(members),
+  }
 }
 
 function readLocalAnnouncements() {
@@ -73,7 +95,9 @@ export function WorkspaceProvider({ groupId, children }) {
           setWorkspace(data)
         }
       } catch (err) {
-        if (!cancelled) {
+        if (!cancelled && DEV_BYPASS_AUTH) {
+          setWorkspace(buildDevWorkspace(groupId))
+        } else if (!cancelled) {
           setError(getWorkspaceErrorMessage(err, 'Unable to load workspace.'))
           setWorkspace({
             groupId,
@@ -127,6 +151,17 @@ export function WorkspaceProvider({ groupId, children }) {
     [groupId],
   )
 
+  const devSwitchLeader = useCallback(() => {
+    if (!DEV_BYPASS_AUTH) return
+    const current = localStorage.getItem(DEV_LEADER_KEY) || DEV_OTHER_LEADER_ID
+    const next = current === DEV_MOCK_USER.id ? DEV_OTHER_LEADER_ID : DEV_MOCK_USER.id
+    localStorage.setItem(DEV_LEADER_KEY, next)
+    setWorkspace((prev) => ({
+      ...buildDevWorkspace(groupId, prev?.title),
+      announcement: prev?.announcement,
+    }))
+  }, [groupId])
+
   const value = useMemo(
     () => ({
       groupId,
@@ -137,6 +172,7 @@ export function WorkspaceProvider({ groupId, children }) {
       leaderId: workspace?.leaderId ?? null,
       announcement,
       saveAnnouncement,
+      devSwitchLeader: DEV_BYPASS_AUTH ? devSwitchLeader : null,
       setWorkspace,
       isLoading,
       error,
@@ -146,7 +182,7 @@ export function WorkspaceProvider({ groupId, children }) {
         return data
       },
     }),
-    [groupId, workspace, announcement, saveAnnouncement, isLoading, error],
+    [groupId, workspace, announcement, saveAnnouncement, devSwitchLeader, isLoading, error],
   )
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>

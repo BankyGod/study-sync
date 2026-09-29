@@ -14,7 +14,13 @@ import {
   reviewWorkspaceTask,
   sendWorkspaceNudge,
   updateWorkspaceTask,
+  uploadTaskSubmission,
 } from '@/services/workspaceService'
+import {
+  MAX_SHARED_FILE_SIZE,
+  appendLocalGroupFile,
+  formatFileSize,
+} from '@/services/workspaceFileService'
 
 export const COLUMN_IDS = ['todo', 'in_progress', 'completed']
 
@@ -25,6 +31,24 @@ export const TASK_PRIORITIES = [
   { value: 'high', label: 'High' },
   { value: 'medium', label: 'Medium' },
   { value: 'low', label: 'Low' },
+]
+
+export const TASK_TYPES = {
+  STANDARD: 'standard',
+  DOCUMENT: 'document',
+}
+
+export const TASK_TYPE_OPTIONS = [
+  {
+    value: TASK_TYPES.STANDARD,
+    label: 'Normal task',
+    description: 'Start it and mark it done.',
+  },
+  {
+    value: TASK_TYPES.DOCUMENT,
+    label: 'Document upload',
+    description: 'The assignee must upload a file before finishing. It is saved to pod files.',
+  },
 ]
 
 export const REVIEW_STATUS = {
@@ -67,7 +91,33 @@ export function toKanbanTask(task) {
     reviewStatus: task.reviewStatus ?? task.review_status ?? null,
     reviewNote: task.reviewNote ?? task.review_note ?? null,
     pendingAdvanceRequest: task.pendingAdvanceRequest ?? task.pendingProgressRequest ?? null,
+    taskType: task.taskType ?? task.task_type ?? TASK_TYPES.STANDARD,
+    submissions: Array.isArray(task.submissions) ? task.submissions : [],
   }
+}
+
+export function isDocumentTask(task) {
+  return task?.taskType === TASK_TYPES.DOCUMENT
+}
+
+export function getTaskSubmissions(task) {
+  return Array.isArray(task?.submissions) ? task.submissions : []
+}
+
+/** The assignee uploads documents while the task is in progress. */
+export function canUploadSubmission(task, userId) {
+  if (!isDocumentTask(task) || !canProgressTask(task, userId)) return false
+  return getTaskStatus(task) === 'in_progress' && !isAwaitingApproval(task)
+}
+
+/** Why the task cannot be finished yet, or null when it can. */
+export function getCompletionBlocker(task) {
+  if (isDocumentTask(task) && getTaskSubmissions(task).length === 0) {
+    return getTaskStatus(task) === 'todo'
+      ? 'Start this task, then upload the document before finishing.'
+      : 'Upload the document before finishing this task.'
+  }
+  return null
 }
 
 /** A member asked to move the task forward and the leader has not decided yet. */
@@ -154,6 +204,7 @@ const ACTIVITY_LABELS = {
   approved: 'approved the step',
   changes_requested: 'declined the step',
   nudged: 'sent a reminder',
+  document_uploaded: 'uploaded a document',
   regress_requested: 'asked to move it back',
   updated: 'updated the task',
 }
@@ -507,13 +558,14 @@ export async function saveGroupTasks(groupId, columns) {
  */
 export async function addGroupTask(
   groupId,
-  { title, dueDate, assigneeId, priority },
+  { title, dueDate, assigneeId, priority, taskType },
   members = [],
   { canSetSchedule = true } = {},
 ) {
   const schedule = canSetSchedule
     ? { dueDate: dueDate || null, priority: priority || null }
     : { dueDate: null, priority: null }
+  const type = taskType === TASK_TYPES.DOCUMENT ? TASK_TYPES.DOCUMENT : TASK_TYPES.STANDARD
 
   if (DEV_BYPASS_AUTH) {
     const columns = readLocalTasks(groupId)
@@ -522,6 +574,8 @@ export async function addGroupTask(
         id: crypto.randomUUID(),
         title: title.trim(),
         ...schedule,
+        taskType: type,
+        submissions: [],
         status: 'todo',
         variant: 'default',
         assignee: resolveDevAssignee(assigneeId, members),
@@ -537,7 +591,7 @@ export async function addGroupTask(
     return readLocalTasks(groupId)
   }
 
-  await createWorkspaceTask(groupId, { title, assigneeId, ...schedule })
+  await createWorkspaceTask(groupId, { title, assigneeId, taskType: type, ...schedule })
 
   return loadGroupTasks(groupId)
 }
@@ -545,11 +599,17 @@ export async function addGroupTask(
 export async function updateGroupTask(
   groupId,
   taskId,
-  { title, dueDate, assigneeId, priority },
+  { title, dueDate, assigneeId, priority, taskType },
   members = [],
   { canSetSchedule = true } = {},
 ) {
-  const schedule = canSetSchedule ? { dueDate: dueDate || null, priority: priority || null } : {}
+  const schedule = canSetSchedule
+    ? {
+        dueDate: dueDate || null,
+        priority: priority || null,
+        ...(taskType ? { taskType } : {}),
+      }
+    : {}
 
   if (DEV_BYPASS_AUTH) {
     const columns = readLocalTasks(groupId)
@@ -583,6 +643,69 @@ export async function updateGroupTask(
     ...schedule,
   })
 
+  return loadGroupTasks(groupId)
+}
+
+/** Assignee uploads a document for a document task. The file also appears in pod files. */
+export async function uploadGroupTaskDocument(groupId, taskId, file) {
+  if (!file) throw new Error('Choose a file to upload.')
+  if (file.size > MAX_SHARED_FILE_SIZE) {
+    throw new Error(`Files must be smaller than ${formatFileSize(MAX_SHARED_FILE_SIZE)}.`)
+  }
+
+  if (DEV_BYPASS_AUTH) {
+    const columns = readLocalTasks(groupId)
+    const fromStatus = getTaskColumnId({ id: taskId }, columns)
+    const task = columns[fromStatus].find((item) => item.id === taskId)
+    if (!task) throw new Error('Task not found.')
+
+    const uploader = buildDevCreator()
+    const uploadedAt = new Date().toISOString()
+    const fileEntry = {
+      id: crypto.randomUUID(),
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type || 'application/octet-stream',
+      uploadedBy: uploader.name,
+      uploadedById: uploader.id,
+      uploadedAt,
+      source: 'task',
+      taskId,
+      taskTitle: task.title,
+    }
+    appendLocalGroupFile(groupId, fileEntry)
+
+    const submission = {
+      id: fileEntry.id,
+      fileId: fileEntry.id,
+      fileName: fileEntry.fileName,
+      fileSize: fileEntry.fileSize,
+      fileType: fileEntry.fileType,
+      uploadedAt,
+      uploadedBy: uploader,
+    }
+    const nextColumns = COLUMN_IDS.reduce((acc, columnId) => {
+      acc[columnId] = columns[columnId].map((item) =>
+        item.id === taskId
+          ? toKanbanTask(
+              withActivity(
+                {
+                  ...stripKanbanFields(item),
+                  submissions: [...getTaskSubmissions(item), submission],
+                },
+                'document_uploaded',
+                file.name,
+              ),
+            )
+          : item,
+      )
+      return acc
+    }, {})
+    writeLocalTasks(groupId, nextColumns)
+    return readLocalTasks(groupId)
+  }
+
+  await uploadTaskSubmission(groupId, taskId, file)
   return loadGroupTasks(groupId)
 }
 
@@ -720,6 +843,8 @@ export async function progressGroupTask(groupId, taskId, action, { requiresRevie
     if (!task) throw new Error('Task not found.')
 
     const nextStatus = action === 'complete' ? 'completed' : 'in_progress'
+    const blocker = action === 'complete' ? getCompletionBlocker(task) : null
+    if (blocker) throw new Error(blocker)
 
     if (requiresReview) {
       if (task.pendingAdvanceRequest) {

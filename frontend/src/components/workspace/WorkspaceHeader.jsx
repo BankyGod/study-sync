@@ -11,7 +11,7 @@ import { useWorkspace } from '@/context/WorkspaceContext'
 import { useWorkspaceCall } from '@/context/WorkspaceCallContext'
 import { leaveStudyGroup } from '@/services/matchingService'
 import { getMatchingErrorMessage } from '@/utils/matchingErrors'
-import { getLeaveBlockedReason } from '@/utils/groupMembers'
+import { getLeaveBlockedReason, isCurrentUserLeader } from '@/utils/groupMembers'
 import { cn } from '@/utils/cn'
 import { ROUTES } from '@/utils/constants'
 
@@ -26,7 +26,7 @@ export function WorkspaceHeader({ title, courseLabel }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { groupId } = useParams()
-  const { members, leaderId } = useWorkspace()
+  const { members, leaderId, devSwitchLeader } = useWorkspace()
   const { user, avatarVersion } = useAuth()
   const { openMemberProfile } = useMemberProfile()
   const { activeCall, isBusy, startOrJoinCall } = useWorkspaceCall()
@@ -116,6 +116,23 @@ export function WorkspaceHeader({ title, courseLabel }) {
           </p>
         </div>
       </div>
+
+      {devSwitchLeader ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-ochre/40 bg-ochre-soft/40 px-3 py-2 text-xs text-ink">
+          <span className="font-semibold text-ochre">Dev mode</span>
+          <span>
+            You are {isCurrentUserLeader(user?.id, { leaderId, members }) ? 'the leader' : 'a member'}{' '}
+            of this pod.
+          </span>
+          <button
+            type="button"
+            onClick={devSwitchLeader}
+            className="min-h-8 rounded-md border border-border bg-surface px-2.5 font-semibold hover:bg-page"
+          >
+            Switch to {isCurrentUserLeader(user?.id, { leaderId, members }) ? 'member' : 'leader'}
+          </button>
+        </div>
+      ) : null}
 
       <ActiveCallBanner className="mt-4" />
 

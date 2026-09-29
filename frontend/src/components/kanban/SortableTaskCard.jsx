@@ -1,6 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { TaskCard } from '@/components/kanban/TaskCard'
+import { useWorkspace } from '@/context/WorkspaceContext'
 import { useWorkspaceLeader } from '@/hooks/useWorkspaceLeader'
 import { useWorkspaceTasks } from '@/context/WorkspaceTasksContext'
 import {
@@ -9,13 +10,18 @@ import {
   canModerateTask,
   canProgressTask,
   canReviewTask,
+  getCompletionBlocker,
   getTaskColumnId,
+  getTaskSubmissions,
+  isDocumentTask,
   isTaskStalled,
   requiresLeaderApproval,
 } from '@/services/workspaceTaskService'
+import { downloadTaskSubmission } from '@/services/workspaceFileService'
 import { cn } from '@/utils/cn'
 
 export function SortableTaskCard({ task }) {
+  const { groupId } = useWorkspace()
   const { isLeader, leaderId, userId } = useWorkspaceLeader()
   const {
     columns,
@@ -26,6 +32,7 @@ export function SortableTaskCard({ task }) {
     rejectRegress,
     reviewTask,
     openTaskDetails,
+    openDocumentSubmit,
   } = useWorkspaceTasks()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
@@ -37,6 +44,8 @@ export function SortableTaskCard({ task }) {
   }
 
   const status = getTaskColumnId(task, columns)
+  const taskWithStatus = { ...task, status }
+  const isDocument = isDocumentTask(task)
   const canManage = canManageTask(task, userId, { isLeader })
   const canProgress = canProgressTask(task, userId)
   const pending = task.pendingRegressRequest
@@ -61,7 +70,11 @@ export function SortableTaskCard({ task }) {
         reviewNote={task.reviewNote}
         pendingAdvanceRequest={task.pendingAdvanceRequest}
         needsApproval={requiresLeaderApproval({ isLeader, leaderId })}
-        isStalled={isTaskStalled({ ...task, status })}
+        isDocument={isDocument}
+        submissions={getTaskSubmissions(task)}
+        completionBlocker={isDocument && status === 'todo' ? getCompletionBlocker(taskWithStatus) : null}
+        onOpenSubmission={(submission) => downloadTaskSubmission(groupId, submission)}
+        isStalled={isTaskStalled(taskWithStatus)}
         canReview={canReviewTask(task, userId, { isLeader })}
         isDragging={isDragging}
         canManage={canManage}
@@ -71,7 +84,9 @@ export function SortableTaskCard({ task }) {
         onEdit={() => openEditTaskModal(task)}
         onDelete={() => deleteTask(task.id)}
         onStart={() => markProgress(task.id, 'start')}
-        onComplete={() => markProgress(task.id, 'complete')}
+        onComplete={() =>
+          isDocument ? openDocumentSubmit(task.id) : markProgress(task.id, 'complete')
+        }
         onApproveRegress={() => approveRegress(task.id, pending.id)}
         onRejectRegress={() => rejectRegress(task.id, pending.id)}
         onApproveReview={() => reviewTask(task.id, REVIEW_STATUS.APPROVED)}

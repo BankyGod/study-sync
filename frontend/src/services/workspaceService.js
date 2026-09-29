@@ -85,13 +85,25 @@ export async function fetchWorkspaceTasks(groupId) {
   return data
 }
 
-export async function createWorkspaceTask(groupId, { title, dueDate, assigneeId, priority }) {
+export async function createWorkspaceTask(
+  groupId,
+  { title, dueDate, assigneeId, priority, taskType },
+) {
   const { data } = await apiClient.post(endpoints.workspace.tasks(groupId), {
     title: title?.trim(),
     dueDate: dueDate || undefined,
     assigneeId: assigneeId || undefined,
     priority: priority || undefined,
+    taskType: taskType || undefined,
   })
+  return data
+}
+
+/** Assignee uploads a document for a document task; the file is also added to pod files. */
+export async function uploadTaskSubmission(groupId, taskId, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const { data } = await apiClient.post(endpoints.workspace.taskSubmissions(groupId, taskId), formData)
   return data
 }
 
