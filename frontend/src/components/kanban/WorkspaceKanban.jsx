@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -19,19 +19,34 @@ import { useWorkspaceTasks } from '@/context/WorkspaceTasksContext'
 import {
   COLUMN_IDS,
   REVIEW_STATUS,
+  canProgressTask,
   findTaskContainer,
   isAssignedTo,
+  isBackwardMove,
   normalizeTaskForColumn,
+  requiresLeaderApproval,
   summarizeMyTasks,
   toKanbanTask,
 } from '@/services/workspaceTaskService'
 
+function isForwardMove(fromStatus, toStatus) {
+  return fromStatus !== toStatus && !isBackwardMove(fromStatus, toStatus)
+}
+
 export function WorkspaceKanban() {
   const { user } = useAuth()
   const { isLeader, leaderId } = useWorkspaceLeader()
-  const requiresReview = Boolean(leaderId) && !isLeader
-  const { columns, setColumns, commitColumns, reloadColumns, openAddTaskModal, isLoading } =
-    useWorkspaceTasks()
+  const requiresReview = requiresLeaderApproval({ isLeader, leaderId })
+  const {
+    columns,
+    setColumns,
+    commitColumns,
+    reloadColumns,
+    openAddTaskModal,
+    markProgress,
+    isLoading,
+  } = useWorkspaceTasks()
+  const dragOriginRef = useRef(null)
   const [activeTask, setActiveTask] = useState(null)
   const [showMineOnly, setShowMineOnly] = useState(false)
 
@@ -50,6 +65,7 @@ export function WorkspaceKanban() {
   const handleDragStart = ({ active }) => {
     const containerId = findTaskContainer(columns, active.id)
     if (!containerId) return
+    dragOriginRef.current = containerId
     const task = columns[containerId].find((item) => item.id === active.id)
     setActiveTask(task ?? null)
   }
@@ -74,12 +90,18 @@ export function WorkspaceKanban() {
       if (activeIndex === -1) return prev
 
       const [movedTask] = activeItems.splice(activeIndex, 1)
-      const reviewPatch =
-        overContainer === 'completed'
-          ? { reviewStatus: requiresReview ? REVIEW_STATUS.PENDING : REVIEW_STATUS.APPROVED }
-          : {}
       const normalizedTask = toKanbanTask(
-        normalizeTaskForColumn({ ...movedTask, ...reviewPatch }, overContainer),
+        normalizeTaskForColumn(
+          requiresReview
+            ? movedTask
+            : {
+                ...movedTask,
+                pendingAdvanceRequest: null,
+                reviewStatus:
+                  movedTask.reviewStatus === REVIEW_STATUS.PENDING ? null : movedTask.reviewStatus,
+              },
+          overContainer,
+        ),
       )
 
       let insertIndex = overItems.length
@@ -102,9 +124,25 @@ export function WorkspaceKanban() {
 
   const handleDragEnd = ({ active, over }) => {
     setActiveTask(null)
+    const origin = dragOriginRef.current
+    dragOriginRef.current = null
 
     if (!over) {
       reloadColumns()
+      return
+    }
+
+    const destination = findTaskContainer(columns, active.id)
+    if (requiresReview && origin && destination && isForwardMove(origin, destination)) {
+      const task = columns[destination].find((item) => item.id === active.id)
+      reloadColumns()
+      if (task?.pendingAdvanceRequest) {
+        window.alert('This task is already waiting for the leader’s approval.')
+      } else if (!canProgressTask(task, user?.id)) {
+        window.alert('Only the person assigned to this task can ask to move it forward.')
+      } else {
+        markProgress(active.id, destination === 'completed' ? 'complete' : 'start')
+      }
       return
     }
 

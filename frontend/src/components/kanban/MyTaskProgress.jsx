@@ -46,7 +46,7 @@ export function MyTaskProgress({ summary, showMineOnly, onToggleMineOnly }) {
             <Stat label="To do" value={summary.todo} />
             <Stat label="In progress" value={summary.inProgress} />
             <Stat
-              label="In review"
+              label="Awaiting OK"
               value={summary.inReview ?? 0}
               tone={summary.inReview > 0 ? 'text-sky-700' : undefined}
             />

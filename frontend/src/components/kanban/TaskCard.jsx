@@ -20,6 +20,8 @@ export function TaskCard({
   priority = null,
   reviewStatus = null,
   reviewNote = null,
+  pendingAdvanceRequest = null,
+  needsApproval = false,
   isStalled = false,
   canReview = false,
   pendingRegressRequest = null,
@@ -35,15 +37,17 @@ export function TaskCard({
   onOpenDetails,
   dragHandleProps,
 }) {
-  const awaitingReview = status === 'completed' && reviewStatus === 'pending'
-  const sentBack = status !== 'completed' && reviewStatus === 'changes_requested'
+  const awaitingReview = Boolean(pendingAdvanceRequest)
+  const pendingStepLabel =
+    pendingAdvanceRequest?.targetStatus === 'completed' ? 'mark this done' : 'start this task'
+  const sentBack = !awaitingReview && status !== 'completed' && reviewStatus === 'changes_requested'
 
   return (
     <article
       className={cn(
         'rounded-lg border border-border bg-surface p-3 transition',
         variant === 'highlight' && 'border-ochre/40 bg-ochre-soft/50',
-        variant === 'completed' && !awaitingReview && 'border-brand-200 bg-brand-50/60',
+        variant === 'completed' && 'border-brand-200 bg-brand-50/60',
         awaitingReview && 'border-sky-200 bg-sky-50/60',
         isDragging && 'ring-2 ring-brand-200',
       )}
@@ -103,7 +107,7 @@ export function TaskCard({
               {awaitingReview ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-surface px-2 py-0.5 text-[10px] font-semibold text-sky-700">
                   <Clock className="h-3 w-3" />
-                  Awaiting review
+                  Awaiting approval
                 </span>
               ) : null}
             </div>
@@ -126,27 +130,39 @@ export function TaskCard({
 
           {sentBack ? (
             <div className="mt-3 rounded-lg border border-ochre/30 bg-ochre-soft/50 px-3 py-2">
-              <p className="text-xs font-semibold text-ochre">Sent back by the leader</p>
+              <p className="text-xs font-semibold text-ochre">Leader declined the last step</p>
               {reviewNote ? <p className="mt-0.5 text-xs text-ink">{reviewNote}</p> : null}
             </div>
           ) : null}
 
-          {awaitingReview && canReview ? (
-            <div className="mt-3 flex gap-2">
-              <button
-                type="button"
-                onClick={onApproveReview}
-                className="min-h-9 flex-1 rounded-md bg-brand-600 px-2 text-xs font-semibold text-surface"
-              >
-                Accept
-              </button>
-              <button
-                type="button"
-                onClick={onRequestChanges}
-                className="min-h-9 flex-1 rounded-md border border-border bg-surface px-2 text-xs font-semibold text-ink"
-              >
-                Send back
-              </button>
+          {awaitingReview ? (
+            <div className="mt-3 rounded-lg border border-sky-200 bg-sky-50/70 px-3 py-2">
+              <p className="text-xs font-semibold text-sky-800">
+                {pendingAdvanceRequest.requestedBy?.name ?? 'A member'} asked to {pendingStepLabel}
+              </p>
+              <p className="mt-0.5 text-xs text-muted">
+                {canReview
+                  ? 'The task moves only after you approve.'
+                  : 'Waiting for the group leader to approve.'}
+              </p>
+              {canReview ? (
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={onApproveReview}
+                    className="min-h-9 flex-1 rounded-md bg-brand-600 px-2 text-xs font-semibold text-surface"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onRequestChanges}
+                    className="min-h-9 flex-1 rounded-md border border-border bg-surface px-2 text-xs font-semibold text-ink"
+                  >
+                    Decline
+                  </button>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -180,7 +196,7 @@ export function TaskCard({
             </div>
           ) : null}
 
-          {canProgress && !pendingRegressRequest ? (
+          {canProgress && !pendingRegressRequest && !awaitingReview ? (
             <div className="mt-3 flex gap-2">
               {status === 'todo' ? (
                 <button
@@ -189,7 +205,7 @@ export function TaskCard({
                   className="inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-md border border-border bg-page px-2 text-xs font-semibold text-ink transition hover:bg-brand-50"
                 >
                   <Play className="h-3.5 w-3.5" />
-                  Start
+                  {needsApproval ? 'Ask to start' : 'Start'}
                 </button>
               ) : null}
               {status === 'todo' || status === 'in_progress' ? (
@@ -199,7 +215,7 @@ export function TaskCard({
                   className="inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-md bg-brand-600 px-2 text-xs font-semibold text-surface transition hover:bg-brand-700"
                 >
                   <Check className="h-3.5 w-3.5" />
-                  Done
+                  {needsApproval ? 'Ask to finish' : 'Done'}
                 </button>
               ) : null}
             </div>

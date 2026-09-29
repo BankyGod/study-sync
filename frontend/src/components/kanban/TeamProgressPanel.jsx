@@ -56,7 +56,7 @@ function MemberRow({ row, isSelf, canNudge, onNudge, onOpenTask }) {
               </Badge>
             ) : null}
             {row.stalled > 0 ? <Badge tone="danger">{row.stalled} stalled</Badge> : null}
-            {row.inReview > 0 ? <Badge tone="info">{row.inReview} in review</Badge> : null}
+            {row.inReview > 0 ? <Badge tone="info">{row.inReview} awaiting approval</Badge> : null}
           </div>
 
           {row.total > 0 ? (

@@ -10,7 +10,7 @@ import {
   describeActivity,
   getLastActivityAt,
   getTaskActivity,
-  isAwaitingReview,
+  getPendingStep,
   isTaskStalled,
 } from '@/services/workspaceTaskService'
 
@@ -47,9 +47,11 @@ export function TaskDetailsModal() {
   const activity = getTaskActivity(task)
   const lastActivity = getLastActivityAt(task)
   const stalled = isTaskStalled(task)
-  const statusLabel = isAwaitingReview(task)
-    ? 'Awaiting leader review'
-    : (STATUS_LABELS[task.status] ?? 'To do')
+  const pendingStep = getPendingStep(task)
+  const baseStatus = STATUS_LABELS[task.status] ?? 'To do'
+  const statusLabel = pendingStep
+    ? `${baseStatus} · waiting for leader to approve ${pendingStep === 'complete' ? 'Done' : 'start'}`
+    : baseStatus
 
   const handleNudge = async () => {
     const message = window.prompt(
@@ -91,7 +93,7 @@ export function TaskDetailsModal() {
 
       {task.reviewNote ? (
         <div className="mt-4 rounded-lg border border-ochre/30 bg-ochre-soft/50 px-3 py-2">
-          <p className="text-xs font-semibold text-ochre">Leader&apos;s review note</p>
+          <p className="text-xs font-semibold text-ochre">Leader&apos;s note</p>
           <p className="mt-0.5 text-sm text-ink">{task.reviewNote}</p>
         </div>
       ) : null}

@@ -11,11 +11,12 @@ import {
   canReviewTask,
   getTaskColumnId,
   isTaskStalled,
+  requiresLeaderApproval,
 } from '@/services/workspaceTaskService'
 import { cn } from '@/utils/cn'
 
 export function SortableTaskCard({ task }) {
-  const { isLeader, userId } = useWorkspaceLeader()
+  const { isLeader, leaderId, userId } = useWorkspaceLeader()
   const {
     columns,
     openEditTaskModal,
@@ -42,7 +43,7 @@ export function SortableTaskCard({ task }) {
   const canResolveRegress = Boolean(pending && canModerateTask(task, userId, { isLeader }))
 
   const handleRequestChanges = () => {
-    const note = window.prompt('What needs to change? The assignee will see this note.')
+    const note = window.prompt('Why are you declining this step? The assignee will see this note.')
     if (note === null) return
     reviewTask(task.id, REVIEW_STATUS.CHANGES_REQUESTED, note)
   }
@@ -58,6 +59,8 @@ export function SortableTaskCard({ task }) {
         priority={task.priority}
         reviewStatus={task.reviewStatus}
         reviewNote={task.reviewNote}
+        pendingAdvanceRequest={task.pendingAdvanceRequest}
+        needsApproval={requiresLeaderApproval({ isLeader, leaderId })}
         isStalled={isTaskStalled({ ...task, status })}
         canReview={canReviewTask(task, userId, { isLeader })}
         isDragging={isDragging}

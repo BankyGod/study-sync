@@ -1314,7 +1314,8 @@ Group leader removes another member from the pod.
 | Leave the pod | Only after transferring leadership (unless last member) | Yes |
 | Rename the pod | **No** | **No** |
 | Set / change task **due date** and **priority** | **Yes (sole)** | No (fields ignored or `403`) |
-| Accept or send back completed work (review) | **Yes (sole)** | No |
+| Move a task forward (start / complete) | Directly | Only by request. Leader must approve |
+| Approve or decline a step request | **Yes (sole)** | No |
 | Nudge (remind) a member | **Yes (sole)** | No |
 | Pin / edit / remove the pod announcement | **Yes (sole)** | View only |
 
@@ -1327,15 +1328,16 @@ Every pod member can see every other member's task progress (full transparency).
 | Field | Type | Notes |
 |-------|------|-------|
 | `priority` | `"low" \| "medium" \| "high" \| null` | Leader-only write |
-| `reviewStatus` | `null \| "pending" \| "approved" \| "changes_requested"` | See review flow |
-| `reviewNote` | `string \| null` | Leader's note when sending work back |
+| `reviewStatus` | `null \| "pending" \| "approved" \| "changes_requested"` | See step approval |
+| `pendingAdvanceRequest` | object \| null | Forward move waiting for the leader. See step approval |
+| `reviewNote` | `string \| null` | Leader's note when declining a step |
 | `reviewedAt` | ISO datetime \| null | |
 | `reviewedBy` | `{ id, name } \| null` | |
 | `startedAt` | ISO datetime \| null | Already specified; required for stall detection |
 | `lastActivityAt` | ISO datetime | Bump on create, start, complete, review, edit, reassignment. **Not** on nudge |
 | `activity` | array (newest last or first — frontend sorts) | See below |
 
-`activity[]` entry: `{ "id", "type", "at", "actor": { "id", "name" }, "note"? }` where `type` is one of `created`, `assigned`, `updated`, `started`, `completed`, `review_requested`, `approved`, `changes_requested`, `nudged`, `regress_requested`. Cap to the latest ~50 entries per task. If `activity` is omitted, the frontend builds a minimal history from `createdAt` / `startedAt` / `completedAt` / `reviewedAt`.
+`activity[]` entry: `{ "id", "type", "at", "actor": { "id", "name" }, "note"? }` where `type` is one of `created`, `assigned`, `updated`, `started`, `completed`, `start_requested`, `completion_requested`, `approved`, `changes_requested`, `nudged`, `regress_requested`. Cap to the latest ~50 entries per task. If `activity` is omitted, the frontend builds a minimal history from `createdAt` / `startedAt` / `completedAt` / `reviewedAt`.
 
 #### Due date and priority (leader-only)
 
@@ -1344,23 +1346,47 @@ Every pod member can see every other member's task progress (full transparency).
 - on create: ignore `dueDate` / `priority` (store `null`);
 - on update: reject a change to either with `403 FORBIDDEN` (`"Only the group leader can set due dates and priority."`). The frontend omits both fields for non-leaders, so any change is intentional.
 
-#### Review flow (Done → Awaiting review → accept / send back)
+#### Step approval (leader approves every column move)
 
-1. When the **assignee** completes a task (`POST .../progress { "action": "complete" }` **or** a reorder/PATCH into `completed`):
-   - If the pod has a leader and the completer is **not** the leader → `status = completed`, `reviewStatus = "pending"`. Notify the leader: `task.review_requested`.
-   - If the completer is the leader (or the pod has no leader) → `reviewStatus = "approved"` immediately.
-2. `POST /api/workspaces/:groupId/tasks/:taskId/review` — **leader only**, task must have `reviewStatus = "pending"`.
+**Rule:** in a pod that has a leader, a task never changes column unless the leader did it or approved it. This covers every step:
+
+| Step | Who can move directly | Everyone else |
+|------|-----------------------|---------------|
+| To do → In progress | Leader | Assignee sends a **start request** |
+| In progress → Done (or To do → Done) | Leader | Assignee sends a **completion request** |
+| Any backward move | Leader | Regress request (existing flow, leader approves) |
+
+Pods with no leader keep the old behaviour (assignee moves directly).
+
+New task field `pendingAdvanceRequest`:
+
+```json
+{
+  "id": "uuid",
+  "fromStatus": "todo",
+  "targetStatus": "in_progress",
+  "requestedAt": "2026-09-29T10:00:00.000Z",
+  "requestedBy": { "id": "uuid", "name": "Alex" }
+}
+```
+
+1. `POST /api/workspaces/:groupId/tasks/:taskId/progress` `{ "action": "start" | "complete" }`:
+   - **Leader** caller → move immediately (current behaviour), clear any `pendingAdvanceRequest`.
+   - **Assignee (non-leader)** → do **not** move. Store `pendingAdvanceRequest` (`targetStatus` = `in_progress` for start, `completed` for complete), set `reviewStatus = "pending"`, append a `start_requested` / `completion_requested` activity entry, notify the leader with `task.review_requested` (`data.targetStatus`). Respond `202` with the task.
+   - `409 ADVANCE_ALREADY_PENDING` if a request already exists; `403` if caller is not the assignee or leader.
+2. **Reorder / PATCH** (`PUT .../tasks/reorder`, `PATCH .../tasks/:taskId`): a non-leader changing `status` to a later column → `409 ADVANCE_REQUIRES_APPROVAL` (same pattern as `REGRESS_REQUIRES_APPROVAL`). The frontend never sends this. It converts forward drags into the progress call above.
+3. `POST /api/workspaces/:groupId/tasks/:taskId/review` is **leader only** and requires a `pendingAdvanceRequest`.
 
    ```json
    { "decision": "approved" | "changes_requested", "note": "optional, max 500 chars" }
    ```
 
-   - `approved` → stays in `completed`, `reviewStatus = "approved"`, set `reviewedAt` / `reviewedBy`. Notify assignee: `task.review_approved`.
-   - `changes_requested` → move to `in_progress`, clear `completedAt`, `reviewStatus = "changes_requested"`, store `reviewNote`. Notify assignee: `task.changes_requested` (include note).
-   - Response: full task object (or full board). Broadcast `task:updated` to the pod room.
-   - Errors: `403` not leader, `409 TASK_NOT_AWAITING_REVIEW` if not pending.
-3. Moving a task out of `completed` by any other route clears a `pending` review.
-4. Pod progress percentages count only **approved** completions as done.
+   - `approved` → move to `pendingAdvanceRequest.targetStatus` (set `startedAt` if missing; set `completedAt` + `variant: "completed"` when target is `completed`), clear the request, `reviewStatus = "approved"`, set `reviewedAt` / `reviewedBy`, clear `reviewNote`. Notify assignee: `task.review_approved`.
+   - `changes_requested` (UI label "Decline") → task **stays in its current column**, clear the request, `reviewStatus = "changes_requested"`, store `reviewNote`. Notify assignee: `task.changes_requested` (include note).
+   - Response: full task (or full board). Broadcast `task:updated` to the pod room.
+   - Errors: `403` not leader, `409 TASK_NOT_AWAITING_REVIEW` if no pending request.
+4. If the leader drags a task that has a pending request, the move wins. Clear the request.
+5. Because tasks only reach `completed` with leader approval, progress percentages simply count the `completed` column.
 
 #### Stalled tasks
 

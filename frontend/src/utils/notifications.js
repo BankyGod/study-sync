@@ -53,17 +53,17 @@ const TYPE_META = {
     accent: 'bg-red-50 text-red-800',
   },
   'task.review_requested': {
-    label: 'Needs review',
+    label: 'Needs approval',
     icon: ClipboardCheck,
     accent: 'bg-sky-50 text-sky-700',
   },
   'task.review_approved': {
-    label: 'Work accepted',
+    label: 'Step approved',
     icon: CheckCircle2,
     accent: 'bg-brand-100 text-brand-800',
   },
   'task.changes_requested': {
-    label: 'Sent back',
+    label: 'Step declined',
     icon: RotateCcw,
     accent: 'bg-ochre-soft text-ochre',
   },

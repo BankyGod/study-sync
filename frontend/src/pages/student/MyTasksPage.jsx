@@ -7,7 +7,8 @@ import { fetchUserGroups, getUserGroupsErrorMessage } from '@/services/usersServ
 import {
   REVIEW_STATUS,
   formatTaskFooter,
-  isAwaitingReview,
+  getPendingStep,
+  isAwaitingApproval,
   isTaskDone,
   loadMyAssignedTasks,
   progressGroupTask,
@@ -64,20 +65,22 @@ function MyTaskRow({ task, isBusy, onProgress }) {
               {task.dueTag}
             </span>
           ) : null}
-          {isAwaitingReview(task) ? (
+          {isAwaitingApproval(task) ? (
             <span className="rounded-md bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700">
-              Awaiting leader review
+              Waiting for leader to approve {getPendingStep(task) === 'complete' ? 'Done' : 'start'}
             </span>
           ) : null}
         </p>
-        {task.status !== 'completed' && task.reviewStatus === REVIEW_STATUS.CHANGES_REQUESTED ? (
+        {!isAwaitingApproval(task) &&
+        task.status !== 'completed' &&
+        task.reviewStatus === REVIEW_STATUS.CHANGES_REQUESTED ? (
           <p className="mt-1.5 rounded-md bg-ochre-soft/60 px-2 py-1 text-xs text-ochre">
-            Sent back by the leader{task.reviewNote ? `: ${task.reviewNote}` : '.'}
+            Leader declined the last step{task.reviewNote ? `: ${task.reviewNote}` : '.'}
           </p>
         ) : null}
       </div>
 
-      {task.status !== 'completed' && !task.pendingRegressRequest ? (
+      {task.status !== 'completed' && !task.pendingRegressRequest && !isAwaitingApproval(task) ? (
         <div className="flex shrink-0 gap-2">
           {task.status === 'todo' ? (
             <button

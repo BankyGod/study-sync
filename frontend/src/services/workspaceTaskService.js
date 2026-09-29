@@ -66,16 +66,24 @@ export function toKanbanTask(task) {
     priority: task.priority ?? null,
     reviewStatus: task.reviewStatus ?? task.review_status ?? null,
     reviewNote: task.reviewNote ?? task.review_note ?? null,
+    pendingAdvanceRequest: task.pendingAdvanceRequest ?? task.pendingProgressRequest ?? null,
   }
 }
 
-export function isAwaitingReview(task) {
-  return task?.reviewStatus === REVIEW_STATUS.PENDING
+/** A member asked to move the task forward and the leader has not decided yet. */
+export function isAwaitingApproval(task) {
+  return Boolean(task?.pendingAdvanceRequest)
 }
 
-/** Completed and not waiting on the leader's review. */
+/** `'start'` or `'complete'` while a forward move waits for the leader, otherwise null. */
+export function getPendingStep(task) {
+  const target = task?.pendingAdvanceRequest?.targetStatus
+  if (!target) return null
+  return target === 'completed' ? 'complete' : 'start'
+}
+
 export function isTaskDone(task) {
-  return getTaskStatus(task) === 'completed' && !isAwaitingReview(task)
+  return getTaskStatus(task) === 'completed'
 }
 
 function getTaskStatus(task) {
@@ -106,16 +114,21 @@ export function getLastActivityAt(task) {
 }
 
 export function isTaskStalled(task, now = Date.now()) {
-  if (getTaskStatus(task) !== 'in_progress') return false
+  if (getTaskStatus(task) !== 'in_progress' || isAwaitingApproval(task)) return false
   const last = getLastActivityAt(task)
   if (!last) return false
   return now - last.getTime() > STALL_DAYS * 86_400_000
 }
 
-/** Leader reviews completed work from other members. */
+/** Leader approves or declines every forward step (start, complete) requested by members. */
 export function canReviewTask(task, userId, options = {}) {
   if (!userId || !options.isLeader) return false
-  return isAwaitingReview(task)
+  return isAwaitingApproval(task)
+}
+
+/** Forward moves by anyone other than the leader need the leader's approval. */
+export function requiresLeaderApproval({ isLeader, leaderId } = {}) {
+  return Boolean(leaderId) && !isLeader
 }
 
 /** Leader reminds the assignee about unfinished work. */
@@ -135,9 +148,11 @@ const ACTIVITY_LABELS = {
   assigned: 'assigned it',
   started: 'started working',
   completed: 'marked it done',
-  review_requested: 'submitted it for review',
-  approved: 'accepted the work',
-  changes_requested: 'sent it back',
+  start_requested: 'asked to start',
+  completion_requested: 'asked to mark it done',
+  review_requested: 'asked to mark it done',
+  approved: 'approved the step',
+  changes_requested: 'declined the step',
   nudged: 'sent a reminder',
   regress_requested: 'asked to move it back',
   updated: 'updated the task',
@@ -161,11 +176,14 @@ export function getTaskActivity(task) {
     entries.push({ id: 'started', type: 'started', at: task.startedAt, actor: task.assignee })
   }
   if (task?.completedAt) {
+    entries.push({ id: 'completed', type: 'completed', at: task.completedAt, actor: task.assignee })
+  }
+  if (task?.pendingAdvanceRequest?.requestedAt) {
     entries.push({
-      id: 'completed',
-      type: isAwaitingReview(task) ? 'review_requested' : 'completed',
-      at: task.completedAt,
-      actor: task.assignee,
+      id: 'advance-requested',
+      type: getPendingStep(task) === 'complete' ? 'completion_requested' : 'start_requested',
+      at: task.pendingAdvanceRequest.requestedAt,
+      actor: task.pendingAdvanceRequest.requestedBy,
     })
   }
   if (task?.reviewedAt && task?.reviewStatus && task.reviewStatus !== REVIEW_STATUS.PENDING) {
@@ -261,7 +279,6 @@ export function normalizeTaskForColumn(task, columnId) {
     status: columnId,
     variant: base.variant === 'completed' ? 'default' : base.variant,
     completedAt: undefined,
-    reviewStatus: base.reviewStatus === REVIEW_STATUS.PENDING ? null : base.reviewStatus,
   }
 }
 
@@ -355,9 +372,8 @@ function summarizeTasks(tasks) {
   const byStatus = (status) => tasks.filter((task) => getTaskStatus(task) === status)
   const todo = byStatus('todo')
   const inProgress = byStatus('in_progress')
-  const completedColumn = byStatus('completed')
-  const inReview = completedColumn.filter(isAwaitingReview)
-  const done = completedColumn.length - inReview.length
+  const inReview = tasks.filter(isAwaitingApproval)
+  const done = byStatus('completed').length
   const total = tasks.length
   const lastActivity = tasks.reduce((latest, task) => {
     const at = getLastActivityAt(task)
@@ -570,7 +586,10 @@ export async function updateGroupTask(
   return loadGroupTasks(groupId)
 }
 
-/** Leader accepts completed work or sends it back to In progress with a note. */
+/**
+ * Leader approves the pending step (task moves to the requested column) or declines it
+ * (task stays where it is, with the leader's note).
+ */
 export async function reviewGroupTask(groupId, taskId, decision, note = '') {
   const trimmedNote = String(note ?? '').trim()
 
@@ -579,18 +598,25 @@ export async function reviewGroupTask(groupId, taskId, decision, note = '') {
     const fromStatus = getTaskColumnId({ id: taskId }, columns)
     const task = columns[fromStatus].find((item) => item.id === taskId)
     if (!task) throw new Error('Task not found.')
+    if (!task.pendingAdvanceRequest) throw new Error('This task has no step waiting for approval.')
 
     const reviewer = buildDevCreator()
     const reviewedAt = new Date().toISOString()
     const approved = decision === REVIEW_STATUS.APPROVED
-    const targetStatus = approved ? 'completed' : 'in_progress'
+    const requestedStatus = task.pendingAdvanceRequest.targetStatus
+    const targetStatus = approved ? requestedStatus : fromStatus
     const reviewed = withActivity(
       {
         ...stripKanbanFields(task),
+        pendingAdvanceRequest: null,
         reviewStatus: approved ? REVIEW_STATUS.APPROVED : REVIEW_STATUS.CHANGES_REQUESTED,
-        reviewNote: trimmedNote || null,
+        reviewNote: approved ? null : trimmedNote || null,
         reviewedAt,
         reviewedBy: reviewer,
+        ...(approved && !task.startedAt ? { startedAt: reviewedAt } : {}),
+        ...(approved && requestedStatus === 'completed'
+          ? { completedAt: reviewedAt.slice(0, 10) }
+          : {}),
       },
       approved ? 'approved' : 'changes_requested',
       trimmedNote,
@@ -681,7 +707,11 @@ export async function removeGroupTask(groupId, taskId) {
   return loadGroupTasks(groupId)
 }
 
-/** `requiresReview` is only used in dev mode; the API decides this server-side. */
+/**
+ * Moves a task forward. When `requiresReview` is set the task stays put and a step request
+ * is sent to the leader instead. `requiresReview` is only used in dev mode; the API decides
+ * this server-side.
+ */
 export async function progressGroupTask(groupId, taskId, action, { requiresReview = false } = {}) {
   if (DEV_BYPASS_AUTH) {
     const columns = readLocalTasks(groupId)
@@ -690,6 +720,37 @@ export async function progressGroupTask(groupId, taskId, action, { requiresRevie
     if (!task) throw new Error('Task not found.')
 
     const nextStatus = action === 'complete' ? 'completed' : 'in_progress'
+
+    if (requiresReview) {
+      if (task.pendingAdvanceRequest) {
+        throw new Error('This task is already waiting for the leader’s approval.')
+      }
+      const requester = buildDevCreator()
+      const requested = withActivity(
+        {
+          ...stripKanbanFields(task),
+          reviewStatus: REVIEW_STATUS.PENDING,
+          reviewNote: null,
+          pendingAdvanceRequest: {
+            id: crypto.randomUUID(),
+            fromStatus,
+            targetStatus: nextStatus,
+            requestedAt: new Date().toISOString(),
+            requestedBy: requester,
+          },
+        },
+        action === 'complete' ? 'completion_requested' : 'start_requested',
+      )
+      const pendingColumns = COLUMN_IDS.reduce((acc, columnId) => {
+        acc[columnId] = columns[columnId].map((item) =>
+          item.id === taskId ? toKanbanTask(requested) : item,
+        )
+        return acc
+      }, {})
+      writeLocalTasks(groupId, pendingColumns)
+      return readLocalTasks(groupId)
+    }
+
     const nextColumns = COLUMN_IDS.reduce(
       (acc, columnId) => {
         acc[columnId] = columns[columnId].filter((item) => item.id !== taskId)
@@ -709,14 +770,14 @@ export async function progressGroupTask(groupId, taskId, action, { requiresRevie
                 action === 'start'
                   ? new Date().toISOString()
                   : (task.startedAt ?? new Date().toISOString()),
+              pendingAdvanceRequest: null,
+              reviewStatus: null,
+              reviewNote: null,
               ...(action === 'complete'
-                ? {
-                    completedAt: new Date().toISOString().slice(0, 10),
-                    reviewStatus: requiresReview ? REVIEW_STATUS.PENDING : REVIEW_STATUS.APPROVED,
-                  }
+                ? { completedAt: new Date().toISOString().slice(0, 10) }
                 : {}),
             },
-            action === 'start' ? 'started' : requiresReview ? 'review_requested' : 'completed',
+            action === 'start' ? 'started' : 'completed',
           ),
           nextStatus,
         ),
